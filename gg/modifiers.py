@@ -52,8 +52,8 @@ class add(parent_modifier):
         self.movie = movie
         
     def get_modified_atoms(self):
-        self.df, self.G = self.ss.get_surface_sites(self.atoms)
-        movie = generate_sites(self.atoms, self.ads, self.G, self.df["ind"], self.ads_coord, ad_dist = self.ad_dist, contact_error = self.ss.contact_error)
+        self.df_ind, self.G = self.ss.get_surface_sites(self.atoms)
+        movie = generate_sites(self.atoms, self.ads, self.G, self.df_ind, self.ads_coord, ad_dist = self.ad_dist, contact_error = self.ss.contact_error)
 
         if self.movie:
             return movie
@@ -66,7 +66,7 @@ class remove(parent_modifier):
         self.ss = surface_sites
         
     def get_modified_atoms(self):
-        self.df, self.G = self.ss.get_surface_sites(self.atoms)
-        ind_to_remove = int(self.df["ind"].to_list()[0])
+        self.df_ind, self.G = self.ss.get_surface_sites(self.atoms)
+        ind_to_remove = int(self.df_ind.to_list()[0])
         del self.atoms[ind_to_remove]
         return self.atoms
