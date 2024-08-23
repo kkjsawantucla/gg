@@ -166,14 +166,7 @@ def generate_sites(atoms, ads, graph, index, coordination, ad_dist = 1.7, contac
                     valid.append(list(cycle))
 
     movie = []
-    for cycle in valid:
-        normal, ref_pos = get_normals(cycle,atoms,graph)
-        offset = normal*ad_dist/norm(normal)
-        ads_copy = ads.copy()
-        ads_copy.rotate([0, 0, 1], normal, center=[0,0,0])
-        new_atoms = add_ads(atoms,ads_copy,ref_pos,offset=offset)
-        if check_contact(new_atoms,error = contact_error):
-            print(f"Issue at {cycle}")    
+    for cycle in valid:  
         movie.append(new_atoms)
     return movie
 
@@ -221,6 +214,6 @@ class surface_sites:
         else:
             df = df[df['symbol'].isin(self.surf_atom_sym)]
         df = df.sort_values(by=['cord','z_coord'])
-        return df, G
+        return df["ind"], G
 
         
