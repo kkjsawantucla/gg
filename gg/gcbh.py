@@ -10,28 +10,7 @@ import subprocess
 import os
 import sys
 import shutil
-from distutils.version import LooseVersion
-
 import numpy as np
-assert LooseVersion(np.version.version) > LooseVersion("1.7.0")
-
-class PropertyNotImplementedError(NotImplementedError):
-    pass
-
-
-class NoReasonableStructureFound(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
-
-class UnreasonableStructureFound(Exception):
-    pass
-
-
-class FragmentedStructure(Exception):
-    pass
 
 
 def get_current_time():
@@ -57,7 +36,6 @@ class GrandCanonicalBasinHopping(Dynamics):
                  logfile='grandcanonical.log',
                  trajectory='grandcanonical.traj',
                  local_minima_trajectory='local_minima.traj',
-                 adjust_cm=False,
                  restart=False,
                  chemical_potential=None,
                  bash_script="optimize.sh",
@@ -96,7 +74,6 @@ class GrandCanonicalBasinHopping(Dynamics):
 
         self.structure_modifiers={}
 
-        self.adjust_cm = adjust_cm
 
         self.lm_trajectory = local_minima_trajectory
         if isinstance(local_minima_trajectory, str):
@@ -106,22 +83,24 @@ class GrandCanonicalBasinHopping(Dynamics):
         Dynamics.__init__(self, atoms, logfile, trajectory)
 
         # print the program logo at the beginning of the output file
-        self.logfile.write("%s\n" % programlogo)
+        self.logfile.write("Begin GCBH")
         self.logfile.flush()
 
         # setup the chemical potential for different elements
         self.mu={}
-        if chemical_potential is not None and os.path.isfile(chemical_potential):
-            with open(chemical_potential, "r") as fp:
-                for i, istr in enumerate(fp):
-                    if istr.strip() == "":
-                        continue
-                    k, v=istr.split()
-                    self.mu[k]=float(v)
-        else:
-            raise RuntimeError("chemical potential file %s is not found" % chemical_potential)
-        for k, v in self.mu.items():
-            self.dumplog("Chemical potential of %s is %.3f" % (k, v))
+        if chemical_potential:
+            if os.path.isfile(chemical_potential):
+                with open(chemical_potential, "r") as fp:
+                    for i, istr in enumerate(fp):
+                        if istr.strip() == "":
+                            continue
+                        k, v=istr.split()
+                        self.mu[k]=float(v)
+            else:
+                raise RuntimeError("chemical potential file %s is not found" % chemical_potential)
+            
+            for k, v in self.mu.items():
+                self.dumplog("Chemical potential of %s is %.3f" % (k, v))
 
         # try to read previous result
         if self.restart:
@@ -148,6 +127,7 @@ class GrandCanonicalBasinHopping(Dynamics):
         self.energy_min = None
         self.free_energy_min = None
         self.no_improvement_step = 0
+        
         # negative value indicates no on-going structure optimization, otherwise it will be the  on-going optimization
         self.on_optimization = -1
 
@@ -159,10 +139,6 @@ class GrandCanonicalBasinHopping(Dynamics):
             self.initialize()
         else:
             self.reload_previous_results()
-
-    def todict(self):
-        d = {}
-        return d
 
     def dumplog(self, msg="", level=1, highlight=None):
         if level < 1:
@@ -331,27 +307,18 @@ class GrandCanonicalBasinHopping(Dynamics):
 
             for number_of_trials in range(maximum_trial):
                 modifier_name = self.select_modifier()
-                try:
-                    new_atoms = self.move(modifier_name=modifier_name)
-                except NoReasonableStructureFound as emsg:  # emsg stands for error message
-                    if not isinstance(emsg, str):
-                        emsg = "Unknown"
-                    self.dumplog("%s did not find a good structure because of %s" % (modifier_name, emsg))
-                else:
-                    self.on_optimization = self.nsteps
-                    self.dumplog("One structure found, begin to optimize this structure\n")
+                new_atoms = self.move(modifier_name=modifier_name)
+                self.on_optimization = self.nsteps
+                self.dumplog("One structure found, begin to optimize this structure\n")
 
-                    self.save_current_status()  
-                    self.optimize(inatoms=new_atoms)
+                self.save_current_status()  
+                self.optimize(inatoms=new_atoms)
                    
-                    self.accepting_new_structures(newatoms=new_atoms, move_action=modifier_name)
-                    self.on_optimization = -1
+                self.accepting_new_structures(newatoms=new_atoms, move_action=modifier_name)
+                self.on_optimization = -1
                     
-                    self.save_current_status()
-                    self.nsteps += 1
-                    break
-            else:
-                raise RuntimeError("Program does not find a good structure after {} tests".format(maximum_trial))
+                self.save_current_status()
+                self.nsteps += 1
 
     def accepting_new_structures(self, newatoms=None, move_action=None):
         """This function takes care of all the accepting algorithm. I.E metropolis algorithms
