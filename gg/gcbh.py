@@ -1,19 +1,25 @@
-from ase.optimize.optimize import Dynamics
-from ase import units
-from ase.io import read, write
-import json
-from time import strftime, localtime
-from ase.calculators.singlepoint import SinglePointCalculator
-from ase.calculators.calculator import PropertyNotImplementedError
-from ase.io.trajectory import Trajectory
+"""Importing Modules """
 import subprocess
 import os
 import sys
 import shutil
+import json
+from time import strftime, localtime
 import numpy as np
+import yaml
+from ase import units
+from ase.optimize.optimize import Dynamics
+from ase.io import read, write
+from ase.calculators.singlepoint import SinglePointCalculator
+from ase.calculators.calculator import PropertyNotImplementedError
 
+__author__="Kaustubh Sawant, Geng Sun"
 
 def get_current_time():
+    """
+    Returns:
+        str: time
+    """
     time_label = strftime("%d-%b-%Y %H:%M:%S", localtime())
     return time_label
 
@@ -29,18 +35,9 @@ class GrandCanonicalBasinHopping(Dynamics):
     """
 
     def __init__(self, atoms,
-                 temperature=1500.0,
-                 maximum_temp=None,
-                 minimum_temp=None,
-                 stop_steps=400,
                  logfile='grandcanonical.log',
                  trajectory='grandcanonical.traj',
-                 local_minima_trajectory='local_minima.traj',
-                 restart=False,
-                 chemical_potential=None,
-                 bash_script="optimize.sh",
-                 files_to_copied=None,
-                 ):
+                 config_file=None):
         """Parameters:
 
         atoms: Atoms object
@@ -53,19 +50,29 @@ class GrandCanonicalBasinHopping(Dynamics):
             If *logfile* is a string, a file with that name will be opened.
             Use '-' for stdout.
         """
-        self.T = temperature
-        if maximum_temp is None:
-            self.max_T = 1.0/((1.0/self.T)/1.5)
+        self.config = {'temp': 1500, 'max_temp': None, 'min_temp': None,
+                       'stop_steps': 400, 'restart': False, 'chemical_potential': None, 
+                       'bash_script': 'optimize.sh', 'files_to_copied': None}
+        if config_file:
+            self.set_config(config_file)
+
+        self.atoms = atoms
+        self.t = self.config['temp']
+
+        if self.config['max_temp'] is None:
+            self.max_t = 1.0/((1.0/self.t)/1.5)
         else:
-            self.max_T = max([maximum_temp, self.T])
-        if minimum_temp is None:
-            self.min_T = 1.0/((1.0/self.T)*1.5)
+            self.max_t = max([self.config['max_temp'], self.t])
+
+        if self.config['min_temp'] is None:
+            self.min_t = 1.0/((1.0/self.t)*1.5)
         else:
-            self.min_T = min([minimum_temp, self.T])
-        self.stop_steps = stop_steps
-        self.restart = restart
-        self.bash_script = bash_script
-        self.copied_files = files_to_copied
+            self.min_t = min([self.config['min_temp'], self.t])
+
+        self.stop_steps = self.config['stop_steps']
+        self.restart = self.config['restart']
+        self.bash_script = self.config['bash_script']
+        self.copied_files = self.config['files_to_copied']
 
         # some file names and folders are hardcoded
         self.fn_current_atoms = "Current_atoms.traj"
@@ -74,52 +81,36 @@ class GrandCanonicalBasinHopping(Dynamics):
 
         self.structure_modifiers={}
 
-
-        self.lm_trajectory = local_minima_trajectory
-        if isinstance(local_minima_trajectory, str):
-            self.lm_trajectory = Trajectory(local_minima_trajectory,'a', atoms)
-
         # Dynamics.__init__ simply set
-        Dynamics.__init__(self, atoms, logfile, trajectory)
+        super().__init__(atoms,logfile,trajectory)
 
-        # print the program logo at the beginning of the output file
         self.logfile.write("Begin GCBH")
         self.logfile.flush()
 
         # setup the chemical potential for different elements
         self.mu={}
-        if chemical_potential:
-            if os.path.isfile(chemical_potential):
-                with open(chemical_potential, "r") as fp:
-                    for i, istr in enumerate(fp):
-                        if istr.strip() == "":
-                            continue
-                        k, v=istr.split()
-                        self.mu[k]=float(v)
-            else:
-                raise RuntimeError("chemical potential file %s is not found" % chemical_potential)
-            
+        if self.config['chemical_potential']:
+            self.mu = self.config['chemical_potential']
             for k, v in self.mu.items():
-                self.dumplog("Chemical potential of %s is %.3f" % (k, v))
+                self.dumplog(f"Chemical potential of {k} is {v}")
 
         # try to read previous result
         if self.restart:
             if (not os.path.isfile(self.fn_status_file)) or (not os.path.isfile(self.fn_current_atoms)):
-                self.dumplog("%s or %s no found, start from scratch\n"
-                                   % (self.fn_current_atoms,self.fn_status_file))
+                self.dumplog(f"{self.fn_current_atoms} or {self.fn_status_file} not found, start from scratch\n")
                 self.restart=False
             elif os.path.getsize(self.fn_current_atoms) == 0:
-                self.dumplog("{} is empty, set self.restart=False".format(self.fn_current_atoms))
+                self.dumplog(f"{self.fn_current_atoms} is empty, set self.restart=False\n")
                 self.restart = False
             else:
                 try:
                     atoms=read(self.fn_current_atoms)
                     atoms.get_potential_energy()
                 except PropertyNotImplementedError:
-                    self.dumplog("No energy found in {}, set self.restart=False".format(self.fn_current_atoms))
+                    self.dumplog(f"No energy found in {self.fn_current_atoms}, set restart=False\n")
                     self.restart = False
                 except RuntimeError as e:
-                    self.dumplog("Error when read {}, set self.restart=False".format(e))
+                    self.dumplog(f"Error when read {e}, set self.restart=False\n")
                     self.restart = False
 
         self.energy = None
@@ -127,8 +118,8 @@ class GrandCanonicalBasinHopping(Dynamics):
         self.energy_min = None
         self.free_energy_min = None
         self.no_improvement_step = 0
-        
-        # negative value indicates no on-going structure optimization, otherwise it will be the  on-going optimization
+        # negative value indicates no on-going structure optimization,
+        # otherwise it will be the  on-going optimization
         self.on_optimization = -1
 
         # this is used for adjusting the temperature of Metropolis algorithm
@@ -140,6 +131,13 @@ class GrandCanonicalBasinHopping(Dynamics):
         else:
             self.reload_previous_results()
 
+    def set_config(self,config_file):
+        with open(config_file, 'r') as f:
+            input_config = yaml.safe_load(f)
+        self.config.update(input_config)
+    def todict(self):
+        d ={}
+        return d
     def dumplog(self, msg="", level=1, highlight=None):
         if level < 1:
             level = 1
@@ -177,7 +175,6 @@ class GrandCanonicalBasinHopping(Dynamics):
         spc=SinglePointCalculator(t,energy=e,forces=f)
         t.set_calculator(spc)
         write(self.fn_current_atoms, t)
-
         accept_digits = ""
         for ii in self.accept_history:
             accept_digits += str(ii)
@@ -187,7 +184,7 @@ class GrandCanonicalBasinHopping(Dynamics):
         # save the current status of the basin hopping
         info = {"nsteps": self.nsteps,
                 "no_improvement_step": self.no_improvement_step,
-                'Temperature': self.T,
+                'Temperature': self.t,
                 "free_energy_min": self.free_energy_min,
                 "energy_min": self.energy_min,
                 'history': accept_digits,
@@ -217,7 +214,7 @@ class GrandCanonicalBasinHopping(Dynamics):
             # since some previous version does not have this two terms, we have to query about the existence.
             if "Temperature" in info.keys():
                 self.dumplog("Previous temperature is read\n")
-                self.T = info['Temperature']
+                self.t = info['Temperature']
             if 'history' in info.keys():
                 for ii in info['history'].split(","):
                     if ii.isdigit():
@@ -293,7 +290,7 @@ class GrandCanonicalBasinHopping(Dynamics):
                                 self.energy, self.free_energy))
         for key in self.structure_modifiers.keys():
             self.dumplog("modifier %s (weight %3.2f)    " % (key, self.structure_modifiers[key].weight))
-        self.dumplog("Current Temperature is %.2f" % self.T)
+        self.dumplog("Current Temperature is %.2f" % self.t)
 
     def run(self, maximum_steps=4000, maximum_trial=30):
         """Hop the basins for defined number of steps."""
@@ -337,7 +334,7 @@ class GrandCanonicalBasinHopping(Dynamics):
         if Fn < self.free_energy:
             accept = True
             modifier_weight_action = 'increase'
-        elif np.random.uniform() < np.exp(-(Fn-self.free_energy)/self.T/units.kB):
+        elif np.random.uniform() < np.exp(-(Fn-self.free_energy)/self.t/units.kB):
             accept = True
 
         if move_action is not None:
@@ -370,14 +367,14 @@ class GrandCanonicalBasinHopping(Dynamics):
             self.accept_history.pop(0)
             _balance = sum(self.accept_history)/float(self.max_history)
             if _balance > 2.0* (1-_balance):
-                self.T = self.T/1.03
+                self.t = self.t/1.03
             elif _balance < 0.5* (1-_balance):
-                self.T = self.T*1.03
+                self.t = self.t*1.03
 
-        if self.T < self.min_T:
-            self.T = self.min_T
-        elif self.T > self.max_T:
-            self.T = self.max_T
+        if self.t < self.min_t:
+            self.t = self.min_t
+        elif self.t > self.max_t:
+            self.t = self.max_t
 
         # update the best result for this basin-hopping
         if self.free_energy < self.free_energy_min:
