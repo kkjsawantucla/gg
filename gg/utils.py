@@ -1,4 +1,5 @@
-""" Importing modules for dealing with graph utilities"""
+"""Importing modules for dealing with graph utilities"""
+
 from itertools import combinations
 import networkx as nx
 import numpy as np
@@ -9,7 +10,8 @@ from ase.io import read as read_atoms
 from ase import Atoms
 from numpy.linalg import norm
 
-__author__="Kaustubh Sawant"
+__author__ = "Kaustubh Sawant"
+
 
 # Function borrowed from surf graph
 def node_symbol(atom):
@@ -28,9 +30,9 @@ def node_symbol(atom):
 def relative_position(atoms, neighbor, offset):
     """
     Args:
-        atoms (ase.Atoms): 
+        atoms (ase.Atoms):
         neighbor (int): Index of the neighbor
-        offset (array): 
+        offset (array):
 
     Returns:
         np.array: position of neighbor wrt to offset
@@ -112,12 +114,12 @@ def check_contact(atoms, error=0.1, print_contact=False):
     """Check if atoms touch within error
 
     Args:
-        atoms (ase.Atoms): 
+        atoms (ase.Atoms):
         error (float, optional): . Defaults to 0.1.
         print_contact (bool, optional): Print Contact Information. Defaults to False.
 
     Returns:
-        Boolean: 
+        Boolean:
     """
     nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
     nl.update(atoms)
@@ -185,8 +187,8 @@ def get_normals(index, atoms, g):
     """
     Args:
         index (_type_):
-        atoms (ase.Atoms): 
-        G (nx.Graph): 
+        atoms (ase.Atoms):
+        G (nx.Graph):
 
     Returns:
         normal vector, reference position:
@@ -244,16 +246,16 @@ def generate_sites(
 ):
     """
     Args:
-        atoms (ase.Atoms): 
-        ads (ase.Atoms): 
-        graph (nx.Graph): 
-        index (list): 
-        coordination (int): 
+        atoms (ase.Atoms):
+        ads (ase.Atoms):
+        graph (nx.Graph):
+        index (list):
+        coordination (int):
         ad_dist (float):  Defaults to 1.7.
         contact_error (float): _ Defaults to 0.2.
 
     Returns:
-       ase.Atoms: 
+       ase.Atoms:
     """
     possible = list(combinations(index, coordination))
     valid = []
@@ -291,8 +293,8 @@ def generate_sites(
 
 
 class SurfaceSites:
-    """_summary_
-    """
+    """_summary_"""
+
     def __init__(
         self,
         max_coord,
@@ -356,7 +358,6 @@ class SurfaceSites:
             df = df[df.z_coord > atoms.get_center_of_mass()[2]]
 
         df = df[df.diff_cord > 0].sort_values(by=["symbol", "cord"])
-
         if isinstance(self.surf_atom_sym, str):
             df = df[df["symbol"] == self.surf_atom_sym]
         else:

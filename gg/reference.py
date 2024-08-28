@@ -1,64 +1,99 @@
-#Code generated using ChatGPT "lol"
+# Code generated using ChatGPT "lol"
+"""Import re"""
 import re
 from collections import defaultdict
+import numpy as np
+
 
 def parse_chemical_formula(formula):
+    """
+    Args:
+        formula (str): chemical formula
+
+    Returns:
+        Dict: Break chemical formula into specific elements
+    """
     # Regular expression to match elements and their counts
-    pattern = re.compile(r'([A-Z][a-z]?)(\d*)')
-    
+    pattern = re.compile(r"([A-Z][a-z]?)(\d*)")
     # Dictionary to store elements and their counts
     elements = defaultdict(int)
-    
     # Find all matches in the formula
     for match in pattern.finditer(formula):
         element, count = match.groups()
         # If no count is specified, it is 1
         count = int(count) if count else 1
         elements[element] += count
-    
     return dict(elements)
 
-def construct_matrix_A(ref):
+
+def construct_matrix_a(ref):
+    """
+    Args:
+        ref (Dict): Default dictionary with chemical formula and potential
+
+    Returns:
+        Dict: Dictionary broken down into specific elements
+    """
     # Dictionary to hold the matrix A with elements as keys
-    A = defaultdict(lambda: [0] * len(ref))
-    
+    a = defaultdict(lambda: [0] * len(ref))
     # Iterate over the ref dictionary to populate matrix A
     for i, formula in enumerate(sorted(ref.keys())):
         parsed_formula = parse_chemical_formula(formula)
         for element, count in parsed_formula.items():
-            A[element][i] = count
-    
+            a[element][i] = count
     # Convert defaultdict to a regular dictionary
-    return dict(A)
+    return dict(a)
 
 
-def solve_chemical_equations(chemical_dict_A, chemical_dict_B):
+def solve_chemical_equations(chemical_dict_a, chemical_dict_b):
+    """Solve Ax=B as dictionaries
+
+    Args:
+        chemical_dict_A (Dict):
+        chemical_dict_B (Dict):
+
+    Returns:
+        np.array: Solution for Ax=B
+    """
     # Get the list of elements involved in both A and B
-    elements_A = list(chemical_dict_A.keys())
-    elements_B = list(chemical_dict_B.keys())
-    
+    elements_a = list(chemical_dict_a.keys())
+    elements_b = list(chemical_dict_b.keys())
     # Ensure the elements are in the same order for both A and B
-    elements = sorted(set(elements_A).union(elements_B))
+    elements = sorted(set(elements_a).union(elements_b))
     # Create matrix A and vector B based on the ordered elements
-    A = np.array([chemical_dict_A.get(element, [0] * len(next(iter(chemical_dict_A.values())))) for element in elements])
-    B = np.array([chemical_dict_B.get(element, 0) for element in elements]).reshape(len(elements),1)
-    
+    a = np.array(
+        [
+            chemical_dict_a.get(e, [0] * len(next(iter(chemical_dict_a.values()))))
+            for e in elements
+        ]
+    )
+    b = np.array([chemical_dict_b.get(e, 0) for e in elements]).reshape(
+        len(elements), 1
+    )
     # Solve for x
-    solution, residuals, rank, s = np.linalg.lstsq(A, B, rcond=None)
-    
+    solution, _, _, _ = np.linalg.lstsq(a, b, rcond=None)
     return solution
 
-def get_ref_coeff(ref,product_formula):
+
+def get_ref_coeff(ref, product_formula):
+    """
+
+    Args:
+        ref (Dict): reference chemical potential dictionary
+        product_formula (str): chemical formula of the product
+
+    Returns:
+        Dict: coefficients for the reference chemical potential dictionary
+    """
 
     # Create matrix A and vector B to solve Ax = B
-    A = construct_matrix_A(ref)
-    B = parse_chemical_formula(product_formula)
+    a = construct_matrix_a(ref)
+    b = parse_chemical_formula(product_formula)
 
     # Use np.linalg.lstsq to solve the linear equation
-    solution = solve_chemical_equations(A, B)
+    solution = solve_chemical_equations(a, b)
 
-    ref_coeff={}
+    ref_coeff = {}
     for i, formula in enumerate(sorted(ref.keys())):
         ref_coeff[formula] = round(solution[i][0])
-    
     return ref_coeff
