@@ -8,14 +8,16 @@ import json
 from time import strftime, localtime
 import numpy as np
 import yaml
-from ase import units
+from ase import units, Atoms
 from ase.optimize.optimize import Dynamics
 from ase.io import read, write
 from ase.calculators.singlepoint import SinglePointCalculator
-from ase.calculators.calculator import PropertyNotImplementedError
+from ase.io.trajectory import Trajectory
 from gg.reference import get_ref_coeff
+from gg.utils import NoReasonableStructureFound
 
 __author__ = "Kaustubh Sawant, Geng Sun"
+
 
 def get_current_time():
     """
@@ -24,6 +26,7 @@ def get_current_time():
     """
     time_label = strftime("%d-%b-%Y %H:%M:%S", localtime())
     return time_label
+
 
 class GrandCanonicalBasinHopping(Dynamics):
     """Basin hopping algorithm.
@@ -54,12 +57,12 @@ class GrandCanonicalBasinHopping(Dynamics):
             If *logfile* is a string, a file with that name will be opened.
             Use '-' for stdout.
         """
-        #Intitalize by setting up the parent Dynamics Class
+        # Intitalize by setting up the parent Dynamics Class
         super().__init__(atoms, logfile, trajectory)
         self.logfile.write("Begin GCBH Graph \n")
         self.logfile.flush()
 
-        #Read Config File if it exists
+        # Read Config File if it exists
         self.config = {
             "temp": 1500,
             "max_temp": None,
@@ -69,13 +72,12 @@ class GrandCanonicalBasinHopping(Dynamics):
             "chemical_potential": None,
             "bash_script": "optimize.sh",
             "files_to_copied": None,
-            "max_history":25,
+            "max_history": 25,
         }
         if config_file:
             self.set_config(config_file)
 
-       
-        #Setup Temperature
+        # Setup Temperature
         self.t = self.config["temp"]
         if self.config["max_temp"] is None:
             self.config["max_temp"] = 1.0 / ((1.0 / self.t) / 1.5)
@@ -87,12 +89,14 @@ class GrandCanonicalBasinHopping(Dynamics):
         else:
             self.config["min_temp"] = min([self.config["min_temp"], self.t])
 
-        #Some file names and folders are hardcoded
+        # Some file names and folders are hardcoded
         self.current_atoms = "Current_atoms.traj"
-        self.status_file = "Current_Status.json"
+        self.status_file = "Current_status.json"
         self.opt_folder = "opt_folder"
-        self.structure_modifiers = {} #Setup empty class to add structure modifiers
-        self.accept_history = [] # this is used for adjusting the temperature of Metropolis algorithm
+        self.lm_trajectory = Trajectory("Local_minima.traj", "a", atoms)
+
+        self.structure_modifiers = {}  # Setup empty class to add structure modifiers
+        self.accept_history = []  # this is used for adjusting the temperature of Metropolis algorithm
         # a series of 0 and 1, 0 stands for not accpeted, 1 stands for accepted
 
         # Print the chemical potential for different elements
@@ -107,7 +111,7 @@ class GrandCanonicalBasinHopping(Dynamics):
         self.free_energy = None
         self.free_energy_min = None
         self.no_improvement_step = 0
-        
+
         # negative value indicates no on-going structure optimization,
         # otherwise it will be the on-going optimization
         self.on_optimization = -1
@@ -121,6 +125,23 @@ class GrandCanonicalBasinHopping(Dynamics):
         with open(config_file, "r", encoding="utf-8") as f:
             input_config = yaml.safe_load(f)
         self.config.update(input_config)
+
+    @property
+    def atoms(self):
+        """
+        Returns:
+            ase.Atoms
+        """
+        return self._atoms
+
+    @atoms.setter
+    def atoms(self, atoms):
+        if isinstance(atoms, str):
+            self._atoms = read(atoms.copy())
+        elif isinstance(atoms, Atoms):
+            self._atoms = atoms.copy()
+        else:
+            print("Please provide proper atoms file")
 
     def todict(self):
         d = {}
@@ -154,18 +175,7 @@ class GrandCanonicalBasinHopping(Dynamics):
 
     def save_current_status(self):
         # save current atoms
-        t = self.atoms.copy()
-        t.info = self.atoms.info.copy()
-        e = self.atoms.get_potential_energy()
-        f = self.atoms.get_forces()
-        spc = SinglePointCalculator(t, energy=e, forces=f)
-        t.set_calculator(spc)
-        write(self.current_atoms, t)
-        accept_digits = ""
-        for ii in self.accept_history:
-            accept_digits += str(ii)
-            accept_digits += ","
-        accept_digits = accept_digits[:-1]
+        write(self.current_atoms, self.atoms)
 
         # save the current status of the basin hopping
         info = {
@@ -173,7 +183,7 @@ class GrandCanonicalBasinHopping(Dynamics):
             "no_improvement_step": self.no_improvement_step,
             "Temperature": self.t,
             "free_energy_min": self.free_energy_min,
-            "history": accept_digits,
+            "history": self.accept_history,
             "on_optimization": self.on_optimization,
         }
         with open(self.status_file, "w", encoding="utf-8") as fp:
@@ -218,7 +228,7 @@ class GrandCanonicalBasinHopping(Dynamics):
             og_weight = self.structure_modifiers[name].og_weight
             self.structure_modifiers[name].weight = og_weight
             self.dumplog(
-                f"Modifier {name} weight is reset to original weight : {og_weight}"
+                f"Modifier {name} weight is reset to original weight : {og_weight:.2f}"
             )
         elif action == "i":
             og_weight = self.structure_modifiers[name].og_weight
@@ -248,27 +258,6 @@ class GrandCanonicalBasinHopping(Dynamics):
         atoms.center()
         return atoms
 
-    def log_status(self):
-        """Print Current Status Log"""
-        time_label = get_current_time()
-        natoms = self.atoms.get_number_of_atoms()
-        formula = self.atoms.get_chemical_formula()
-        self.dumplog(
-            "%20s%6s (natoms=%3d, %8s) Steps:%8d E=%15.8f F=%15.8f"
-            % (
-                time_label,
-                "GCBH",
-                natoms,
-                formula,
-                self.nsteps - 1,
-                self.energy,
-                self.free_energy,
-            )
-        )
-        for key, value in self.structure_modifiers:
-            self.dumplog(f"modifier:{key} with weight:{value.weight}")
-            self.dumplog(f"Current temperature is {self.t}")
-
     def run(self, steps=4000, maximum_trial=30):
         """Hop the basins for defined number of steps."""
         for step in range(steps):
@@ -277,63 +266,76 @@ class GrandCanonicalBasinHopping(Dynamics):
                     f"The best solution has not improved after {self.no_improvement_step} steps"
                 )
                 break
-            self.dumplog(f"{step}-------------------------------------------------------")
+            self.dumplog(
+                f"{step}-------------------------------------------------------"
+            )
 
-            self.dumplog(f"{get_current_time()}:  Starting Basin-Hopping Step {self.nsteps}")
-
-            for number_of_trials in range(maximum_trial):
+            self.dumplog(
+                f"{get_current_time()}:  Starting Basin-Hopping Step {self.nsteps}"
+            )
+            for trials in range(maximum_trial):
                 modifier_name = self.select_modifier()
-                new_atoms = self.move(modifier_name)
-                self.on_optimization = self.nsteps
-                self.dumplog("One structure found, begin to optimize this structure\n")
-
-                self.save_current_status()
-                self.optimize(inatoms=new_atoms)
-
-                self.accepting_new_structures(
-                    newatoms=new_atoms, move_action=modifier_name
+                try:
+                    new_atoms = self.move(modifier_name)
+                except (
+                    NoReasonableStructureFound
+                ) as emsg:  # emsg stands for error message
+                    if not isinstance(emsg, str):
+                        emsg = "Unknown"
+                    self.dumplog(
+                        f"{modifier_name} did not find a good structure because of {emsg}"
+                    )
+                else:
+                    self.on_optimization = self.nsteps
+                    self.dumplog(
+                        f"One structure found after {trials} trials with modifier {modifier_name}"
+                    )
+                    self.save_current_status()
+                    self.optimize(inatoms=new_atoms)
+                    self.dumplog(f"{get_current_time()}: Optimization Done")
+                    self.accepting_new_structures(new_atoms, modifier_name)
+                    self.on_optimization = -1  # switch off the optimization status
+                    self.save_current_status()
+                    self.nsteps += 1
+                    break
+            else:
+                raise RuntimeError(
+                    f"Program does not find a good structure after {maximum_trial} tests"
                 )
-                self.on_optimization = -1
 
-                self.save_current_status()
-                self.nsteps += 1
-
-    def accepting_new_structures(self, newatoms=None, move_action=None):
+    def accepting_new_structures(self, newatoms, modifier_name):
         """This function takes care of all the accepting algorithm. I.E metropolis algorithms
         newatoms is the newly optimized structure
-        move_action is action (modifier name) to  produce the initial structure for newatoms;
-        If move_action is specified, its weights will be adjusted according to the acception or rejection; otherwise,
-        the weights are not altered"""
+        """
 
         assert newatoms is not None
 
-        En = newatoms.get_potential_energy()  # Energy_new
-        Fn = En - self.get_ref_potential(newatoms)  # Free_energy_new
+        en = newatoms.get_potential_energy()  # Energy_new
+        fn = en - self.get_ref_potential(newatoms)  # Free_energy_new
 
-        accept = False
-        modifier_weight_action = "decrease"
-        if Fn < self.free_energy:
+        if fn < self.free_energy:
             accept = True
             modifier_weight_action = "increase"
-        elif np.random.uniform() < np.exp(-(Fn - self.free_energy) / self.t / units.kB):
+        # Check Probability for acceptance
+        elif np.random.uniform() < np.exp(-(fn - self.free_energy) / self.t / units.kB):
             accept = True
+            modifier_weight_action = "decrease"
+        else:
+            accept = False
+            modifier_weight_action = "decrease"
 
-        if move_action is not None:
-            self.update_modifier_weights(
-                name=move_action, action=modifier_weight_action
-            )
+        self.update_modifier_weights(name=modifier_name, action=modifier_weight_action)
 
         if accept:
             _int_accept = 1
-            self.dumplog("Accepted, F(old)=%.3f F(new)=%.3f\n" % (self.free_energy, Fn))
+            self.dumplog("Accepted, F(old)=%.3f F(new)=%.3f\n" % (self.free_energy, fn))
             self.update_self_atoms(newatoms)
-            self.energy = En
-            self.free_energy = Fn
-            # if move_action is not None:
-            #     self.update_modifier_weights(name=move_action, action='increase')
+            self.energy = en
+            self.free_energy = fn
+
         else:
             _int_accept = 0
-            self.dumplog("Rejected, F(old)=%.3f F(new)=%.3f\n" % (self.free_energy, Fn))
+            self.dumplog("Rejected, F(old)=%.3f F(new)=%.3f\n" % (self.free_energy, fn))
             # if move_action is not None:
             #     self.update_modifier_weights(name=move_action, action='decrease')
 
@@ -368,7 +370,6 @@ class GrandCanonicalBasinHopping(Dynamics):
 
         # self.log_status()
         self.save_current_status()
-        self.log_status()
         self.dumplog("-------------------------------------------------------")
 
     def optimize(self, inatoms=None, restart=False):
@@ -445,36 +446,10 @@ class GrandCanonicalBasinHopping(Dynamics):
             ref_sum = 0
             to_print = f"{formula} = "
             ref_coeff = get_ref_coeff(self.mu, formula)
-            for key,value in self.mu.items():
-                ref_sum += ref_coeff[key]*value
+            for key, value in self.mu.items():
+                ref_sum += ref_coeff[key] * value
                 to_print += f"{ref_coeff[key]} {value} +"
             self.dumplog(to_print)
             return ref_sum
         else:
             return 0
-
-    def update_self_atoms(self, a):
-        """
-        This function will keep the original reference of self.atoms,
-        but refresh it with new structures.
-
-        You have to keep the reference of self.atoms, otherwise, self.call_observers will not work.
-        :param a: ase.atoms.Atoms object.
-        :return: None
-        """
-        self.atoms.set_constraint()
-        del self.atoms[range(self.atoms.get_number_of_atoms())]
-        cell = a.get_cell()
-        pbc = a.get_pbc()
-        self.atoms.extend(a.copy())
-        self.atoms.set_pbc(pbc)
-        self.atoms.set_cell(cell)
-        self.atoms.set_constraint(a.constraints)
-        try:
-            e = a.get_potential_energy()
-            f = a.get_forces()
-        except PropertyNotImplementedError:
-            self.dumplog("Warnning : self.atoms no energy !!!!")
-        else:
-            spc = SinglePointCalculator(self.atoms, forces=f, energy=e)
-            self.atoms.set_calculator(spc)

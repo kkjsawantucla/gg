@@ -13,6 +13,10 @@ from numpy.linalg import norm
 __author__ = "Kaustubh Sawant"
 
 
+class NoReasonableStructureFound(Exception):
+    """Custom error to handle touching atoms"""
+
+
 # Function borrowed from surf graph
 def node_symbol(atom):
     """
@@ -287,8 +291,9 @@ def generate_sites(
         ads_copy.rotate([0, 0, 1], normal, center=[0, 0, 0])
         new_atoms = add_ads(atoms, ads_copy, offset=offset + ref_pos)
         if check_contact(new_atoms, error=contact_error):
-            print(f"Issue at {cycle}")
-        movie.append(new_atoms)
+            continue
+        else:
+            movie.append(new_atoms)
     return movie
 
 

@@ -2,7 +2,7 @@
 
 from ase.io import read as read_atoms
 from ase import Atoms
-from gg.utils import check_contact, generate_sites
+from gg.utils import check_contact, generate_sites, NoReasonableStructureFound
 
 __author__ = "Kaustubh Sawant"
 
@@ -36,7 +36,7 @@ class ParentModifier:
         else:
             print("Please provide proper atoms file")
 
-    def get_modified_atoms(self,atoms) -> Atoms:
+    def get_modified_atoms(self, atoms) -> Atoms:
         """
         Returns:
             ase.Atoms:
@@ -47,17 +47,12 @@ class ParentModifier:
 class Rattle(ParentModifier):
     """Modifier that rattles the atoms with some stdev"""
 
-    def __init__(
-        self,
-        weight,
-        stdev=0.001,
-        contact_error=0.2
-    ):
+    def __init__(self, weight, stdev=0.001, contact_error=0.2):
         self.stdev = stdev
         self.contact_error = contact_error
         super().__init__(weight)
 
-    def get_modified_atoms(self,atoms):
+    def get_modified_atoms(self, atoms):
         """
         Returns:
             ase.Atoms:
@@ -65,8 +60,9 @@ class Rattle(ParentModifier):
         self.atoms = atoms
         self.atoms.rattle(stdev=self.stdev)
         if check_contact(self.atoms, error=self.contact_error):
-            print("Atoms touching")
-        return self.atoms
+            raise NoReasonableStructureFound("Atoms Touching")
+        else:
+            return self.atoms
 
 
 class Add(ParentModifier):
@@ -88,7 +84,7 @@ class Add(ParentModifier):
         self.ad_dist = ad_dist
         self.movie = movie
 
-    def get_modified_atoms(self,atoms):
+    def get_modified_atoms(self, atoms):
         """
         Returns:
             ase.Atoms:
@@ -104,7 +100,8 @@ class Add(ParentModifier):
             ad_dist=self.ad_dist,
             contact_error=self.ss.contact_error,
         )
-
+        if not movie:
+            raise NoReasonableStructureFound("Movie was empty, most likely due to issues with atoms touching")
         if self.movie:
             return movie
         else:
@@ -118,7 +115,7 @@ class Remove(ParentModifier):
         super().__init__(weight)
         self.ss = surface_sites
 
-    def get_modified_atoms(self,atoms):
+    def get_modified_atoms(self, atoms):
         """
         Returns:
             ase.Atoms:
