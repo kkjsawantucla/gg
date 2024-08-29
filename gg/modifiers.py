@@ -2,7 +2,8 @@
 
 from ase.io import read as read_atoms
 from ase import Atoms
-from gg.utils import check_contact, generate_sites, NoReasonableStructureFound
+from gg.utils import check_contact, generate_sites, NoReasonableStructureFound, custom_copy
+
 
 __author__ = "Kaustubh Sawant"
 
@@ -30,9 +31,9 @@ class ParentModifier:
     @atoms.setter
     def atoms(self, atoms):
         if isinstance(atoms, str):
-            self._atoms = read_atoms(atoms.copy())
+            self._atoms = read_atoms(atoms)
         elif isinstance(atoms, Atoms):
-            self._atoms = atoms.copy()
+            self._atoms = custom_copy(atoms)
         else:
             print("Please provide proper atoms file")
 
@@ -66,7 +67,7 @@ class Rattle(ParentModifier):
 
 
 class Add(ParentModifier):
-    """Modifier tha adds an adsorbate at certain specific sites"""
+    """Modifier that adds an adsorbate at certain specific sites"""
 
     def __init__(
         self,
@@ -101,7 +102,9 @@ class Add(ParentModifier):
             contact_error=self.ss.contact_error,
         )
         if not movie:
-            raise NoReasonableStructureFound("Movie was empty, most likely due to issues with atoms touching")
+            raise NoReasonableStructureFound(
+                "Movie was empty, most likely due to issues with atoms touching"
+            )
         if self.movie:
             return movie
         else:

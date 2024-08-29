@@ -3,12 +3,13 @@
 from itertools import combinations
 import networkx as nx
 import numpy as np
+from numpy.linalg import norm
 import pandas as pd
 from ase.neighborlist import NeighborList, natural_cutoffs
 from ase.data import covalent_radii
 from ase.io import read as read_atoms
 from ase import Atoms
-from numpy.linalg import norm
+
 
 __author__ = "Kaustubh Sawant"
 
@@ -17,10 +18,26 @@ class NoReasonableStructureFound(Exception):
     """Custom error to handle touching atoms"""
 
 
+def custom_copy(atoms):
+    """copy atoms with calc
+    Args:
+        atoms (ase.Atoms):
+
+    Returns:
+        ase.Atoms:
+    """
+    atoms_copy = atoms.copy()
+    if atoms.get_calculator():
+        #calc_type = type(atoms.calc)
+        #calc_params = atoms.calc.parameters
+        #atoms_copy.calc = calc_type(**calc_params)
+        atoms_copy.calc = atoms.calc
+    return atoms_copy
+
+
 # Function borrowed from surf graph
 def node_symbol(atom):
     """
-
     Args:
         atom (Atoms Object): atoms to convert
 
@@ -47,7 +64,6 @@ def relative_position(atoms, neighbor, offset):
 # Function to check if the nodes form a cycle
 def is_cycle(g, nodes):
     """Check if the nodes in graph G form a cycle
-
     Args:
         G (networkx Graph):
         nodes ([list of networkx nodes]):
@@ -66,7 +82,6 @@ def is_cycle(g, nodes):
 
 def are_points_collinear_with_tolerance(p1, p2, p3, tolerance=1e-7):
     """Check if three points are collinear with some tolerance
-
     Args:
         p1 (list or np_array):
         p2 (list or np_array):
@@ -89,7 +104,6 @@ def are_points_collinear_with_tolerance(p1, p2, p3, tolerance=1e-7):
 # Function to ad adsorbate to atoms object
 def add_ads(atoms, ads, offset):
     """Add adsorbate on substrate with particular offset
-
     Args:
         atoms (Atoms Object): Substrate
         ads (Atoms Object): Adsorbate to add
@@ -109,14 +123,13 @@ def add_ads(atoms, ads, offset):
         atom.position[0] = atom.position[0] + offset[0]
         atom.position[1] = atom.position[1] + offset[1]
         atom.position[2] = atom.position[2] + offset[2]
-    sub = atoms.copy()
+    sub = custom_copy(atoms)
     sub += _ads
     return sub
 
 
 def check_contact(atoms, error=0.1, print_contact=False):
     """Check if atoms touch within error
-
     Args:
         atoms (ase.Atoms):
         error (float, optional): . Defaults to 0.1.
@@ -289,11 +302,11 @@ def generate_sites(
         offset = normal * ad_dist / norm(normal)
         ads_copy = ads.copy()
         ads_copy.rotate([0, 0, 1], normal, center=[0, 0, 0])
-        new_atoms = add_ads(atoms, ads_copy, offset=offset + ref_pos)
-        if check_contact(new_atoms, error=contact_error):
+        atoms_copy = add_ads(atoms, ads_copy, offset=offset + ref_pos)
+        if check_contact(atoms_copy, error=contact_error):
             continue
         else:
-            movie.append(new_atoms)
+            movie.append(atoms_copy)
     return movie
 
 

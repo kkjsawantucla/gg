@@ -1,8 +1,11 @@
 # Code generated using ChatGPT "lol"
 """Import re"""
+
 import re
 from collections import defaultdict
 import numpy as np
+
+__author__ = "Kaustubh Sawant"
 
 
 def parse_chemical_formula(formula):
@@ -77,7 +80,6 @@ def solve_chemical_equations(chemical_dict_a, chemical_dict_b):
 
 def get_ref_coeff(ref, product_formula):
     """
-
     Args:
         ref (Dict): reference chemical potential dictionary
         product_formula (str): chemical formula of the product
@@ -95,5 +97,5 @@ def get_ref_coeff(ref, product_formula):
 
     ref_coeff = {}
     for i, formula in enumerate(sorted(ref.keys())):
-        ref_coeff[formula] = round(solution[i][0])
+        ref_coeff[formula] = solution[i][0]
     return ref_coeff
