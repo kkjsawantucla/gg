@@ -2,8 +2,15 @@
 
 from ase.io import read as read_atoms
 from ase import Atoms
-from gg.utils import check_contact, generate_sites, NoReasonableStructureFound, custom_copy
-
+from networkx.algorithms import isomorphism
+from gg.utils import (
+    check_contact,
+    generate_sites,
+    NoReasonableStructureFound,
+    custom_copy,
+    formula_to_graph,
+)
+from gg.reference import is_element, is_chemical_formula
 
 __author__ = "Kaustubh Sawant"
 
@@ -45,6 +52,26 @@ class ParentModifier:
         raise NotImplementedError
 
 
+class ModifierAdder(ParentModifier):
+    """Add modifiers together to create a new modifier"""
+
+    def __init__(self, weight, modifier_instances):
+        super().__init__(weight)
+        if isinstance(modifier_instances, list):
+            self.modifier_instances = modifier_instances
+        else:
+            raise RuntimeError("modifier_instances isnt a list. Please provide a list")
+
+    def get_modified_atoms(self, atoms):
+        """
+        Returns:
+            ase.Atoms:
+        """
+        for instance in self.modifier_instances:
+            self.atoms = instance.get_modified_atoms(atoms)
+        return self.atoms
+
+
 class Rattle(ParentModifier):
     """Modifier that rattles the atoms with some stdev"""
 
@@ -83,7 +110,7 @@ class Add(ParentModifier):
         self.ads = ads
         self.ads_coord = ads_coord
         self.ad_dist = ad_dist
-        self.movie = movie
+        self.print_moview = movie
 
     def get_modified_atoms(self, atoms):
         """
@@ -105,18 +132,35 @@ class Add(ParentModifier):
             raise NoReasonableStructureFound(
                 "Movie was empty, most likely due to issues with atoms touching"
             )
-        if self.movie:
+        if self.print_moview:
             return movie
         else:
             return movie[0]
 
 
-class Remove(ParentModifier):
+class Remove(
+    ParentModifier,
+):
     """Modifier that randomly removes an atom"""
 
-    def __init__(self, weight, surface_sites):
+    def __init__(self, weight, surface_sites, to_del, max_bond_ratio=1.2, max_bond=0):
         super().__init__(weight)
+
+        self.to_del = to_del
+        self.ads_g = formula_to_graph(
+            self.to_del, max_bond_ratio=max_bond_ratio, max_bond=max_bond
+        )
         self.ss = surface_sites
+
+    def node_match(self, n1, n2):
+        """_summary_
+        Args:
+            n1 (str):
+            n2 (str):
+        Returns:
+            Boolean: _description_
+        """
+        return n1["symbol"] == n2["symbol"]
 
     def get_modified_atoms(self, atoms):
         """
@@ -124,8 +168,20 @@ class Remove(ParentModifier):
             ase.Atoms:
         """
         self.atoms = atoms
-        df_ind, g = self.ss.get_surface_sites(self.atoms)
-        del g
-        ind_to_remove = int(df_ind.to_list()[0])
-        del self.atoms[ind_to_remove]
+        df_ind, atoms_g = self.ss.get_surface_sites(self.atoms)
+        del df_ind
+        graph_match = isomorphism.GraphMatcher(
+            atoms_g, self.ads_g, node_match=self.node_match
+        )
+        all_isomorphisms = list(graph_match.subgraph_isomorphisms_iter())
+        if not all_isomorphisms:
+            raise NoReasonableStructureFound("No adsorbate in the atoms to remove")
+
+        ind_to_remove_list = []
+        for mapping in all_isomorphisms:
+            matched_nodes = list(mapping.keys())
+            ind_to_remove = [atoms_g.nodes[node]["index"] for node in matched_nodes]
+            ind_to_remove_list.append(ind_to_remove)
+
+        del self.atoms[ind_to_remove_list[0]]
         return self.atoms

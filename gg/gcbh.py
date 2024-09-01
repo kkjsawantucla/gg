@@ -85,9 +85,9 @@ class Gcbh(Dynamics):
 
         # Some file names and folders are hardcoded
         self.current_atoms_name = "CONTCAR"
-        self.status_file = "Current_status.json"
+        self.status_file = "current_status.json"
         self.opt_folder = "opt_folder"
-        self.lm_trajectory = Trajectory("Local_minima.traj", "a", atoms)
+        self.lm_trajectory = Trajectory("local_minima.traj", "a", atoms)
 
         self.structure_modifiers = {}  # Setup empty class to add structure modifiers
         self.accept_history = []  # used for adjusting the temperature of Metropolis algorithm

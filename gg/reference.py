@@ -4,6 +4,7 @@
 import re
 from collections import defaultdict
 import numpy as np
+from ase.data import chemical_symbols
 
 __author__ = "Kaustubh Sawant"
 
@@ -99,3 +100,48 @@ def get_ref_coeff(ref, product_formula):
     for i, formula in enumerate(sorted(ref.keys())):
         ref_coeff[formula] = solution[i][0]
     return ref_coeff
+
+
+def is_element(symbol):
+    """Check if symbol is element
+    Args:
+        symbol (str):
+
+    Returns:
+        Bool:
+    """
+    return symbol in chemical_symbols
+
+
+def is_chemical_formula(formula):
+    """_summary_
+
+    Args:
+        formula (str):
+
+    Returns:
+        Bool:
+    """
+    # Regular expression to match chemical formulas
+    pattern = r"^([A-Z][a-z]*\d*)+$"
+    return bool(re.match(pattern, formula))
+
+def parse_formula_to_list(formula):
+    """convert chemical formula into list
+    Args:
+        formula (str):
+
+    Returns:
+        list:
+    """
+    # Regular expression to match element symbols and their counts
+    pattern = r'([A-Z][a-z]*)(\d*)'
+    matches = re.findall(pattern, formula)
+
+    # Create a list of individual symbols
+    elements = []
+    for (element, count) in matches:
+        count = int(count) if count else 1
+        elements.extend([element] * count)
+
+    return elements

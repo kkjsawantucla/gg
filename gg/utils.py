@@ -1,14 +1,16 @@
 """Importing modules for dealing with graph utilities"""
 
 from itertools import combinations
-import networkx as nx
 import numpy as np
 from numpy.linalg import norm
 import pandas as pd
-from ase.neighborlist import NeighborList, natural_cutoffs
-from ase.data import covalent_radii
-from ase.io import read as read_atoms
 from ase import Atoms
+from ase.neighborlist import NeighborList, natural_cutoffs
+from ase.io import read as read_atoms
+from ase.data import covalent_radii
+from ase.build import molecule
+from gg.utils_graph import node_symbol, relative_position, atoms_to_graph
+from gg.utils_graph import is_cycle, are_points_collinear_with_tolerance
 
 
 __author__ = "Kaustubh Sawant"
@@ -16,6 +18,79 @@ __author__ = "Kaustubh Sawant"
 
 class NoReasonableStructureFound(Exception):
     """Custom error to handle touching atoms"""
+
+
+class SurfaceSites:
+    """_summary_"""
+
+    def __init__(
+        self,
+        max_coord,
+        surf_atom_sym=None,
+        max_bond_ratio=0,
+        max_bond=0,
+        contact_error=0.2,
+        com=True,
+    ):
+        self.max_coord = max_coord
+        self.surf_atom_sym = surf_atom_sym
+
+        self.max_bond_ratio = max_bond_ratio
+        self.max_bond = max_bond
+        self.contact_error = contact_error
+        self.com = com
+
+    def get_surface_sites(self, atoms, self_interaction=False, bothways=True):
+        """
+        Args:
+            atoms (_type_): _description_
+            self_interaction (bool, optional): _description_. Defaults to False.
+            bothways (bool, optional): _description_. Defaults to True.
+
+        Returns:
+            _type_: _description_
+        """
+        if not self.surf_atom_sym:
+            self.surf_atom_sym = list(set(atoms.symbols))
+        for sym in atoms.symbols:
+            if sym not in list(self.max_coord.keys()):
+                raise RuntimeError(f"Incomplete max_coord: Missing {sym}")
+
+        nl = NeighborList(
+            natural_cutoffs(atoms), self_interaction=self_interaction, bothways=bothways
+        )
+        nl.update(atoms)
+        g = atoms_to_graph(
+            atoms, nl, max_bond_ratio=self.max_bond_ratio, max_bond=self.max_bond
+        )
+        sites = []
+        for node in g.nodes():
+            cord = len([edge for edge in g[node]])
+            index = g.nodes[node]["index"]
+            symbol = atoms[index].symbol
+            diff_cord = self.max_coord[symbol] - cord
+            sites.append(
+                {
+                    "ind": index,
+                    "symbol": symbol,
+                    "cord": cord,
+                    "diff_cord": diff_cord,
+                    "z_coord": atoms[index].position[2],
+                }
+            )
+
+        df = pd.DataFrame(sites)
+
+        if self.com:
+            df = df[df.z_coord > atoms.get_center_of_mass()[2]]
+
+        df = df[df.diff_cord > 0].sort_values(by=["symbol", "cord"])
+        if isinstance(self.surf_atom_sym, str):
+            df = df[df["symbol"] == self.surf_atom_sym]
+        else:
+            df = df[df["symbol"].isin(self.surf_atom_sym)]
+        df = df.sort_values(by=["cord", "z_coord"])
+        return df["ind"], g
 
 
 def custom_copy(atoms):
@@ -28,77 +103,11 @@ def custom_copy(atoms):
     """
     atoms_copy = atoms.copy()
     if atoms.get_calculator():
-        #calc_type = type(atoms.calc)
-        #calc_params = atoms.calc.parameters
-        #atoms_copy.calc = calc_type(**calc_params)
+        # calc_type = type(atoms.calc)
+        # calc_params = atoms.calc.parameters
+        # atoms_copy.calc = calc_type(**calc_params)
         atoms_copy.calc = atoms.calc
     return atoms_copy
-
-
-# Function borrowed from surf graph
-def node_symbol(atom):
-    """
-    Args:
-        atom (Atoms Object): atoms to convert
-
-    Returns:
-        str: "symbol_index"
-    """
-    return f"{atom.symbol}_{atom.index}"
-
-
-# Function borrowed from surf graph
-def relative_position(atoms, neighbor, offset):
-    """
-    Args:
-        atoms (ase.Atoms):
-        neighbor (int): Index of the neighbor
-        offset (array):
-
-    Returns:
-        np.array: position of neighbor wrt to offset
-    """
-    return atoms[neighbor].position + np.dot(offset, atoms.get_cell())
-
-
-# Function to check if the nodes form a cycle
-def is_cycle(g, nodes):
-    """Check if the nodes in graph G form a cycle
-    Args:
-        G (networkx Graph):
-        nodes ([list of networkx nodes]):
-
-    Returns:
-        Boolean: True if they form cycle
-    """
-    start_node = next(iter(nodes))  # Get any node as starting point
-    subgraph = g.subgraph(nodes)
-    try:
-        nx.find_cycle(subgraph, source=start_node)
-        return True
-    except nx.NetworkXNoCycle:
-        return False
-
-
-def are_points_collinear_with_tolerance(p1, p2, p3, tolerance=1e-7):
-    """Check if three points are collinear with some tolerance
-    Args:
-        p1 (list or np_array):
-        p2 (list or np_array):
-        p3 (list or np_array):
-        tolerance (_type_, optional): Defaults to 1e-7.
-
-    Returns:
-        Boolean: True if collinear
-    """
-    p1 = np.array(p1)
-    p2 = np.array(p2)
-    p3 = np.array(p3)
-
-    cross_product = np.cross(p2 - p1, p3 - p1)
-    norm_cycle = norm(cross_product)
-
-    return norm_cycle < tolerance
 
 
 # Function to ad adsorbate to atoms object
@@ -126,78 +135,6 @@ def add_ads(atoms, ads, offset):
     sub = custom_copy(atoms)
     sub += _ads
     return sub
-
-
-def check_contact(atoms, error=0.1, print_contact=False):
-    """Check if atoms touch within error
-    Args:
-        atoms (ase.Atoms):
-        error (float, optional): . Defaults to 0.1.
-        print_contact (bool, optional): Print Contact Information. Defaults to False.
-
-    Returns:
-        Boolean:
-    """
-    nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
-    nl.update(atoms)
-    close_contact = []
-    for index, atom in enumerate(atoms):
-        for neighbor, offset in zip(*nl.get_neighbors(index)):
-            if sorted((index, neighbor)) not in close_contact:
-                atom2 = atoms[neighbor]
-                distance = np.linalg.norm(
-                    atom.position - relative_position(atoms, neighbor, offset)
-                )
-                eqm_radii = covalent_radii[atom.number] + covalent_radii[atom2.number]
-                if distance < (1 - error) * eqm_radii:
-                    if print_contact:
-                        print(
-                            "Close Contact:",
-                            node_symbol(atom),
-                            node_symbol(atom2),
-                            round(distance, 2),
-                        )
-                    close_contact.append(sorted((index, neighbor)))
-    if close_contact:
-        return True
-    else:
-        return False
-
-
-def atoms_to_graph(atoms, nl, max_bond=0, max_bond_ratio=0):
-    """
-    Args:
-        atoms (_type_): _description_
-        nl (_type_): _description_
-        max_bond (int, optional): _description_. Defaults to 0.
-        max_bond_ratio (int, optional): _description_. Defaults to 0.
-
-    Returns:
-        _type_: _description_
-    """
-    if max_bond == 0 and max_bond_ratio == 0:
-        print("Please Specify bond information")
-        return
-
-    g = nx.Graph()
-    for index, atom in enumerate(atoms):
-        if not g.has_node(node_symbol(atom)):
-            g.add_node(node_symbol(atom), index=atom.index, symbol=atom.symbol)
-        for neighbor, offset in zip(*nl.get_neighbors(index)):
-            atom2 = atoms[neighbor]
-            vector = atom.position - relative_position(atoms, neighbor, offset)
-            distance = np.linalg.norm(vector)
-            eqm_radii = covalent_radii[atom.number] + covalent_radii[atom2.number]
-            check = max(max_bond, eqm_radii * max_bond_ratio)
-            if distance > check:
-                continue
-            if not g.has_node(node_symbol(atom2)):
-                g.add_node(node_symbol(atom2), index=atom2.index, symbol=atom2.symbol)
-            if not g.has_edge(node_symbol(atom), node_symbol(atom2)):
-                g.add_edge(
-                    node_symbol(atom), node_symbol(atom2), weight=vector, start=index
-                )
-    return g
 
 
 def get_normals(index, atoms, g):
@@ -297,6 +234,7 @@ def generate_sites(
                     valid.append(list(cycle))
 
     movie = []
+
     for cycle in valid:
         normal, ref_pos = get_normals(cycle, atoms, graph)
         offset = normal * ad_dist / norm(normal)
@@ -310,75 +248,59 @@ def generate_sites(
     return movie
 
 
-class SurfaceSites:
-    """_summary_"""
+def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0):
+    """
+    Args:
+        formula (str) or (ase.Atoms)
 
-    def __init__(
-        self,
-        max_coord,
-        surf_atom_sym,
-        max_bond_ratio=0,
-        max_bond=0,
-        contact_error=0.2,
-        com=True,
-    ):
-        self.max_coord = max_coord
-        if surf_atom_sym:
-            self.surf_atom_sym = surf_atom_sym
+    Returns:
+        _type_: _description_
+    """
+    if isinstance(formula, str):
+        atoms = molecule(formula)
+    elif isinstance(formula, Atoms):
+        atoms = read_atoms(formula)
+    else:
+        raise RuntimeError("Issue in reading formula")
 
-        self.max_bond_ratio = max_bond_ratio
-        self.max_bond = max_bond
-        self.contact_error = contact_error
-        self.com = com
+    nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
+    nl.update(atoms)
+    g = atoms_to_graph(atoms, nl, max_bond_ratio=max_bond_ratio, max_bond=max_bond)
 
-    def get_surface_sites(self, atoms, self_interaction=False, bothways=True):
-        """
-        Args:
-            atoms (_type_): _description_
-            self_interaction (bool, optional): _description_. Defaults to False.
-            bothways (bool, optional): _description_. Defaults to True.
+    return g
 
-        Returns:
-            _type_: _description_
-        """
-        if not self.surf_atom_sym:
-            self.surf_atom_sym = list(set(atoms.symbols))
-        for sym in atoms.symbols:
-            if sym not in list(self.max_coord.keys()):
-                print("Incomplete max_coord")
-                return
-        nl = NeighborList(
-            natural_cutoffs(atoms), self_interaction=self_interaction, bothways=bothways
-        )
-        nl.update(atoms)
-        g = atoms_to_graph(
-            atoms, nl, max_bond_ratio=self.max_bond_ratio, max_bond=self.max_bond
-        )
-        sites = []
-        for node in g.nodes():
-            cord = len([edge for edge in g[node]])
-            index = g.nodes[node]["index"]
-            symbol = atoms[index].symbol
-            diff_cord = self.max_coord[symbol] - cord
-            sites.append(
-                {
-                    "ind": index,
-                    "symbol": symbol,
-                    "cord": cord,
-                    "diff_cord": diff_cord,
-                    "z_coord": atoms[index].position[2],
-                }
-            )
 
-        df = pd.DataFrame(sites)
+def check_contact(atoms, error=0.1, print_contact=False):
+    """Check if atoms touch within error
+    Args:
+        atoms (ase.Atoms):
+        error (float, optional): . Defaults to 0.1.
+        print_contact (bool, optional): Print Contact Information. Defaults to False.
 
-        if self.com:
-            df = df[df.z_coord > atoms.get_center_of_mass()[2]]
-
-        df = df[df.diff_cord > 0].sort_values(by=["symbol", "cord"])
-        if isinstance(self.surf_atom_sym, str):
-            df = df[df["symbol"] == self.surf_atom_sym]
-        else:
-            df = df[df["symbol"].isin(self.surf_atom_sym)]
-        df = df.sort_values(by=["cord", "z_coord"])
-        return df["ind"], g
+    Returns:
+        Boolean:
+    """
+    nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
+    nl.update(atoms)
+    close_contact = []
+    for index, atom in enumerate(atoms):
+        for neighbor, offset in zip(*nl.get_neighbors(index)):
+            if sorted((index, neighbor)) not in close_contact:
+                atom2 = atoms[neighbor]
+                distance = np.linalg.norm(
+                    atom.position - relative_position(atoms, neighbor, offset)
+                )
+                eqm_radii = covalent_radii[atom.number] + covalent_radii[atom2.number]
+                if distance < (1 - error) * eqm_radii:
+                    if print_contact:
+                        print(
+                            "Close Contact:",
+                            node_symbol(atom),
+                            node_symbol(atom2),
+                            round(distance, 2),
+                        )
+                    close_contact.append(sorted((index, neighbor)))
+    if close_contact:
+        return True
+    else:
+        return False
