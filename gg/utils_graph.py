@@ -32,15 +32,17 @@ def relative_position(atoms, neighbor, offset):
     """
     return atoms[neighbor].position + np.dot(offset, atoms.get_cell())
 
+
 def node_match(n1, n2):
     """_summary_
     Args:
-        n1 (str): 
-        n2 (str): 
+        n1 (str):
+        n2 (str):
     Returns:
         Boolean: _description_
     """
     return n1["symbol"] == n2["symbol"]
+
 
 def is_cycle(g, nodes):
     """Check if the nodes in graph G form a cycle
