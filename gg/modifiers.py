@@ -1,5 +1,6 @@
 """Import Modules for basic functioning"""
 
+import random
 from ase.io import read as read_atoms
 from ase import Atoms
 from networkx.algorithms import isomorphism
@@ -16,10 +17,8 @@ __author__ = "Kaustubh Sawant"
 
 
 class ParentModifier:
-    """
+    """Parent bare bones modifier which serves as basis for other modifiers
     Args:
-        name (str): Unique Name of the Modifier
-        atoms (ase.Atoms): atoms object
         weight (float): Modifier Weight
     """
 
@@ -105,9 +104,23 @@ class Add(ParentModifier):
         ad_dist=1.8,
         movie=False,
     ):
+        """
+        Args:
+            weight (float): _description_
+            surface_sites (gg.SurfaceSites): a class which figures out surface sites
+            ads (str) or (ase.Atoms): Adsorbate to add
+            ads_coord (int): Adsorbate coordination number for adding
+            ad_dist (float, optional): Distance of adsorbate from surface site.
+            Defaults to 1.8.
+            movie (bool, optional): return a movie o best sites or one random site.
+            Defaults to False.
+        """
         super().__init__(weight)
         self.ss = surface_sites
-        self.ads = ads
+        if isinstance(ads, str):
+            self.ads = read_atoms(ads)
+        elif isinstance(ads, Atoms):
+            self.ads = custom_copy(ads)
         self.ads_coord = ads_coord
         self.ad_dist = ad_dist
         self.print_moview = movie
@@ -141,9 +154,22 @@ class Add(ParentModifier):
 class Remove(
     ParentModifier,
 ):
-    """Modifier that randomly removes an atom"""
+    """Modifier that randomly removes an atom or molecule"""
 
     def __init__(self, weight, surface_sites, to_del, max_bond_ratio=1.2, max_bond=0):
+        """
+        Args:
+            weight (str):
+
+            surface_sites (gg.SurfaceSites): a class which figures out surface sites
+
+            to_del (str) or (ase.Atoms): atoms to delete. If a string is provided,
+            it tries to make a molecule out of it.
+
+            max_bond_ratio (float, optional): Defaults to 1.2.
+
+            max_bond (int, optional):  Defaults to 0.
+        """
         super().__init__(weight)
 
         self.to_del = to_del
@@ -153,12 +179,12 @@ class Remove(
         self.ss = surface_sites
 
     def node_match(self, n1, n2):
-        """_summary_
+        """node matching criteria
         Args:
             n1 (str):
             n2 (str):
         Returns:
-            Boolean: _description_
+            Boolean:
         """
         return n1["symbol"] == n2["symbol"]
 
@@ -185,3 +211,49 @@ class Remove(
 
         del self.atoms[ind_to_remove_list[0]]
         return self.atoms
+
+
+class Swap(
+    ParentModifier,
+):
+    """Modifier that swaps two atoms"""
+
+    def __init__(self, weight, surface_sites, to_swap):
+        """
+        Args:
+            weight (str):
+
+            surface_sites (gg.SurfaceSites): A class which figures out surface sites
+
+            to_swap (list): List of atoms to swapt
+        """
+        super().__init__(weight)
+
+        self.to_swap = to_swap
+        self.ss = surface_sites
+
+    def get_modified_atoms(self, atoms):
+        """
+        Returns:
+            ase.Atoms:
+        """
+        self.atoms = atoms
+        df_ind,_ = self.ss.get_surface_sites(self.atoms)
+
+        random_elem = random.sample(self.to_swap, 2)
+        ind_1 = []
+        ind_2 = []
+        for atom in self.atoms:
+            if atom.index in df_ind:
+                if atom.symbol == random_elem[0]:
+                    ind_1.append(atom.index)
+                elif atom.symbol == random_elem[1]:
+                    ind_2.append(atom.index)
+
+        swap_1 = random.sample(ind_1, 1)
+        swap_2 = random.sample(ind_2, 1)
+
+        self.atoms[swap_1].symbol = random_elem[1]
+        self.atoms[swap_2].symbol = random_elem[0]
+        return
+   

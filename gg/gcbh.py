@@ -19,7 +19,7 @@ __author__ = "Kaustubh Sawant, Geng Sun"
 def get_current_time():
     """
     Returns:
-        str: time
+        str: Current time
     """
     time_label = strftime("%d-%b-%Y %H:%M:%S", localtime())
     return time_label
@@ -42,16 +42,15 @@ class Gcbh(Dynamics):
         trajectory="gcbh.traj",
         config_file=None,
     ):
-        """Parameters:
-        atoms: Atoms object
-            The Atoms object to operate on.
+        """_summary_
 
-        trajectory: string
-            Pickle file used to store trajectory of atomic movement.
-
-        logfile: file object or str
-            If *logfile* is a string, a file with that name will be opened.
-            Use '-' for stdout.
+        Args:
+            atoms (ase.Atoms): The Atoms object to operate on.
+            logfile (str, optional): Pickle file used to store trajectory of atomic movement.
+            Defaults to "gcbh.log".
+            trajectory (str, optional):  If *logfile* is a string, a file will be opened.
+            Defaults to "gcbh.traj".
+            config_file (str[.yaml file], optional): Input file to gcbh. Defaults to None.
         """
         # Intitalize by setting up the parent Dynamics Class
         super().__init__(atoms, logfile, trajectory)
@@ -334,7 +333,7 @@ class Gcbh(Dynamics):
                     break
             else:
                 raise RuntimeError(
-                    f"Program does not find a good structure after {maximum_trial} tests"
+                    f"Program does not find a good structure after {trials} tests"
                 )
 
     def accepting_new_structures(self, newatoms, modifier_name):
