@@ -10,8 +10,8 @@ from gg.utils import (
     NoReasonableStructureFound,
     custom_copy,
     formula_to_graph,
+    SurfaceSites,
 )
-from gg.reference import is_element, is_chemical_formula
 
 __author__ = "Kaustubh Sawant"
 
@@ -22,7 +22,7 @@ class ParentModifier:
         weight (float): Modifier Weight
     """
 
-    def __init__(self, weight):
+    def __init__(self, weight: float):
         self.og_weight = weight
         self.weight = weight
 
@@ -35,7 +35,7 @@ class ParentModifier:
         return self._atoms
 
     @atoms.setter
-    def atoms(self, atoms):
+    def atoms(self, atoms: Atoms):
         if isinstance(atoms, str):
             self._atoms = read_atoms(atoms)
         elif isinstance(atoms, Atoms):
@@ -54,14 +54,14 @@ class ParentModifier:
 class ModifierAdder(ParentModifier):
     """Add modifiers together to create a new modifier"""
 
-    def __init__(self, weight, modifier_instances):
+    def __init__(self, weight: float, modifier_instances: list[SurfaceSites]):
         super().__init__(weight)
         if isinstance(modifier_instances, list):
             self.modifier_instances = modifier_instances
         else:
             raise RuntimeError("modifier_instances isnt a list. Please provide a list")
 
-    def get_modified_atoms(self, atoms):
+    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
         Returns:
             ase.Atoms:
@@ -74,12 +74,12 @@ class ModifierAdder(ParentModifier):
 class Rattle(ParentModifier):
     """Modifier that rattles the atoms with some stdev"""
 
-    def __init__(self, weight, stdev=0.001, contact_error=0.2):
+    def __init__(self, weight: float, stdev: float = 0.001, contact_error: float = 0.2):
         self.stdev = stdev
         self.contact_error = contact_error
         super().__init__(weight)
 
-    def get_modified_atoms(self, atoms):
+    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
         Returns:
             ase.Atoms:
@@ -97,12 +97,12 @@ class Add(ParentModifier):
 
     def __init__(
         self,
-        weight,
-        surface_sites,
-        ads,
-        ads_coord,
-        ad_dist=1.8,
-        movie=False,
+        weight: float,
+        surface_sites: SurfaceSites,
+        ads: str,
+        ads_coord: int,
+        ad_dist: float = 1.8,
+        movie: bool = False,
     ):
         """
         Args:
@@ -125,7 +125,7 @@ class Add(ParentModifier):
         self.ad_dist = ad_dist
         self.print_moview = movie
 
-    def get_modified_atoms(self, atoms):
+    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
         Returns:
             ase.Atoms:
@@ -143,7 +143,7 @@ class Add(ParentModifier):
         )
         if not movie:
             raise NoReasonableStructureFound(
-                "Movie was empty, most likely due to issues with atoms touching"
+                "Movie was empty, most likely due to issues with atoms touching in Add Modifier"
             )
         if self.print_moview:
             return movie
@@ -156,7 +156,14 @@ class Remove(
 ):
     """Modifier that randomly removes an atom or molecule"""
 
-    def __init__(self, weight, surface_sites, to_del, max_bond_ratio=1.2, max_bond=0):
+    def __init__(
+        self,
+        weight: float,
+        surface_sites: SurfaceSites,
+        to_del: str,
+        max_bond_ratio: float = 1.2,
+        max_bond: float = 0,
+    ):
         """
         Args:
             weight (str):
@@ -178,7 +185,7 @@ class Remove(
         )
         self.ss = surface_sites
 
-    def node_match(self, n1, n2):
+    def node_match(self, n1: str, n2: str):
         """node matching criteria
         Args:
             n1 (str):
@@ -188,7 +195,7 @@ class Remove(
         """
         return n1["symbol"] == n2["symbol"]
 
-    def get_modified_atoms(self, atoms):
+    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
         Returns:
             ase.Atoms:
@@ -201,7 +208,9 @@ class Remove(
         )
         all_isomorphisms = list(graph_match.subgraph_isomorphisms_iter())
         if not all_isomorphisms:
-            raise NoReasonableStructureFound("No adsorbate in the atoms to remove")
+            raise NoReasonableStructureFound(
+                "No adsorbate in the atoms to remove in Remove Modifier"
+            )
 
         ind_to_remove_list = []
         for mapping in all_isomorphisms:
@@ -218,42 +227,66 @@ class Swap(
 ):
     """Modifier that swaps two atoms"""
 
-    def __init__(self, weight, surface_sites, to_swap):
+    def __init__(
+        self,
+        weight: float,
+        surface_sites: SurfaceSites,
+        swap_sym: list,
+        swap_ind: list = None,
+    ):
         """
         Args:
             weight (str):
 
             surface_sites (gg.SurfaceSites): A class which figures out surface sites
 
-            to_swap (list): List of atoms to swapt
+            swap_sym (list): List of atoms to swapt
+
+            swap_ind (list): List of indices to swap. Default to None
         """
         super().__init__(weight)
-
-        self.to_swap = to_swap
+        self.swap_sym = swap_sym
+        self.swap_ind = swap_ind
         self.ss = surface_sites
 
-    def get_modified_atoms(self, atoms):
+    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
         Returns:
             ase.Atoms:
         """
         self.atoms = atoms
-        df_ind,_ = self.ss.get_surface_sites(self.atoms)
 
-        random_elem = random.sample(self.to_swap, 2)
-        ind_1 = []
-        ind_2 = []
-        for atom in self.atoms:
-            if atom.index in df_ind:
-                if atom.symbol == random_elem[0]:
-                    ind_1.append(atom.index)
-                elif atom.symbol == random_elem[1]:
-                    ind_2.append(atom.index)
+        if self.swap_ind:
+            if len(self.swap_ind) == 2:
+                swap_1 = self.swap_ind[0]
+                swap_2 = self.swap_ind[1]
+                random_elem = [self.atoms[swap_1].symbol, self.atoms[swap_2].symbol]
+            else:
+                raise RuntimeError("Multiple indices given to Swap Modifier")
+        else:
+            df_ind, _ = self.ss.get_surface_sites(self.atoms)
+            random_elem = random.sample(self.swap_sym, 2)
 
-        swap_1 = random.sample(ind_1, 1)
-        swap_2 = random.sample(ind_2, 1)
+            ind_1 = []
+            ind_2 = []
+            for atom in self.atoms:
+                if atom.index in df_ind:
+                    if atom.symbol == random_elem[0]:
+                        ind_1.append(atom.index)
+                    elif atom.symbol == random_elem[1]:
+                        ind_2.append(atom.index)
+                    else:
+                        continue
+            swap_1 = random.sample(ind_1, 1)[0]
+            swap_2 = random.sample(ind_2, 1)[0]
 
-        self.atoms[swap_1].symbol = random_elem[1]
-        self.atoms[swap_2].symbol = random_elem[0]
-        return
-   
+        symbols = self.atoms.get_chemical_symbols()
+        symbols[swap_1] = random_elem[1]
+        symbols[swap_2] = random_elem[0]
+        self.atoms.set_chemical_symbols(symbols)
+
+        if check_contact(self.atoms, error=self.ss.contact_error):
+            if check_contact(self.atoms, error=self.ss.contact_error):
+                raise NoReasonableStructureFound("Atoms Touching")
+
+        return self.atoms

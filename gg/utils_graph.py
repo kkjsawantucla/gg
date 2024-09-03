@@ -1,15 +1,16 @@
 """Importing modules for dealing with graph utilities"""
 
+from typing import Union
 import networkx as nx
 import numpy as np
 from numpy.linalg import norm
 from ase.data import covalent_radii
-
+from ase import Atoms
 
 __author__ = "Kaustubh Sawant"
 
 
-def node_symbol(atom):
+def node_symbol(atom: Atoms) -> str:
     """
     Args:
        atom (Atoms Object): atoms to convert
@@ -20,7 +21,7 @@ def node_symbol(atom):
     return f"{atom.symbol}_{atom.index}"
 
 
-def relative_position(atoms, neighbor, offset):
+def relative_position(atoms: Atoms, neighbor: int, offset: np.array) -> np.array:
     """
     Args:
          atoms (ase.Atoms):
@@ -33,18 +34,18 @@ def relative_position(atoms, neighbor, offset):
     return atoms[neighbor].position + np.dot(offset, atoms.get_cell())
 
 
-def node_match(n1, n2):
-    """_summary_
+def node_match(n1: str, n2: str) -> bool:
+    """
     Args:
         n1 (str):
         n2 (str):
     Returns:
-        Boolean: _description_
+        Boolean:
     """
     return n1["symbol"] == n2["symbol"]
 
 
-def is_cycle(g, nodes):
+def is_cycle(g: nx.Graph, nodes: list) -> bool:
     """Check if the nodes in graph G form a cycle
     Args:
        G (networkx Graph):
@@ -62,7 +63,12 @@ def is_cycle(g, nodes):
         return False
 
 
-def are_points_collinear_with_tolerance(p1, p2, p3, tolerance=1e-7):
+def are_points_collinear_with_tolerance(
+    p1: Union[list, np.array],
+    p2: Union[list, np.array],
+    p3: Union[list, np.array],
+    tolerance: float = 1e-7,
+) -> bool:
     """Check if three points are collinear with some tolerance
     Args:
         p1 (list or np_array):
@@ -83,16 +89,18 @@ def are_points_collinear_with_tolerance(p1, p2, p3, tolerance=1e-7):
     return norm_cycle < tolerance
 
 
-def atoms_to_graph(atoms, nl, max_bond=0, max_bond_ratio=0):
+def atoms_to_graph(
+    atoms: Atoms, nl, max_bond: float = 0, max_bond_ratio: float = 0
+) -> nx.Graph:
     """
     Args:
-        atoms (_type_): _description_
-        nl (_type_): _description_
-        max_bond (int, optional): _description_. Defaults to 0.
-        max_bond_ratio (int, optional): _description_. Defaults to 0.
+        atoms (_type_): 
+        nl (_type_): 
+        max_bond (int, optional): . Defaults to 0.
+        max_bond_ratio (int, optional): . Defaults to 0.
 
     Returns:
-        _type_: _description_
+       (nx.Graph): 
     """
     if max_bond == 0 and max_bond_ratio == 0:
         raise RuntimeError("Please Specify bond information")

@@ -1,5 +1,6 @@
 """Importing modules for dealing with graph utilities"""
 
+from typing import Optional
 from itertools import combinations
 import numpy as np
 from numpy.linalg import norm
@@ -25,16 +26,15 @@ class SurfaceSites:
 
     def __init__(
         self,
-        max_coord,
-        surf_atom_sym=None,
-        max_bond_ratio=0,
-        max_bond=0,
-        contact_error=0.2,
-        com=True,
+        max_coord: dict,
+        surf_atom_sym: Optional[list] = None,
+        max_bond_ratio: Optional[float] = 0,
+        max_bond: Optional[float] = 0,
+        contact_error: Optional[float] = 0.2,
+        com: Optional[bool] = True,
     ):
         self.max_coord = max_coord
         self.surf_atom_sym = surf_atom_sym
-
         self.max_bond_ratio = max_bond_ratio
         self.max_bond = max_bond
         self.contact_error = contact_error
@@ -90,10 +90,10 @@ class SurfaceSites:
         else:
             df = df[df["symbol"].isin(self.surf_atom_sym)]
         df = df.sort_values(by=["cord", "z_coord"])
-        return df["ind"], g
+        return df["ind"].to_list(), g
 
 
-def custom_copy(atoms):
+def custom_copy(atoms: Atoms) -> Atoms:
     """copy atoms with calc
     Args:
         atoms (ase.Atoms):
