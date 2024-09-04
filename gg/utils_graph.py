@@ -94,13 +94,13 @@ def atoms_to_graph(
 ) -> nx.Graph:
     """
     Args:
-        atoms (_type_): 
-        nl (_type_): 
+        atoms (_type_):
+        nl (_type_):
         max_bond (int, optional): . Defaults to 0.
         max_bond_ratio (int, optional): . Defaults to 0.
 
     Returns:
-       (nx.Graph): 
+       (nx.Graph):
     """
     if max_bond == 0 and max_bond_ratio == 0:
         raise RuntimeError("Please Specify bond information")
