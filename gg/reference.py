@@ -45,12 +45,12 @@ def construct_matrix_a(ref):
         parsed_formula = parse_chemical_formula(formula)
         for element, count in parsed_formula.items():
             a[element][i] = count
-    # Convert defaultdict to a regular dictionary
+    # Convert default dict to a regular dictionary
     return dict(a)
 
 
 def solve_chemical_equations(chemical_dict_a, chemical_dict_b):
-    """Solve Ax=B as dictionaries
+    """ Solve Ax=B as dictionaries
 
     Args:
         chemical_dict_A (Dict):
@@ -103,7 +103,7 @@ def get_ref_coeff(ref, product_formula):
 
 
 def is_element(symbol):
-    """Check if symbol is element
+    """ Check if the symbol is an element
     Args:
         symbol (str):
 
@@ -127,7 +127,7 @@ def is_chemical_formula(formula):
     return bool(re.match(pattern, formula))
 
 def parse_formula_to_list(formula):
-    """convert chemical formula into list
+    """ Convert chemical formula into a list
     Args:
         formula (str):
 
