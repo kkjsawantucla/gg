@@ -20,7 +20,7 @@ __author__ = "Kaustubh Sawant"
 
 
 class ParentModifier:
-    """Parent bare bones modifier which serves as basis for other modifiers
+    """ Parent bare bones modifier which serves as the basis for other modifiers
     Args:
         weight (float): Modifier Weight
     """
@@ -55,27 +55,28 @@ class ParentModifier:
 
 
 class ModifierAdder(ParentModifier):
-    """Add modifiers together to create a new modifier"""
+    """ Add modifiers together to create a new modifier """
 
     def __init__(self, weight: float, modifier_instances: list[SurfaceSites]):
         super().__init__(weight)
         if isinstance(modifier_instances, list):
             self.modifier_instances = modifier_instances
         else:
-            raise RuntimeError("modifier_instances isnt a list. Please provide a list")
+            raise RuntimeError("modifier_instances isn't a list. Please provide a list")
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
         Returns:
             ase.Atoms:
         """
+        self.atoms = atoms
         for instance in self.modifier_instances:
-            self.atoms = instance.get_modified_atoms(atoms)
+            self.atoms = instance.get_modified_atoms(self.atoms)
         return self.atoms
 
 
 class Rattle(ParentModifier):
-    """Modifier that rattles the atoms with some stdev"""
+    """ Modifier that rattles the atoms with some stdev """
 
     def __init__(self, weight: float, stdev: float = 0.001, contact_error: float = 0.2):
         self.stdev = stdev
@@ -96,7 +97,7 @@ class Rattle(ParentModifier):
 
 
 class Add(ParentModifier):
-    """Modifier that adds an adsorbate at certain specific sites"""
+    """ Modifier that adds an adsorbate at certain specific sites """
 
     def __init__(
         self,
@@ -110,12 +111,12 @@ class Add(ParentModifier):
         """
         Args:
             weight (float): _description_
-            surface_sites (gg.SurfaceSites): a class which figures out surface sites
+            surface_sites (gg.SurfaceSites): a class that figures out surface sites
             ads (str) or (ase.Atoms): Adsorbate to add
             ads_coord (int): Adsorbate coordination number for adding
             ad_dist (float, optional): Distance of adsorbate from surface site.
             Defaults to 1.8.
-            movie (bool, optional): return a movie o best sites or one random site.
+            movie (bool, optional): return a movie of all unique sites or one random site.
             Defaults to False.
         """
         super().__init__(weight)
@@ -159,7 +160,7 @@ class Add(ParentModifier):
 class Remove(
     ParentModifier,
 ):
-    """Modifier that randomly removes an atom or molecule"""
+    """ Modifier that randomly removes an atom or molecule """
 
     def __init__(
         self,
@@ -173,7 +174,7 @@ class Remove(
         Args:
             weight (str):
 
-            surface_sites (gg.SurfaceSites): a class which figures out surface sites
+            surface_sites (gg.SurfaceSites): a class that figures out surface sites
 
             to_del (str) or (ase.Atoms): atoms to delete. If a string is provided,
             it tries to make a molecule out of it.
@@ -230,7 +231,7 @@ class Remove(
 class Swap(
     ParentModifier,
 ):
-    """Modifier that swaps two atoms"""
+    """ Modifier that swaps two atoms """
 
     def __init__(
         self,
@@ -246,7 +247,7 @@ class Swap(
 
             surface_sites (gg.SurfaceSites): A class which figures out surface sites
 
-            swap_sym (list): List of atoms to swapt
+            swap_sym (list): List of atoms to swap
 
             swap_ind (list): List of indices to swap. Default to None
         """
