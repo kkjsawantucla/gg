@@ -1,8 +1,9 @@
 """Importing modules for dealing with graph utilities"""
 
-from typing import Optional
+from typing import Optional, Tuple
 from itertools import combinations
 import numpy as np
+import networkx as nx
 from numpy.linalg import norm
 import pandas as pd
 from ase import Atoms
@@ -111,7 +112,7 @@ def custom_copy(atoms: Atoms) -> Atoms:
 
 
 # Function to ad adsorbate to atoms object
-def add_ads(atoms, ads, offset):
+def add_ads(atoms: Atoms, ads: Atoms, offset: float) -> Atoms:
     """Add adsorbate on substrate with particular offset
     Args:
         atoms (Atoms Object): Substrate
@@ -137,7 +138,7 @@ def add_ads(atoms, ads, offset):
     return sub
 
 
-def get_normals(index, atoms, g):
+def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.array]:
     """
     Args:
         index (_type_):
@@ -195,8 +196,33 @@ def get_normals(index, atoms, g):
     return vector_with_smallest_sum, ref_pos
 
 
+def move_along_normal(index: int, atoms: Atoms, g: nx.Graph) -> Atoms:
+    """Helper function to move atoms along the free normal"""
+    normal, ref_pos = get_normals([index], atoms, g)
+    atom = atoms[index]
+    offset = 0
+    i = 0
+    for neighbor in g.neighbors(node_symbol(atom)):
+        atom_n = atoms[g.nodes[neighbor]["index"]]
+        offset += (
+            covalent_radii[atom_n.number]
+            + covalent_radii[atom.number]
+            - atoms.get_distance(index, atom_n.index, mic=True)
+        )
+        i += 1
+    offset = offset / i
+    atom.position = ref_pos + normal * offset / norm(normal)
+    return atoms
+
+
 def generate_sites(
-    atoms, ads, graph, index, coordination, ad_dist=1.7, contact_error=0.2
+    atoms: Atoms,
+    ads: Atoms,
+    graph: nx.Graph,
+    index: list,
+    coordination: int,
+    ad_dist: float = 1.7,
+    contact_error: float = 0.2,
 ):
     """
     Args:

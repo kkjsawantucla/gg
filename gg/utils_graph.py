@@ -6,6 +6,7 @@ import numpy as np
 from numpy.linalg import norm
 from ase.data import covalent_radii
 from ase import Atoms
+from ase.neighborlist import NeighborList, natural_cutoffs
 
 __author__ = "Kaustubh Sawant"
 
@@ -124,3 +125,87 @@ def atoms_to_graph(
                     node_symbol(atom), node_symbol(atom2), weight=vector, start=index
                 )
     return g
+
+
+def get_graph_hash(graph: nx.Graph):
+    """
+    Args:
+        graph (nx,Graph): Graph to be hashed
+
+    Returns:
+        _type_: _description_
+    """
+    # Create a sorted tuple of node attributes and edges to generate a unique hash
+    node_attrs = tuple(
+        sorted((node, data["symbol"]) for node, data in graph.nodes(data=True))
+    )
+    edges = tuple(sorted(graph.edges()))
+    return hash((node_attrs, edges))
+
+
+def get_unique_graph_indexes(graph_list: list[nx.Graph]):
+    """
+    Args:
+        graph_list (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    unique_graphs = []
+    seen_hashes = set()
+    unique_indexes = []
+    for index, graph in enumerate(graph_list):
+        graph_hash = get_graph_hash(graph)
+        if graph_hash not in seen_hashes:
+            seen_hashes.add(graph_hash)
+            # Perform a full isomorphism check to confirm uniqueness
+            if not any(
+                nx.algorithms.isomorphism.GraphMatcher(
+                    graph, unique_graph, node_match=node_match
+                ).is_isomorphic()
+                for unique_graph in unique_graphs
+            ):
+                unique_graphs.append(graph)
+                unique_indexes.append(index)
+    return unique_indexes
+
+
+def list_atoms_to_graphs(
+    list_atoms: list[Atoms], max_bond: float = 0, max_bond_ratio: float = 0
+) -> list[nx.Graph]:
+    """
+    Args:
+        list_atoms (list[Atoms]): list of atoms to convert to graphs
+        max_bond (int, optional): . Defaults to 0.
+        max_bond_ratio (int, optional): . Defaults to 0.
+
+    Returns:
+        list[nx.Graph]: converted list of graphs
+    """
+    graph_list = []
+    for atoms in list_atoms:
+        nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
+        nl.update(atoms)
+        graph_list.append(
+            atoms_to_graph(atoms, nl, max_bond=max_bond, max_bond_ratio=max_bond_ratio)
+        )
+    return graph_list
+
+
+def get_unique_atoms(
+    movie: list[Atoms], max_bond: float = 0, max_bond_ratio: float = 0
+) -> list[Atoms]:
+    """
+    Args:
+        movie (list[Atoms]): _description_
+        max_bond (float, optional): _description_. Defaults to 0.
+        max_bond_ratio (float, optional): _description_. Defaults to 0.
+
+    Returns:
+        list[Atoms]: _description_
+    """
+    graph_list = list_atoms_to_graphs(
+        movie, max_bond=max_bond, max_bond_ratio=max_bond_ratio
+    )
+    unique_indexes = get_unique_graph_indexes(graph_list)
+    return [movie[i] for i in unique_indexes]

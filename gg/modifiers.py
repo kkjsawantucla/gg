@@ -1,17 +1,20 @@
 """Import Modules for basic functioning"""
 
 import random
+from itertools import product
 from ase.io import read as read_atoms
 from ase import Atoms
+from ase.data import covalent_radii
 from networkx.algorithms import isomorphism
+from gg.utils import NoReasonableStructureFound, SurfaceSites
 from gg.utils import (
     check_contact,
     generate_sites,
-    NoReasonableStructureFound,
     custom_copy,
     formula_to_graph,
-    SurfaceSites,
+    move_along_normal,
 )
+from gg.utils_graph import get_unique_atoms
 
 __author__ = "Kaustubh Sawant"
 
@@ -102,7 +105,7 @@ class Add(ParentModifier):
         ads: str,
         ads_coord: int,
         ad_dist: float = 1.8,
-        movie: bool = False,
+        print_movie: bool = False,
     ):
         """
         Args:
@@ -123,7 +126,7 @@ class Add(ParentModifier):
             self.ads = custom_copy(ads)
         self.ads_coord = ads_coord
         self.ad_dist = ad_dist
-        self.print_moview = movie
+        self.print_movie = print_movie
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
@@ -145,8 +148,10 @@ class Add(ParentModifier):
             raise NoReasonableStructureFound(
                 "Movie was empty, most likely due to issues with atoms touching in Add Modifier"
             )
-        if self.print_moview:
-            return movie
+        if self.print_movie:
+            return get_unique_atoms(
+                movie, max_bond=self.ss.max_bond, max_bond_ratio=self.ss.max_bond_ratio
+            )
         else:
             return movie[0]
 
@@ -233,6 +238,7 @@ class Swap(
         surface_sites: SurfaceSites,
         swap_sym: list,
         swap_ind: list = None,
+        print_movie: bool = False,
     ):
         """
         Args:
@@ -248,6 +254,7 @@ class Swap(
         self.swap_sym = swap_sym
         self.swap_ind = swap_ind
         self.ss = surface_sites
+        self.print_movie = print_movie
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
@@ -277,16 +284,34 @@ class Swap(
                         ind_2.append(atom.index)
                     else:
                         continue
-            swap_1 = random.sample(ind_1, 1)[0]
-            swap_2 = random.sample(ind_2, 1)[0]
+        movie = []
+        combinations = product(ind_1, ind_2)
+        for comb in combinations:
+            atoms = custom_copy(self.atoms)
+            swap_1, swap_2 = comb
+            symbols = atoms.get_chemical_symbols()
+            symbols[swap_1] = random_elem[1]
+            symbols[swap_2] = random_elem[0]
+            atoms.set_chemical_symbols(symbols)
+            if (
+                covalent_radii[atoms[swap_1].number]
+                >= covalent_radii[atoms[swap_2].number]
+            ):
+                index = swap_1
+            else:
+                index = swap_2
+            df_ind, g = self.ss.get_surface_sites(atoms)
+            atoms = move_along_normal(index, atoms, g)
 
-        symbols = self.atoms.get_chemical_symbols()
-        symbols[swap_1] = random_elem[1]
-        symbols[swap_2] = random_elem[0]
-        self.atoms.set_chemical_symbols(symbols)
-
-        if check_contact(self.atoms, error=self.ss.contact_error):
-            if check_contact(self.atoms, error=self.ss.contact_error):
-                raise NoReasonableStructureFound("Atoms Touching")
-
-        return self.atoms
+            if check_contact(atoms, error=self.ss.contact_error):
+                del atoms
+                continue
+            else:
+                movie.append(atoms)
+                del atoms
+        if self.print_movie:
+            return get_unique_atoms(
+                movie, max_bond=self.ss.max_bond, max_bond_ratio=self.ss.max_bond_ratio
+            )
+        else:
+            return random.sample(movie, 1)[0]
