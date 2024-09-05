@@ -1,4 +1,4 @@
-"""Importing modules for dealing with graph utilities"""
+""" General utilities for the modifiers """
 
 from typing import Optional, Tuple
 from itertools import combinations
