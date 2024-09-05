@@ -19,7 +19,7 @@ __author__ = "Kaustubh Sawant"
 
 
 class NoReasonableStructureFound(Exception):
-    """Custom error to handle touching atoms"""
+    """ Custom error to handle touching atoms """
 
 
 class SurfaceSites:
@@ -46,7 +46,7 @@ class SurfaceSites:
         Args:
             atoms (_type_): _description_
             self_interaction (bool, optional): _description_. Defaults to False.
-            bothways (bool, optional): _description_. Defaults to True.
+            both ways (bool, optional): _description_. Defaults to True.
 
         Returns:
             _type_: _description_
@@ -113,11 +113,11 @@ def custom_copy(atoms: Atoms) -> Atoms:
 
 # Function to ad adsorbate to atoms object
 def add_ads(atoms: Atoms, ads: Atoms, offset: float) -> Atoms:
-    """Add adsorbate on substrate with particular offset
+    """ Add adsorbate on a substrate with a particular offset
     Args:
         atoms (Atoms Object): Substrate
         ads (Atoms Object): Adsorbate to add
-        offset (_type_): ref distance in substrate where adsorbate will be added
+        offset (_type_): ref distance in the substrate where adsorbate will be added
 
     Returns:
         atoms (Atoms Object): _description_
@@ -197,7 +197,7 @@ def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.ar
 
 
 def move_along_normal(index: int, atoms: Atoms, g: nx.Graph) -> Atoms:
-    """Helper function to move atoms along the free normal"""
+    """ Helper function to move atoms along the free normal """
     normal, ref_pos = get_normals([index], atoms, g)
     atom = atoms[index]
     offset = 0
@@ -297,11 +297,11 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0):
 
 
 def check_contact(atoms, error=0.1, print_contact=False):
-    """Check if atoms touch within error
+    """ Check if atoms touch within an error tolerance
     Args:
         atoms (ase.Atoms):
-        error (float, optional): . Defaults to 0.1.
-        print_contact (bool, optional): Print Contact Information. Defaults to False.
+        error (float, optional): Error tolerated. Defaults to 0.1.
+        print_contact (bool, optional): Print contact information. Defaults to False.
 
     Returns:
         Boolean:
