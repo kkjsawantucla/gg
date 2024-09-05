@@ -1,4 +1,4 @@
-"""Importing Modules"""
+""" Main grand canonical basin hopping class """
 
 import os
 import pickle
