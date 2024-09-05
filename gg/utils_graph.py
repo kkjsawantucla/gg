@@ -1,4 +1,4 @@
-"""Importing modules for dealing with graph utilities"""
+""" Utilities for graph manipulation """
 
 from typing import Union
 import networkx as nx
@@ -47,7 +47,7 @@ def node_match(n1: str, n2: str) -> bool:
 
 
 def is_cycle(g: nx.Graph, nodes: list) -> bool:
-    """Check if the nodes in graph G form a cycle
+    """ Check if the nodes in graph G form a cycle
     Args:
        G (networkx Graph):
        nodes ([list of networkx nodes]):
@@ -130,7 +130,7 @@ def atoms_to_graph(
 def get_graph_hash(graph: nx.Graph):
     """
     Args:
-        graph (nx,Graph): Graph to be hashed
+        graph (nx.Graph): Graph to be hashed
 
     Returns:
         _type_: _description_
@@ -158,7 +158,7 @@ def get_unique_graph_indexes(graph_list: list[nx.Graph]):
         graph_hash = get_graph_hash(graph)
         if graph_hash not in seen_hashes:
             seen_hashes.add(graph_hash)
-            # Perform a full isomorphism check to confirm uniqueness
+            # Perform a full isomorphism check to confirm the uniqueness
             if not any(
                 nx.algorithms.isomorphism.GraphMatcher(
                     graph, unique_graph, node_match=node_match
