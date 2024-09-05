@@ -27,7 +27,7 @@ def get_current_time():
 
 
 class Gcbh(Dynamics):
-    """Basin hopping algorithm.
+    """ Basin hopping algorithm.
 
     After Wales and Doye, J. Phys. Chem. A, vol 101 (1997) 5111-5116
 
@@ -48,12 +48,12 @@ class Gcbh(Dynamics):
 
         Args:
             atoms (ase.Atoms): The Atoms object to operate on.
-            logfile (str, optional): Pickle file used to store trajectory of atomic movement.
+            logfile (str, optional): Pickle file used to store the trajectory of atomic movement.
             Defaults to "gcbh.log".
             trajectory (str, optional):  If *logfile* is a string, a file will be opened.
             Defaults to "gcbh.traj".
             config_file (str[.yaml file], optional): Input file to gcbh. Defaults to None.
-            restart (bool,optional):
+            restart (bool, optional):
         """
         # Intitalize by setting up the parent Dynamics Class
         super().__init__(atoms, logfile, trajectory)
@@ -93,7 +93,7 @@ class Gcbh(Dynamics):
 
         self.structure_modifiers = {}  # Setup empty class to add structure modifiers
         self.accept_history = []  # used for adjusting the temperature of Metropolis algorithm
-        # a series of 0 and 1, 0 stands for not accpeted, 1 stands for accepted
+        # a series of 0 and 1, 0 stands for not accepted, 1 stands for accepted
 
         # Print the chemical potential for different elements
         if self.config["chemical_potential"]:
@@ -109,7 +109,7 @@ class Gcbh(Dynamics):
         self.no_improvement_step = 0
         self.nsteps = 0
 
-        # negative value indicates no on-going structure optimization
+        # negative value indicates no ongoing structure optimization
         self.on_optimization = -1
 
         if restart:
@@ -274,7 +274,7 @@ class Gcbh(Dynamics):
             return 0
 
     def adjust_temp(self, int_accept: int):
-        """Start adjusting temperature beyond max_history
+        """ Start adjusting temperature beyond max_history
         Args:
             int_accept (int): 0 or 1
         """
@@ -302,7 +302,7 @@ class Gcbh(Dynamics):
         return atoms
 
     def initialize(self):
-        """Initialize Atoms"""
+        """ Initialize Atoms """
         self.on_optimization = 0
         self.atoms = self.optimize(self.atoms)
         self.dump(self.status_file)
@@ -370,7 +370,7 @@ class Gcbh(Dynamics):
                 )
 
     def accepting_new_structures(self, newatoms: Atoms, modifier_name: str):
-        """This function takes care of all the accepting algorithm. I.E metropolis algorithms
+        """ This function takes care of all the accepting algorithms. I.E metropolis algorithms
         newatoms is the newly optimized structure
         """
         assert newatoms is not None
@@ -419,7 +419,7 @@ class Gcbh(Dynamics):
         self.logtxt("-------------------------------------------------------")
 
     def optimize(self, atoms: Atoms, optimizer=BFGS, fmax: float = 0.05):
-        """Optimize atoms"""
+        """ Optimize atoms"""
         if atoms.get_calculator() is None:
             raise RuntimeError("The atoms object has no calculator")
 
