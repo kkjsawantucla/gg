@@ -1,5 +1,4 @@
-# Code generated using ChatGPT "lol"
-"""Import re"""
+""" Functions to enforce grand canonical reference chemical potential """
 
 import re
 from collections import defaultdict
