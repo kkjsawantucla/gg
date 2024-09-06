@@ -235,7 +235,9 @@ class Remove(
                 continue
 
         if not ind_to_remove_list:
-            raise NoReasonableStructureFound()
+            raise NoReasonableStructureFound(
+                "Index of the atoms to be removed isnt in Site Class"
+            )
 
         if self.print_movie:
             movie = []

@@ -394,7 +394,7 @@ class Gcbh(Dynamics):
 
         else:
             int_accept = 0
-            self.logtxt(f"Accepted, F(old)={self.free_energy} F(new)={fn}")
+            self.logtxt(f"Rejected, F(old)={self.free_energy:.2f} F(new)={fn:.2f}")
 
         self.adjust_temp(int_accept)
         if accept:
@@ -418,7 +418,7 @@ class Gcbh(Dynamics):
             raise RuntimeError("The atoms object has no calculator")
 
         self.logtxt(
-            f'{get_current_time()}: Begin structure optimization subroutine at step {self.c["nsteps"]}'
+            f'{get_current_time()}: Begin structure optimization routine at step {self.c["nsteps"]}'
         )
         opt_dir = self.opt_folder
         topdir = os.getcwd()
