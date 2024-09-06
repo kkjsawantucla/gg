@@ -109,7 +109,7 @@ class Gcbh(Dynamics):
             self.mu = None
 
         self.c["energy"] = None
-        self.free_energy = None
+        self.c["fe"] = None
         self.c["fe_min"] = None
         self.c["no_impr_step"] = 0
         self.c["nsteps"] = 0
@@ -124,6 +124,8 @@ class Gcbh(Dynamics):
         if restart:
             if os.path.exists(self.status_file):
                 self.update_from_file(self.status_file)
+                if any(arg is None for arg in [self.c["energy"],self.c["fe"],self.c["fe_min"]]):
+                    self.initialize()
         else:
             self.initialize()
 
@@ -154,7 +156,7 @@ class Gcbh(Dynamics):
         self.c.update(c_old)
         if self.c["mod_weights"]:
             for key, value in self.c["mod_weights"].items():
-                print(f"{key} weight = {value:.2f}")
+                self.logtxt(f"{key} weight = {value:.2f}")
 
     def logtxt(
         self,
@@ -291,8 +293,8 @@ class Gcbh(Dynamics):
         self.dump(self.status_file)
         self.c["energy"] = self.atoms.get_potential_energy()
         ref = self.get_ref_potential(self.atoms)
-        self.free_energy = self.c["energy"] - ref
-        self.c["fe_min"] = self.free_energy
+        self.c["fe"] = self.c["energy"] - ref
+        self.c["fe_min"] = self.c["fe"]
         self.c["opt_on"] = -1
         self.dump(self.status_file)
         self.c["nsteps"] += 1
@@ -300,7 +302,7 @@ class Gcbh(Dynamics):
         en = self.c["energy"]
         self.append_graph(self.atoms)
         self.logtxt(
-            f"Atoms: {formula} E(initial): {en:.2f} F(initial) {self.free_energy:.2f}"
+            f'Atoms: {formula} E(initial): {en:.2f} F(initial) {self.c["fe"]:.2f}'
         )
 
     def run(self, steps: int = 4000, maximum_trial: int = 30):
@@ -369,13 +371,13 @@ class Gcbh(Dynamics):
         en = newatoms.get_potential_energy()  # Energy_new
         fn = en - self.get_ref_potential(newatoms)  # Free_energy_new
 
-        if fn < self.free_energy:
+        if fn < self.c["fe"]:
             accept = True
             modifier_weight_action = "increase"
 
         # Check Probability for acceptance
         elif np.random.uniform() < np.exp(
-            -(fn - self.free_energy) / self.c["temp"] / units.kB
+            -(fn - self.c["fe"]) / self.c["temp"] / units.kB
         ):
             accept = True
             modifier_weight_action = "decrease"
@@ -387,14 +389,14 @@ class Gcbh(Dynamics):
 
         if accept:
             int_accept = 1
-            self.logtxt(f"Accepted, F(old)={self.free_energy:.2f} F(new)={fn:.2f}")
+            self.logtxt(f'Accepted, F(old)={self.c["fe"]:.2f} F(new)={fn:.2f}')
             self.atoms = newatoms
             self.c["energy"] = en
-            self.free_energy = fn
+            self.c["fe"] = fn
 
         else:
             int_accept = 0
-            self.logtxt(f"Rejected, F(old)={self.free_energy:.2f} F(new)={fn:.2f}")
+            self.logtxt(f'Rejected, F(old)={self.c["fe"]:.2f} F(new)={fn:.2f}')
 
         self.adjust_temp(int_accept)
         if accept:
@@ -403,8 +405,8 @@ class Gcbh(Dynamics):
             self.lm_trajectory.write(self.atoms, accept=0)
 
         # update the best result for this basin-hopping
-        if self.free_energy < self.c["fe_min"]:
-            self.c["fe_min"] = self.free_energy
+        if self.c["fe"] < self.c["fe_min"]:
+            self.c["fe_min"] = self.c["fe"]
             self.c["no_impr_step"] = 0
         else:
             self.c["no_impr_step"] += 1
