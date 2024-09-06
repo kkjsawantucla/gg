@@ -89,8 +89,8 @@ class SurfaceSites(Sites):
         for sym in atoms.symbols:
             if sym not in list(self.max_coord.keys()):
                 raise RuntimeError(f"Incomplete max_coord: Missing {sym}")
-        if not self.graph:
-            self.get_graph(atoms, self_interaction=self_interaction, bothways=bothways)
+
+        self.get_graph(atoms, self_interaction=self_interaction, bothways=bothways)
         sites = []
         for node in self.graph.nodes():
             cord = len([edge for edge in self.graph[node]])

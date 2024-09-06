@@ -44,8 +44,6 @@ class ParentModifier:
             self._atoms = read_atoms(atoms)
         elif isinstance(atoms, Atoms):
             self._atoms = custom_copy(atoms)
-        else:
-            print("Please provide proper atoms file")
 
     def get_modified_atoms(self, atoms) -> Atoms:
         """
@@ -161,7 +159,7 @@ class Add(ParentModifier):
                 movie, max_bond=self.ss.max_bond, max_bond_ratio=self.ss.max_bond_ratio
             )
         else:
-            return movie[0]
+            return random.sample(movie, 1)[0]
 
 
 class Remove(
@@ -176,6 +174,7 @@ class Remove(
         to_del: str,
         max_bond_ratio: float = 1.2,
         max_bond: float = 0,
+        print_movie: bool = False,
     ):
         """
         Args:
@@ -197,6 +196,7 @@ class Remove(
             self.to_del, max_bond_ratio=max_bond_ratio, max_bond=max_bond
         )
         self.ss = surface_sites
+        self.print_movie = print_movie
 
     def node_match(self, n1: str, n2: str):
         """node matching criteria
@@ -214,7 +214,7 @@ class Remove(
             ase.Atoms:
         """
         self.atoms = atoms
-        self.ss.get_graph(self.atoms)
+        df_ind = self.ss.get_sites(self.atoms)
         atoms_g = self.ss.graph
         graph_match = isomorphism.GraphMatcher(
             atoms_g, self.ads_g, node_match=self.node_match
@@ -229,10 +229,25 @@ class Remove(
         for mapping in all_isomorphisms:
             matched_nodes = list(mapping.keys())
             ind_to_remove = [atoms_g.nodes[node]["index"] for node in matched_nodes]
-            ind_to_remove_list.append(ind_to_remove)
+            if all(element in df_ind for element in ind_to_remove):
+                ind_to_remove_list.append(ind_to_remove)
+            else:
+                continue
 
-        del self.atoms[ind_to_remove_list[0]]
-        return self.atoms
+        if not ind_to_remove_list:
+            raise NoReasonableStructureFound()
+
+        if self.print_movie:
+            movie = []
+            for ind_to_remove in ind_to_remove_list:
+                a = custom_copy(self.atoms)
+                del a[ind_to_remove]
+                movie.append(a)
+            return movie
+        else:
+            random_remove = random.sample(ind_to_remove_list, 1)[0]
+            del self.atoms[random_remove]
+            return self.atoms
 
 
 class Swap(

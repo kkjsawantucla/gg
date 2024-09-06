@@ -47,7 +47,7 @@ def node_match(n1: str, n2: str) -> bool:
 
 
 def is_cycle(g: nx.Graph, nodes: list) -> bool:
-    """ Check if the nodes in graph G form a cycle
+    """Check if the nodes in graph G form a cycle
     Args:
        G (networkx Graph):
        nodes ([list of networkx nodes]):
@@ -209,3 +209,21 @@ def get_unique_atoms(
     )
     unique_indexes = get_unique_graph_indexes(graph_list)
     return [movie[i] for i in unique_indexes]
+
+
+def is_unique_graph(graph: nx.Graph, graph_list: list[nx.Graph]):
+    """Check if the given graph is not isomorphic to any graph in the list.
+
+    Args:
+    graph (nx.Graph): The graph to check.
+    graph_list (list of nx.Graph): The list of graphs to compare against.
+
+    Returns:
+    bool: True if the graph is unique, False otherwise.
+    """
+    for unique_graph in graph_list:
+        if nx.algorithms.isomorphism.GraphMatcher(
+            graph, unique_graph, node_match=node_match
+        ).is_isomorphic():
+            return False
+    return True

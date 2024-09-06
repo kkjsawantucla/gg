@@ -10,8 +10,10 @@ from ase import units
 from ase.optimize.optimize import Dynamics
 from ase.io.trajectory import Trajectory
 from ase.optimize import BFGS
+from ase.neighborlist import NeighborList, natural_cutoffs
 from gg.reference import get_ref_coeff
 from gg.utils import NoReasonableStructureFound
+from gg.utils_graph import atoms_to_graph, is_unique_graph
 
 
 __author__ = "Kaustubh Sawant, Geng Sun"
@@ -27,7 +29,7 @@ def get_current_time():
 
 
 class Gcbh(Dynamics):
-    """ Basin hopping algorithm.
+    """Basin hopping algorithm.
 
     After Wales and Doye, J. Phys. Chem. A, vol 101 (1997) 5111-5116
 
@@ -61,29 +63,30 @@ class Gcbh(Dynamics):
         self.logfile.flush()
 
         # Read Config File if it exists
-        self.config = {
+        self.c = {
             "temp": 1500,
             "max_temp": None,
             "min_temp": None,
             "stop_steps": 400,
             "chemical_potential": None,
             "max_history": 25,
+            "max_bond": 2.5,
+            "max_bond_ratio": 0,
         }
 
         if config_file:
             self.set_config(config_file)
 
         # Setup Temperature
-        self.t = self.config["temp"]
-        if self.config["max_temp"] is None:
-            self.config["max_temp"] = 1.0 / ((1.0 / self.t) / 1.5)
+        if self.c["max_temp"] is None:
+            self.c["max_temp"] = 1.0 / ((1.0 / self.c["temp"]) / 1.5)
         else:
-            self.config["max_temp"] = max([self.config["max_temp"], self.t])
+            self.c["max_temp"] = max([self.c["max_temp"], self.c["temp"]])
 
-        if self.config["min_temp"] is None:
-            self.config["min_temp"] = 1.0 / ((1.0 / self.t) * 1.5)
+        if self.c["min_temp"] is None:
+            self.c["min_temp"] = 1.0 / ((1.0 / self.c["temp"]) * 1.5)
         else:
-            self.config["min_temp"] = min([self.config["min_temp"], self.t])
+            self.c["min_temp"] = min([self.c["min_temp"], self.c["temp"]])
 
         # Some file names and folders are hardcoded
         self.current_atoms_name = "CONTCAR"
@@ -92,25 +95,31 @@ class Gcbh(Dynamics):
         self.lm_trajectory = Trajectory("local_minima.traj", "a", atoms)
 
         self.structure_modifiers = {}  # Setup empty class to add structure modifiers
-        self.accept_history = []  # used for adjusting the temperature of Metropolis algorithm
+        self.c["acc_hist"] = (
+            []
+        )  # used for adjusting the temperature of Metropolis algorithm
         # a series of 0 and 1, 0 stands for not accepted, 1 stands for accepted
 
         # Print the chemical potential for different elements
-        if self.config["chemical_potential"]:
-            self.mu = self.config["chemical_potential"]
+        if self.c["chemical_potential"]:
+            self.mu = self.c["chemical_potential"]
             for k, v in self.mu.items():
                 self.logtxt(f"Chemical potential of {k} is {v}")
         else:
             self.mu = None
 
-        self.energy = None
+        self.c["energy"] = None
         self.free_energy = None
-        self.free_energy_min = None
-        self.no_improvement_step = 0
-        self.nsteps = 0
+        self.c["fe_min"] = None
+        self.c["no_impr_step"] = 0
+        self.c["nsteps"] = 0
+        self.c["mod_weights"] = {}
 
         # negative value indicates no ongoing structure optimization
-        self.on_optimization = -1
+        self.c["opt_on"] = -1
+
+        # Graphing
+        self.c["graphs"] = []
 
         if restart:
             if os.path.exists(self.status_file):
@@ -125,55 +134,27 @@ class Gcbh(Dynamics):
         """
         with open(config_file, "r", encoding="utf-8") as f:
             input_config = yaml.safe_load(f)
-        self.config.update(input_config)
+        self.c.update(input_config)
 
     def todict(self):
-        d = self.__dict__.copy()
-        keys_to_remove = [
-            "logfile",
-            "_lazy_cache",
-            "optimizable",
-        ]
-        for key in keys_to_remove:
-            d.pop(key, None)
-        return d
+        return self.__dict__
 
     def dump(self, filename: str):
         """dump dictionary of variables to store"""
-        if os.path.exists(filename):
-            with open(filename, "rb") as file:
-                new_state = pickle.load(file)
-            for k, _ in new_state.items():
-                new_state[k] = self.__dict__[k]
-            with open(filename, "wb") as file:
-                pickle.dump(new_state, file)
-        else:
-            with open(filename, "wb") as file:
-                state = self.get_state()
-                pickle.dump(state, file)
-
-    def get_state(self):
-        """get dictionary of variables to store"""
-        state = self.__dict__.copy()
-        # Remove the wierd file handle
-        keys_to_remove = [
-            "atoms",
-            "logfile",
-            "trajectory",
-            "observers",
-            "_lazy_cache",
-            "optimizable",
-            "lm_trajectory",
-        ]
-        for key in keys_to_remove:
-            state.pop(key, None)
-        return state
+        for key, value in self.structure_modifiers.items():
+            value.atoms = None
+            self.c["mod_weights"][key] = value.weight
+        with open(filename, "wb") as file:
+            pickle.dump(self.c, file, protocol=pickle.HIGHEST_PROTOCOL)
 
     def update_from_file(self, filename: str):
         """Update variable dictionary from file"""
         with open(filename, "rb") as file:
-            new_state = pickle.load(file)
-        self.__dict__.update(new_state)
+            c_old = pickle.load(file)
+        self.c.update(c_old)
+        if self.c["mod_weights"]:
+            for key, value in self.c["mod_weights"].items():
+                print(f"{key} weight = {value:.2f}")
 
     def logtxt(
         self,
@@ -196,6 +177,8 @@ class Gcbh(Dynamics):
         if name in self.structure_modifiers:
             raise RuntimeError(f"Structure modifier {name} exists already!\n")
         self.structure_modifiers[name] = instance
+        if name in self.c["mod_weights"]:
+            self.structure_modifiers[name].weight = self.c["mod_weights"][name]
         return
 
     def select_modifier(self):
@@ -274,24 +257,24 @@ class Gcbh(Dynamics):
             return 0
 
     def adjust_temp(self, int_accept: int):
-        """ Start adjusting temperature beyond max_history
+        """Start adjusting temperature beyond max_history
         Args:
             int_accept (int): 0 or 1
         """
         # adjust the temperatures
-        self.accept_history.append(int_accept)
-        if len(self.accept_history) > self.config["max_history"]:
-            self.accept_history.pop(0)
-            _balance = sum(self.accept_history) / float(self.config["max_history"])
+        self.c["acc_hist"].append(int_accept)
+        if len(self.c["acc_hist"]) > self.c["max_history"]:
+            self.c["acc_hist"].pop(0)
+            _balance = sum(self.c["acc_hist"]) / float(self.c["max_history"])
             if _balance > 2.0 * (1 - _balance):
-                self.t = self.t / 1.03
+                self.c["temp"] = self.c["temp"] / 1.03
             elif _balance < 0.5 * (1 - _balance):
-                self.t = self.t * 1.03
+                self.c["temp"] = self.c["temp"] * 1.03
 
-        if self.t < self.config["min_temp"]:
-            self.t = self.config["min_temp"]
-        elif self.t > self.config["max_temp"]:
-            self.t = self.config["max_temp"]
+        if self.c["temp"] < self.c["min_temp"]:
+            self.c["temp"] = self.c["min_temp"]
+        elif self.c["temp"] > self.c["max_temp"]:
+            self.c["temp"] = self.c["max_temp"]
 
     def move(self, name: str):
         """Move atoms by a random modifier."""
@@ -302,20 +285,22 @@ class Gcbh(Dynamics):
         return atoms
 
     def initialize(self):
-        """ Initialize Atoms """
-        self.on_optimization = 0
+        """Initialize Atoms"""
+        self.c["opt_on"] = 0
         self.atoms = self.optimize(self.atoms)
         self.dump(self.status_file)
-        self.energy = self.atoms.get_potential_energy()
+        self.c["energy"] = self.atoms.get_potential_energy()
         ref = self.get_ref_potential(self.atoms)
-        self.free_energy = self.energy - ref
-        self.free_energy_min = self.free_energy
-        self.on_optimization = -1
+        self.free_energy = self.c["energy"] - ref
+        self.c["fe_min"] = self.free_energy
+        self.c["opt_on"] = -1
         self.dump(self.status_file)
-        self.nsteps += 1
+        self.c["nsteps"] += 1
         formula = self.atoms.get_chemical_formula()
+        en = self.c["energy"]
+        self.append_graph(self.atoms)
         self.logtxt(
-            f"Atoms: {formula} E(initial): {self.energy:.2f} F(initial) {self.free_energy:.2f}"
+            f"Atoms: {formula} E(initial): {en:.2f} F(initial) {self.free_energy:.2f}"
         )
 
     def run(self, steps: int = 4000, maximum_trial: int = 30):
@@ -325,9 +310,9 @@ class Gcbh(Dynamics):
             self.logtxt(f"{key} weight = {value.weight:.2f}")
 
         for step in range(steps):
-            if self.no_improvement_step >= self.config["stop_steps"]:
+            if self.c["no_impr_step"] >= self.c["stop_steps"]:
                 self.logtxt(
-                    f"The best solution has not improved after {self.no_improvement_step} steps"
+                    f'The best solution has not improved after {self.c["no_impr_step"]} steps'
                 )
                 break
             self.logtxt(
@@ -335,7 +320,7 @@ class Gcbh(Dynamics):
             )
 
             self.logtxt(
-                f"{get_current_time()}:  Starting Basin-Hopping Step {self.nsteps}"
+                f'{get_current_time()}:  Starting Basin-Hopping Step {self.c["nsteps"]}'
             )
 
             for trials in range(maximum_trial):
@@ -351,26 +336,33 @@ class Gcbh(Dynamics):
                         f"{modifier_name} did not find a good structure because of {emsg}"
                     )
                 else:
-                    self.on_optimization = self.nsteps
-                    self.logtxt(f"One structure found with modifier {modifier_name}")
-                    self.dump(self.status_file)
-                    converged_atoms = self.optimize(newatoms)
-                    en = converged_atoms.get_potential_energy()
-                    self.logtxt(
-                        f"{get_current_time()}: Optimization Done with E = {en:.2f}"
-                    )
-                    self.accepting_new_structures(converged_atoms, modifier_name)
-                    self.on_optimization = -1  # switch off the optimization status
-                    self.dump(self.status_file)
-                    self.nsteps += 1
-                    break
+                    if self.append_graph(newatoms):
+                        self.c["opt_on"] = self.c["nsteps"]
+                        self.logtxt(
+                            f"One structure found with modifier {modifier_name}"
+                        )
+                        self.dump(self.status_file)
+                        converged_atoms = self.optimize(newatoms)
+                        _ = self.append_graph(converged_atoms)
+                        en = converged_atoms.get_potential_energy()
+                        self.logtxt(
+                            f"{get_current_time()}: Optimization Done with E = {en:.2f}"
+                        )
+                        self.accepting_new_structures(converged_atoms, modifier_name)
+                        self.c["opt_on"] = -1  # switch off the optimization status
+                        self.dump(self.status_file)
+                        self.c["nsteps"] += 1
+                        break
+                    else:
+                        self.logtxt("Atoms object visited previously")
+                        continue
             else:
                 raise RuntimeError(
-                    f"Program does not find a good structure after {trials} tests"
+                    f"Program does not find a good structure after {trials+1} tests"
                 )
 
     def accepting_new_structures(self, newatoms: Atoms, modifier_name: str):
-        """ This function takes care of all the accepting algorithms. I.E metropolis algorithms
+        """This function takes care of all the accepting algorithms. I.E metropolis algorithms
         newatoms is the newly optimized structure
         """
         assert newatoms is not None
@@ -382,7 +374,9 @@ class Gcbh(Dynamics):
             modifier_weight_action = "increase"
 
         # Check Probability for acceptance
-        elif np.random.uniform() < np.exp(-(fn - self.free_energy) / self.t / units.kB):
+        elif np.random.uniform() < np.exp(
+            -(fn - self.free_energy) / self.c["temp"] / units.kB
+        ):
             accept = True
             modifier_weight_action = "decrease"
         else:
@@ -395,7 +389,7 @@ class Gcbh(Dynamics):
             int_accept = 1
             self.logtxt(f"Accepted, F(old)={self.free_energy:.2f} F(new)={fn:.2f}")
             self.atoms = newatoms
-            self.energy = en
+            self.c["energy"] = en
             self.free_energy = fn
 
         else:
@@ -409,26 +403,26 @@ class Gcbh(Dynamics):
             self.lm_trajectory.write(self.atoms, accept=0)
 
         # update the best result for this basin-hopping
-        if self.free_energy < self.free_energy_min:
-            self.free_energy_min = self.free_energy
-            self.no_improvement_step = 0
+        if self.free_energy < self.c["fe_min"]:
+            self.c["fe_min"] = self.free_energy
+            self.c["no_impr_step"] = 0
         else:
-            self.no_improvement_step += 1
+            self.c["no_impr_step"] += 1
 
         self.dump(self.status_file)
         self.logtxt("-------------------------------------------------------")
 
     def optimize(self, atoms: Atoms, optimizer=BFGS, fmax: float = 0.05):
-        """ Optimize atoms"""
+        """Optimize atoms"""
         if atoms.get_calculator() is None:
             raise RuntimeError("The atoms object has no calculator")
 
         self.logtxt(
-            f"{get_current_time()}: Begin structure optimization subroutine at step {self.nsteps}"
+            f'{get_current_time()}: Begin structure optimization subroutine at step {self.c["nsteps"]}'
         )
         opt_dir = self.opt_folder
         topdir = os.getcwd()
-        subdir = os.path.join(topdir, opt_dir, f"opt_{self.nsteps}")
+        subdir = os.path.join(topdir, opt_dir, f'opt_{self.c["nsteps"]}')
         if not os.path.isdir(subdir):
             os.makedirs(subdir)
         os.chdir(subdir)
@@ -437,7 +431,29 @@ class Gcbh(Dynamics):
         dyn.run(fmax=fmax)
         atoms.write("CONTCAR", format="vasp")
         self.logtxt(
-            f"{get_current_time()}: Structure optimization completed for {self.nsteps}"
+            f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
         )
         os.chdir(topdir)
         return atoms
+
+    def append_graph(self, atoms):
+        """Append the graph to list if its unique
+        Args:
+            atoms (_type_): _description_
+        """
+        nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
+        nl.update(atoms)
+        new_g = atoms_to_graph(
+            atoms,
+            nl,
+            max_bond=self.c["max_bond"],
+            max_bond_ratio=self.c["max_bond_ratio"],
+        )
+        if self.c["graphs"]:
+            if is_unique_graph(new_g, self.c["graphs"]):
+                self.c["graphs"].append(new_g)
+                return True
+            else:
+                return False
+        else:
+            self.c["graphs"].append(new_g)
