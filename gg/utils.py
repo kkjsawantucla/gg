@@ -212,7 +212,7 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0):
     if isinstance(formula, str):
         atoms = molecule(formula)
     elif isinstance(formula, Atoms):
-        atoms = read_atoms(formula)
+        atoms = formula
     else:
         raise RuntimeError("Issue in reading formula")
 
