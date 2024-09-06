@@ -6,21 +6,22 @@ from ase.io import read as read_atoms
 from ase import Atoms
 from ase.data import covalent_radii
 from networkx.algorithms import isomorphism
-from gg.utils import NoReasonableStructureFound, SurfaceSites
 from gg.utils import (
     check_contact,
     generate_sites,
     custom_copy,
     formula_to_graph,
     move_along_normal,
+    NoReasonableStructureFound,
 )
 from gg.utils_graph import get_unique_atoms
+from gg.sites import SurfaceSites
 
 __author__ = "Kaustubh Sawant"
 
 
 class ParentModifier:
-    """ Parent bare bones modifier which serves as the basis for other modifiers
+    """Parent bare bones modifier which serves as the basis for other modifiers
     Args:
         weight (float): Modifier Weight
     """
@@ -55,7 +56,7 @@ class ParentModifier:
 
 
 class ModifierAdder(ParentModifier):
-    """ Add modifiers together to create a new modifier """
+    """Add modifiers together to create a new modifier"""
 
     def __init__(self, weight: float, modifier_instances: list[SurfaceSites]):
         super().__init__(weight)
@@ -76,7 +77,7 @@ class ModifierAdder(ParentModifier):
 
 
 class Rattle(ParentModifier):
-    """ Modifier that rattles the atoms with some stdev """
+    """Modifier that rattles the atoms with some stdev"""
 
     def __init__(self, weight: float, stdev: float = 0.001, contact_error: float = 0.2):
         self.stdev = stdev
@@ -97,7 +98,7 @@ class Rattle(ParentModifier):
 
 
 class Add(ParentModifier):
-    """ Modifier that adds an adsorbate at certain specific sites """
+    """Modifier that adds an adsorbate at certain specific sites"""
 
     def __init__(
         self,
@@ -105,6 +106,7 @@ class Add(ParentModifier):
         surface_sites: SurfaceSites,
         ads: str,
         ads_coord: int,
+        surf_sym: list,
         ad_dist: float = 1.8,
         print_movie: bool = False,
     ):
@@ -114,6 +116,7 @@ class Add(ParentModifier):
             surface_sites (gg.SurfaceSites): a class that figures out surface sites
             ads (str) or (ase.Atoms): Adsorbate to add
             ads_coord (int): Adsorbate coordination number for adding
+            surf_sym (list): Surface elements where adsorbate can add
             ad_dist (float, optional): Distance of adsorbate from surface site.
             Defaults to 1.8.
             movie (bool, optional): return a movie of all unique sites or one random site.
@@ -125,6 +128,7 @@ class Add(ParentModifier):
             self.ads = read_atoms(ads)
         elif isinstance(ads, Atoms):
             self.ads = custom_copy(ads)
+        self.surf_sym = surf_sym
         self.ads_coord = ads_coord
         self.ad_dist = ad_dist
         self.print_movie = print_movie
@@ -135,12 +139,15 @@ class Add(ParentModifier):
             ase.Atoms:
         """
         self.atoms = atoms
-        df_ind, g = self.ss.get_surface_sites(self.atoms)
+        df_ind = self.ss.get_sites(self.atoms)
+        g = self.ss.graph
+        index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
+
         movie = generate_sites(
             self.atoms,
             self.ads,
             g,
-            df_ind,
+            index,
             self.ads_coord,
             ad_dist=self.ad_dist,
             contact_error=self.ss.contact_error,
@@ -160,7 +167,7 @@ class Add(ParentModifier):
 class Remove(
     ParentModifier,
 ):
-    """ Modifier that randomly removes an atom or molecule """
+    """Modifier that randomly removes an atom or molecule"""
 
     def __init__(
         self,
@@ -207,8 +214,8 @@ class Remove(
             ase.Atoms:
         """
         self.atoms = atoms
-        df_ind, atoms_g = self.ss.get_surface_sites(self.atoms)
-        del df_ind
+        self.ss.get_graph(self.atoms)
+        atoms_g = self.ss.graph
         graph_match = isomorphism.GraphMatcher(
             atoms_g, self.ads_g, node_match=self.node_match
         )
@@ -231,7 +238,7 @@ class Remove(
 class Swap(
     ParentModifier,
 ):
-    """ Modifier that swaps two atoms """
+    """Modifier that swaps two atoms"""
 
     def __init__(
         self,
@@ -272,7 +279,7 @@ class Swap(
             else:
                 raise RuntimeError("Multiple indices given to Swap Modifier")
         else:
-            df_ind, _ = self.ss.get_surface_sites(self.atoms)
+            df_ind = self.ss.get_sites(self.atoms)
             random_elem = random.sample(self.swap_sym, 2)
 
             ind_1 = []
@@ -301,7 +308,8 @@ class Swap(
                 index = swap_1
             else:
                 index = swap_2
-            df_ind, g = self.ss.get_surface_sites(atoms)
+            self.ss.get_graph(atoms)
+            g = self.ss.graph
             atoms = move_along_normal(index, atoms, g)
 
             if check_contact(atoms, error=self.ss.contact_error):

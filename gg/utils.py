@@ -1,11 +1,10 @@
 """ General utilities for the modifiers """
 
-from typing import Optional, Tuple
+from typing import Tuple
 from itertools import combinations
 import numpy as np
 import networkx as nx
 from numpy.linalg import norm
-import pandas as pd
 from ase import Atoms
 from ase.neighborlist import NeighborList, natural_cutoffs
 from ase.io import read as read_atoms
@@ -19,79 +18,7 @@ __author__ = "Kaustubh Sawant"
 
 
 class NoReasonableStructureFound(Exception):
-    """ Custom error to handle touching atoms """
-
-
-class SurfaceSites:
-    """_summary_"""
-
-    def __init__(
-        self,
-        max_coord: dict,
-        surf_atom_sym: Optional[list] = None,
-        max_bond_ratio: Optional[float] = 0,
-        max_bond: Optional[float] = 0,
-        contact_error: Optional[float] = 0.2,
-        com: Optional[bool] = True,
-    ):
-        self.max_coord = max_coord
-        self.surf_atom_sym = surf_atom_sym
-        self.max_bond_ratio = max_bond_ratio
-        self.max_bond = max_bond
-        self.contact_error = contact_error
-        self.com = com
-
-    def get_surface_sites(self, atoms, self_interaction=False, bothways=True):
-        """
-        Args:
-            atoms (_type_): _description_
-            self_interaction (bool, optional): _description_. Defaults to False.
-            both ways (bool, optional): _description_. Defaults to True.
-
-        Returns:
-            _type_: _description_
-        """
-        if not self.surf_atom_sym:
-            self.surf_atom_sym = list(set(atoms.symbols))
-        for sym in atoms.symbols:
-            if sym not in list(self.max_coord.keys()):
-                raise RuntimeError(f"Incomplete max_coord: Missing {sym}")
-
-        nl = NeighborList(
-            natural_cutoffs(atoms), self_interaction=self_interaction, bothways=bothways
-        )
-        nl.update(atoms)
-        g = atoms_to_graph(
-            atoms, nl, max_bond_ratio=self.max_bond_ratio, max_bond=self.max_bond
-        )
-        sites = []
-        for node in g.nodes():
-            cord = len([edge for edge in g[node]])
-            index = g.nodes[node]["index"]
-            symbol = atoms[index].symbol
-            diff_cord = self.max_coord[symbol] - cord
-            sites.append(
-                {
-                    "ind": index,
-                    "symbol": symbol,
-                    "cord": cord,
-                    "diff_cord": diff_cord,
-                    "z_coord": atoms[index].position[2],
-                }
-            )
-
-        df = pd.DataFrame(sites)
-
-        if self.com:
-            df = df[df.z_coord > atoms.get_center_of_mass()[2]]
-
-        df = df[df.diff_cord > 0].sort_values(by=["symbol", "cord"])
-        if isinstance(self.surf_atom_sym, str):
-            df = df[df["symbol"] == self.surf_atom_sym]
-        else:
-            df = df[df["symbol"].isin(self.surf_atom_sym)]
-        df = df.sort_values(by=["cord", "z_coord"])
-        return df["ind"].to_list(), g
+    """Custom error to handle touching atoms"""
 
 
 def custom_copy(atoms: Atoms) -> Atoms:
@@ -113,7 +40,7 @@ def custom_copy(atoms: Atoms) -> Atoms:
 
 # Function to ad adsorbate to atoms object
 def add_ads(atoms: Atoms, ads: Atoms, offset: float) -> Atoms:
-    """ Add adsorbate on a substrate with a particular offset
+    """Add adsorbate on a substrate with a particular offset
     Args:
         atoms (Atoms Object): Substrate
         ads (Atoms Object): Adsorbate to add
@@ -197,7 +124,7 @@ def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.ar
 
 
 def move_along_normal(index: int, atoms: Atoms, g: nx.Graph) -> Atoms:
-    """ Helper function to move atoms along the free normal """
+    """Helper function to move atoms along the free normal"""
     normal, ref_pos = get_normals([index], atoms, g)
     atom = atoms[index]
     offset = 0
@@ -297,7 +224,7 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0):
 
 
 def check_contact(atoms, error=0.1, print_contact=False):
-    """ Check if atoms touch within an error tolerance
+    """Check if atoms touch within an error tolerance
     Args:
         atoms (ase.Atoms):
         error (float, optional): Error tolerated. Defaults to 0.1.
