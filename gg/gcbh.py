@@ -394,16 +394,14 @@ class Gcbh(Dynamics):
             self.atoms = newatoms
             self.c["energy"] = en
             self.c["fe"] = fn
+            self.lm_trajectory.write(newatoms, accept=1)
 
         else:
             int_accept = 0
             self.logtxt(f'Rejected, F(old)={self.c["fe"]:.2f} F(new)={fn:.2f}')
+            self.lm_trajectory.write(newatoms, accept=0)
 
         self.adjust_temp(int_accept)
-        if accept:
-            self.lm_trajectory.write(self.atoms, accept=1)
-        else:
-            self.lm_trajectory.write(self.atoms, accept=0)
 
         # update the best result for this basin-hopping
         if self.c["fe"] < self.c["fe_min"]:
