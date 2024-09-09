@@ -143,10 +143,10 @@ def get_graph_hash(graph: nx.Graph):
     return hash((node_attrs, edges))
 
 
-def get_unique_graph_indexes(graph_list: list[nx.Graph]):
+def get_unique_graph_indexes(graph_list: list):
     """
     Args:
-        graph_list (_type_): _description_
+        graph_list (list): list[nx.Graph]
 
     Returns:
         _type_: _description_
@@ -171,8 +171,8 @@ def get_unique_graph_indexes(graph_list: list[nx.Graph]):
 
 
 def list_atoms_to_graphs(
-    list_atoms: list[Atoms], max_bond: float = 0, max_bond_ratio: float = 0
-) -> list[nx.Graph]:
+    list_atoms: list, max_bond: float = 0, max_bond_ratio: float = 0
+) -> list:
     """
     Args:
         list_atoms (list[Atoms]): list of atoms to convert to graphs
@@ -193,8 +193,8 @@ def list_atoms_to_graphs(
 
 
 def get_unique_atoms(
-    movie: list[Atoms], max_bond: float = 0, max_bond_ratio: float = 0
-) -> list[Atoms]:
+    movie: list, max_bond: float = 0, max_bond_ratio: float = 0
+) -> list:
     """
     Args:
         movie (list[Atoms]): _description_
@@ -211,7 +211,7 @@ def get_unique_atoms(
     return [movie[i] for i in unique_indexes]
 
 
-def is_unique_graph(graph: nx.Graph, graph_list: list[nx.Graph]):
+def is_unique_graph(graph: nx.Graph, graph_list: list):
     """Check if the given graph is not isomorphic to any graph in the list.
 
     Args:

@@ -56,7 +56,7 @@ class ParentModifier:
 class ModifierAdder(ParentModifier):
     """Add modifiers together to create a new modifier"""
 
-    def __init__(self, weight: float, modifier_instances: list[SurfaceSites]):
+    def __init__(self, weight: float, modifier_instances: list):
         super().__init__(weight)
         if isinstance(modifier_instances, list):
             self.modifier_instances = modifier_instances
@@ -335,6 +335,10 @@ class Swap(
             else:
                 movie.append(atoms)
                 del atoms
+        if not movie:
+            raise NoReasonableStructureFound(
+                "Movie was empty, most likely due to issues with atoms touching in Add Modifier"
+            )
         if self.print_movie:
             return get_unique_atoms(
                 movie, max_bond=self.ss.max_bond, max_bond_ratio=self.ss.max_bond_ratio
