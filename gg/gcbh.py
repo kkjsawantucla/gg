@@ -124,7 +124,10 @@ class Gcbh(Dynamics):
         if restart:
             if os.path.exists(self.status_file):
                 self.update_from_file(self.status_file)
-                if any(arg is None for arg in [self.c["energy"],self.c["fe"],self.c["fe_min"]]):
+                if any(
+                    arg is None
+                    for arg in [self.c["energy"], self.c["fe"], self.c["fe_min"]]
+                ):
                     self.initialize()
         else:
             self.initialize()
@@ -347,9 +350,7 @@ class Gcbh(Dynamics):
                         converged_atoms = self.optimize(newatoms)
                         _ = self.append_graph(converged_atoms)
                         en = converged_atoms.get_potential_energy()
-                        self.logtxt(
-                            f"{get_current_time()}: Optimization Done with E = {en:.2f}"
-                        )
+                        self.logtxt(f"Optimization Done with E = {en:.2f}")
                         self.accepting_new_structures(converged_atoms, modifier_name)
                         self.c["opt_on"] = -1  # switch off the optimization status
                         self.dump(self.status_file)
