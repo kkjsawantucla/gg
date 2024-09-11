@@ -112,6 +112,7 @@ def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.ar
     # Find the direction that best represents the empty space around the adsorption cluster
     _, _, vt = np.linalg.svd(v)
     vt = vt[-1]
+
     # The best normal could be +Vt or -Vt
     matrix1 = np.array([vt, -vt])
     dot_products = np.dot(matrix1, v.T)

@@ -49,7 +49,7 @@ def construct_matrix_a(ref):
 
 
 def solve_chemical_equations(chemical_dict_a, chemical_dict_b):
-    """ Solve Ax=B as dictionaries
+    """Solve Ax=B as dictionaries
 
     Args:
         chemical_dict_A (Dict):
@@ -102,7 +102,7 @@ def get_ref_coeff(ref, product_formula):
 
 
 def is_element(symbol):
-    """ Check if the symbol is an element
+    """Check if the symbol is an element
     Args:
         symbol (str):
 
@@ -125,8 +125,9 @@ def is_chemical_formula(formula):
     pattern = r"^([A-Z][a-z]*\d*)+$"
     return bool(re.match(pattern, formula))
 
+
 def parse_formula_to_list(formula):
-    """ Convert chemical formula into a list
+    """Convert chemical formula into a list
     Args:
         formula (str):
 
@@ -134,12 +135,12 @@ def parse_formula_to_list(formula):
         list:
     """
     # Regular expression to match element symbols and their counts
-    pattern = r'([A-Z][a-z]*)(\d*)'
+    pattern = r"([A-Z][a-z]*)(\d*)"
     matches = re.findall(pattern, formula)
 
     # Create a list of individual symbols
     elements = []
-    for (element, count) in matches:
+    for element, count in matches:
         count = int(count) if count else 1
         elements.extend([element] * count)
 

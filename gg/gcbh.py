@@ -12,7 +12,7 @@ from ase.io.trajectory import Trajectory
 from ase.optimize import BFGS
 from ase.neighborlist import NeighborList, natural_cutoffs
 from gg.reference import get_ref_coeff
-from gg.utils import NoReasonableStructureFound
+from gg.utils import NoReasonableStructureFound, custom_copy
 from gg.utils_graph import atoms_to_graph, is_unique_graph
 
 
@@ -45,6 +45,7 @@ class Gcbh(Dynamics):
         trajectory: str = "gcbh.traj",
         config_file: str = None,
         restart: bool = False,
+        optimizer=BFGS,
     ):
         """_summary_
 
@@ -56,6 +57,7 @@ class Gcbh(Dynamics):
             Defaults to "gcbh.traj".
             config_file (str[.yaml file], optional): Input file to gcbh. Defaults to None.
             restart (bool, optional):
+            optimizer: ase optimizer for geometric relaxation
         """
         # Intitalize by setting up the parent Dynamics Class
         super().__init__(atoms, logfile, trajectory)
@@ -70,10 +72,10 @@ class Gcbh(Dynamics):
             "stop_steps": 400,
             "chemical_potential": None,
             "max_history": 25,
-            "max_bond": 2.5,
+            "max_bond": 2,
             "max_bond_ratio": 0,
         }
-
+        self.optimizer = optimizer
         if config_file:
             self.set_config(config_file)
 
@@ -129,6 +131,13 @@ class Gcbh(Dynamics):
                     for arg in [self.c["energy"], self.c["fe"], self.c["fe_min"]]
                 ):
                     self.initialize()
+            if self.c["opt_on"] > 0:
+                subdir = os.path.join(
+                    os.getcwd(), self.opt_folder, f'opt_{self.c["opt_on"]}'
+                )
+                if os.path.isdir(subdir):
+                    print(f'Restarting from {self.c["opt_on"]}')
+
         else:
             self.initialize()
 
@@ -399,7 +408,7 @@ class Gcbh(Dynamics):
         else:
             int_accept = 0
             self.logtxt(f'Rejected, F(old)={self.c["fe"]:.2f} F(new)={fn:.2f}')
-            self.lm_trajectory.write(newatoms, energy = en, accept=0)
+            self.lm_trajectory.write(newatoms, energy=en, accept=0)
 
         self.adjust_temp(int_accept)
 
@@ -413,8 +422,9 @@ class Gcbh(Dynamics):
         self.dump(self.status_file)
         self.logtxt("-------------------------------------------------------")
 
-    def optimize(self, atoms: Atoms, optimizer=BFGS, fmax: float = 0.05):
+    def optimize(self, atoms: Atoms, fmax: float = 0.05):
         """Optimize atoms"""
+        optimizer = self.optimizer
         if atoms.get_calculator() is None:
             raise RuntimeError("The atoms object has no calculator")
 
