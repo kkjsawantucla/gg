@@ -4,9 +4,11 @@ from typing import Union
 import networkx as nx
 import numpy as np
 from numpy.linalg import norm
-from ase.data import covalent_radii
+import matplotlib.pyplot as plt
+from ase.data import covalent_radii, chemical_symbols
 from ase import Atoms
 from ase.neighborlist import NeighborList, natural_cutoffs
+from ase.data.colors import jmol_colors
 
 __author__ = "Kaustubh Sawant"
 
@@ -122,7 +124,11 @@ def atoms_to_graph(
                 g.add_node(node_symbol(atom2), index=atom2.index, symbol=atom2.symbol)
             if not g.has_edge(node_symbol(atom), node_symbol(atom2)):
                 g.add_edge(
-                    node_symbol(atom), node_symbol(atom2), weight=vector, start=index
+                    node_symbol(atom),
+                    node_symbol(atom2),
+                    weight=distance,
+                    weight2=vector,
+                    start=index,
                 )
     return g
 
@@ -227,3 +233,30 @@ def is_unique_graph(graph: nx.Graph, graph_list: list):
         ).is_isomorphic():
             return False
     return True
+
+
+def draw_graph(graph: nx.Graph, graph_type="none", **kwargs):
+    """Draw atoms graph
+
+    Args:
+        graph (_type_): _description_
+        graph_type (str, optional): _description_. Defaults to "none".
+    """
+    color = []
+    edgecolors = []
+    for node in graph.nodes(data=True):
+        symbol = node[1]["symbol"]
+        color.append(jmol_colors[chemical_symbols.index(symbol)])
+        edgecolors.append("black")
+    if graph_type == "circular":
+        nx.draw_circular(graph, node_color=color, edgecolors=edgecolors, **kwargs)
+    if graph_type == "kamada_kawai":
+        nx.draw_kamada_kawai(graph, node_color=color, edgecolors=edgecolors, **kwargs)
+    else:
+        layout = nx.spring_layout(graph, seed=4)
+        plt.figure(figsize=(10, 10))
+        # labels = nx.get_edge_attributes(graph, "weight")
+        # nx.draw_networkx_edge_labels(graph, pos = layout, edge_labels=labels)
+        nx.draw(graph, pos=layout, node_color=color, edgecolors=edgecolors, **kwargs)
+    plt.draw()
+    plt.show()

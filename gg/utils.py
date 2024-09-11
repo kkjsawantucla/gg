@@ -82,7 +82,7 @@ def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.ar
     for i, j in enumerate(index[1:]):
         atom = atoms[j]
         edge_data = g.get_edge_data(node_symbol(atoms[initial]), node_symbol(atom))
-        vector = edge_data["weight"]
+        vector = edge_data["weight2"]
         start = edge_data["start"]
         if start == initial:
             ads_pos[i + 1] = vector
@@ -99,7 +99,7 @@ def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.ar
             n_index = g.nodes[neighbor]["index"]
             if n_index not in index:
                 edge_data = g.get_edge_data(node_symbol(atom), neighbor)
-                vector = edge_data["weight"]
+                vector = edge_data["weight2"]
                 start = edge_data["start"]
                 if start == j:
                     normal = vector

@@ -107,6 +107,7 @@ class Add(ParentModifier):
         surf_sym: list,
         ad_dist: float = 1.8,
         print_movie: bool = False,
+        unique: bool = False,
     ):
         """
         Args:
@@ -130,6 +131,7 @@ class Add(ParentModifier):
         self.ads_coord = ads_coord
         self.ad_dist = ad_dist
         self.print_movie = print_movie
+        self.unique = unique
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
@@ -155,9 +157,14 @@ class Add(ParentModifier):
                 "Movie was empty, most likely due to issues with atoms touching in Add Modifier"
             )
         if self.print_movie:
-            return get_unique_atoms(
-                movie, max_bond=self.ss.max_bond, max_bond_ratio=self.ss.max_bond_ratio
-            )
+            if self.unique:
+                return get_unique_atoms(
+                    movie,
+                    max_bond=self.ss.max_bond,
+                    max_bond_ratio=self.ss.max_bond_ratio,
+                )
+            else:
+                return movie
         else:
             return random.sample(movie, 1)[0]
 

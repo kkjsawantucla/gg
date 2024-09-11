@@ -60,7 +60,7 @@ class Gcbh(Dynamics):
             optimizer: ase optimizer for geometric relaxation
         """
         # Intitalize by setting up the parent Dynamics Class
-        super().__init__(atoms, logfile, trajectory)
+        super().__init__(atoms, logfile)
         self.logfile.write("Begin GCBH Graph \n")
         self.logfile.flush()
 
@@ -94,7 +94,12 @@ class Gcbh(Dynamics):
         self.current_atoms_name = "CONTCAR"
         self.status_file = "current_status.pkl"
         self.opt_folder = "opt_folder"
-        self.lm_trajectory = Trajectory("local_minima.traj", "a", atoms)
+        if os.path.exists("local_minima.traj"):
+            self.lm_trajectory = Trajectory("local_minima.traj", "a", atoms)
+        else:
+            self.lm_trajectory = Trajectory("local_minima.traj", "w", atoms)
+
+        self.traj = Trajectory(trajectory, "w", atoms)
 
         self.structure_modifiers = {}  # Setup empty class to add structure modifiers
         self.c["acc_hist"] = (
@@ -151,7 +156,11 @@ class Gcbh(Dynamics):
         self.c.update(input_config)
 
     def todict(self):
-        return self.__dict__
+        description = {
+            "type": "optimization",
+            "optimizer": self.__class__.__name__,
+        }
+        return description
 
     def dump(self, filename: str):
         """dump dictionary of variables to store"""
@@ -357,6 +366,7 @@ class Gcbh(Dynamics):
                         )
                         self.dump(self.status_file)
                         converged_atoms = self.optimize(newatoms)
+                        self.traj.write(converged_atoms)
                         _ = self.append_graph(converged_atoms)
                         en = converged_atoms.get_potential_energy()
                         self.logtxt(f"Optimization Done with E = {en:.2f}")
@@ -408,7 +418,6 @@ class Gcbh(Dynamics):
         else:
             int_accept = 0
             self.logtxt(f'Rejected, F(old)={self.c["fe"]:.2f} F(new)={fn:.2f}')
-            self.lm_trajectory.write(newatoms, energy=en, accept=0)
 
         self.adjust_temp(int_accept)
 

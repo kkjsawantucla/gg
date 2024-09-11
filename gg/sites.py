@@ -73,6 +73,7 @@ class SurfaceSites(Sites):
             atoms, nl, max_bond_ratio=self.max_bond_ratio, max_bond=self.max_bond
         )
         self.graph = g
+        return g
 
     def get_sites(
         self, atoms: Atoms, self_interaction: bool = False, bothways: bool = True
@@ -90,7 +91,7 @@ class SurfaceSites(Sites):
             if sym not in list(self.max_coord.keys()):
                 raise RuntimeError(f"Incomplete max_coord: Missing {sym}")
 
-        self.get_graph(atoms, self_interaction=self_interaction, bothways=bothways)
+        _ = self.get_graph(atoms, self_interaction=self_interaction, bothways=bothways)
         sites = []
         for node in self.graph.nodes():
             cord = len([edge for edge in self.graph[node]])
@@ -114,4 +115,5 @@ class SurfaceSites(Sites):
 
         df = df[df.diff_cord > 0]
         df = df.sort_values(by=["cord", "z_coord"])
+        self.df = df
         return df["ind"].to_list()
