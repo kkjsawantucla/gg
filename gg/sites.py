@@ -51,6 +51,7 @@ class SurfaceSites(Sites):
         self.max_bond = max_bond
         self.contact_error = contact_error
         self.com = com
+        self.df = None
 
     def get_graph(
         self, atoms: Atoms, self_interaction: bool = False, bothways: bool = True
