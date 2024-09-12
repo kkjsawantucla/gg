@@ -14,6 +14,7 @@ from ase.neighborlist import NeighborList, natural_cutoffs
 from gg.reference import get_ref_coeff
 from gg.utils import NoReasonableStructureFound, custom_copy
 from gg.utils_graph import atoms_to_graph, is_unique_graph
+from gg.logo import logo
 
 
 __author__ = "Kaustubh Sawant, Geng Sun"
@@ -61,7 +62,7 @@ class Gcbh(Dynamics):
         """
         # Intitalize by setting up the parent Dynamics Class
         super().__init__(atoms, logfile)
-        self.logfile.write("Begin GCBH Graph \n")
+        self.logfile.write(logo())
         self.logfile.flush()
 
         # Read Config File if it exists
