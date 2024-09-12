@@ -61,7 +61,7 @@ class Gcbh(Dynamics):
             optimizer: ase optimizer for geometric relaxation
         """
         # Intitalize by setting up the parent Dynamics Class
-        super().__init__(atoms, logfile)
+        super().__init__(atoms=atoms, logfile=logfile, trajectory=None)
         self.logfile.write(logo())
         self.logfile.flush()
 

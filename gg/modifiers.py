@@ -107,7 +107,7 @@ class Add(ParentModifier):
         surf_sym: list,
         ad_dist: float = 1.8,
         print_movie: bool = False,
-        unique: bool = False,
+        unique: bool = True,
     ):
         """
         Args:
@@ -118,8 +118,9 @@ class Add(ParentModifier):
             surf_sym (list): Surface elements where adsorbate can add
             ad_dist (float, optional): Distance of adsorbate from surface site.
             Defaults to 1.8.
-            movie (bool, optional): return a movie of all unique sites or one random site.
+            print_movie (bool, optional): return a movie of all sites or one random site.
             Defaults to False.
+            unique (bool, optional): return only unique sites
         """
         super().__init__(weight)
         self.ss = surface_sites
@@ -271,22 +272,24 @@ class Swap(
         swap_sym: list,
         swap_ind: list = None,
         print_movie: bool = False,
+        unique: bool = True,
     ):
         """
         Args:
             weight (str):
-
             surface_sites (gg.SurfaceSites): A class which figures out surface sites
-
             swap_sym (list): List of atoms to swap
-
             swap_ind (list): List of indices to swap. Default to None
+            print_movie (bool, optional): return a movie of all sites or one random site.
+            Defaults to False.
+            unique (bool, optional): return only unique sites
         """
         super().__init__(weight)
         self.swap_sym = swap_sym
         self.swap_ind = swap_ind
         self.ss = surface_sites
         self.print_movie = print_movie
+        self.unique = unique
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
@@ -347,8 +350,13 @@ class Swap(
                 "Movie was empty, most likely due to issues with atoms touching in Add Modifier"
             )
         if self.print_movie:
-            return get_unique_atoms(
-                movie, max_bond=self.ss.max_bond, max_bond_ratio=self.ss.max_bond_ratio
-            )
+            if self.unique:
+                return get_unique_atoms(
+                    movie,
+                    max_bond=self.ss.max_bond,
+                    max_bond_ratio=self.ss.max_bond_ratio,
+                )
+            else:
+                return movie
         else:
             return random.sample(movie, 1)[0]
