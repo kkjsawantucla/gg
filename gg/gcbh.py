@@ -323,6 +323,7 @@ class Gcbh(Dynamics):
         formula = self.atoms.get_chemical_formula()
         en = self.c["energy"]
         self.append_graph(self.atoms)
+        self.traj.write(self.atoms,energy=en)
         self.logtxt(
             f'Atoms: {formula} E(initial): {en:.2f} F(initial) {self.c["fe"]:.2f}'
         )
@@ -368,7 +369,7 @@ class Gcbh(Dynamics):
                         self.dump(self.status_file)
                         converged_atoms = self.optimize(newatoms)
                         self.traj.write(converged_atoms)
-                        _ = self.append_graph(converged_atoms)
+                        self.append_graph(converged_atoms)
                         en = converged_atoms.get_potential_energy()
                         self.logtxt(f"Optimization Done with E = {en:.2f}")
                         self.accepting_new_structures(converged_atoms, modifier_name)
@@ -472,9 +473,11 @@ class Gcbh(Dynamics):
         )
         if self.c["graphs"]:
             if is_unique_graph(new_g, self.c["graphs"]):
+                self.logtxt(f"Appending new graph at step {self.c['nsteps']}")
                 self.c["graphs"].append(new_g)
                 return True
             else:
                 return False
         else:
             self.c["graphs"].append(new_g)
+            self.logtxt("Appending first graph")
