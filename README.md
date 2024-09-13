@@ -23,12 +23,13 @@ git clone https://github.com/kkjsawantucla/gg.git
 
 Install using pip
 ~~~bash
-pip install fga
+cd gg/
+pip install .
 ~~~
 
 Alternatively, you can just add ./fga to your $PYTHONPATH. (not recommended)
 ~~~bash
-export PYTHONPATH=$PYTHONPATH:"<path_to_fga>"
+export PYTHONPATH=$PYTHONPATH:"<path_to_gg>"
 ~~~
 
 ## Usage
