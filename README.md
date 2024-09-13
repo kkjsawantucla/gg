@@ -1,22 +1,39 @@
----
+
 # g(raph) -g(gcbh)
 
-[![codecov](https://codecov.io/gh/author_name/project_urlname/branch/main/graph/badge.svg?token=project_urlname_token_here)](https://codecov.io/gh/author_name/project_urlname)
-[![CI](https://github.com/author_name/project_urlname/actions/workflows/main.yml/badge.svg)](https://github.com/author_name/project_urlname/actions/workflows/main.yml)
+gg is an open-source code for building graph-based grand canonical basin hopping calculator
 
-project_description
+[![Documentation Status](https://readthedocs.org/projects/nequip/badge/?version=latest)]()
 
-## Install it from PyPI
+**PLEASE NOTE:** the code is currently under active development and is still in beta versions 0.x.x.
 
-```bash
-git clone
-cd gg
-pip install .
-```
+### Requirements
+- [Python](https://www.python.org/) 3.7  or later
+- [NumPy](https://numpy.org/doc/stable/reference/)
+- [ase](https://wiki.fysik.dtu.dk/ase/)
+- [NetworkX](https://networkx.org/)
+- [pandas](https://pandas.pydata.org/)
+- [yaml](https://pyyaml.org/)
+
+## Installation
+Clone Directory
+~~~bash
+git clone https://github.com/kkjsawantucla/gg.git
+~~~
+
+Install using pip
+~~~bash
+pip install fga
+~~~
+
+Alternatively, you can just add ./fga to your $PYTHONPATH. (not recommended)
+~~~bash
+export PYTHONPATH=$PYTHONPATH:"<path_to_fga>"
+~~~
 
 ## Usage
 
+#### Modifiers
+The modifiers form the building block of the code. They determine how the atoms are modified during each basin hopping step. The code provides basic modifiers as building blocks for more complex modifiers.
 
-## Development
-
-Read the [CONTRIBUTING.md](CONTRIBUTING.md) file.
+1. Add Modifier
