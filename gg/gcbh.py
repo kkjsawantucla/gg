@@ -12,7 +12,7 @@ from ase.io.trajectory import Trajectory
 from ase.optimize import BFGS
 from ase.neighborlist import NeighborList, natural_cutoffs
 from gg.reference import get_ref_coeff
-from gg.utils import NoReasonableStructureFound, custom_copy
+from gg.utils import NoReasonableStructureFound
 from gg.utils_graph import atoms_to_graph, is_unique_graph
 from gg.logo import logo
 
@@ -60,6 +60,12 @@ class Gcbh(Dynamics):
             restart (bool, optional):
             optimizer: ase optimizer for geometric relaxation
         """
+        if not isinstance(atoms, Atoms):
+            raise RuntimeError("The input atoms is not as Atoms object")
+
+        if atoms.get_calculator() is None:
+            raise RuntimeError("The atoms instance has no calculator")
+
         # Intitalize by setting up the parent Dynamics Class
         super().__init__(atoms=atoms, logfile=logfile, trajectory=None)
         self.logfile.write(logo())

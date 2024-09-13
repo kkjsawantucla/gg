@@ -118,7 +118,7 @@ class Add(ParentModifier):
             ads_coord (int): Adsorbate coordination number for adding
             surf_sym (list): Surface elements where adsorbate can add
             ad_dist (float or str, optional): Distance of adsorbate from surface site.
-            If its a string denoting chemical symbol of an adsorbate atom, then distance is  by atomic radii
+            If its string denoting chemical symbol of an adsorbate atom, then distance is  by atomic radii
             Defaults to 1.8.
             print_movie (bool, optional): return a movie of all sites or one random site.
             Defaults to False.
