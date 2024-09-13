@@ -1,6 +1,6 @@
 """ General utilities for the modifiers """
 
-from typing import Tuple
+from typing import Tuple, Union
 from itertools import combinations
 import numpy as np
 import networkx as nx
@@ -8,7 +8,7 @@ from numpy.linalg import norm
 from ase import Atoms
 from ase.neighborlist import NeighborList, natural_cutoffs
 from ase.io import read as read_atoms
-from ase.data import covalent_radii
+from ase.data import covalent_radii, atomic_numbers
 from ase.build import molecule
 from gg.utils_graph import node_symbol, relative_position, atoms_to_graph
 from gg.utils_graph import is_cycle, are_points_collinear_with_tolerance
@@ -149,7 +149,7 @@ def generate_sites(
     graph: nx.Graph,
     index: list,
     coordination: int,
-    ad_dist: float = 1.7,
+    ad_dist: Union[float,str] = 1.7,
     contact_error: float = 0.2,
 ):
     """
@@ -159,7 +159,7 @@ def generate_sites(
         graph (nx.Graph):
         index (list):
         coordination (int):
-        ad_dist (float):  Defaults to 1.7.
+        ad_dist (float or str):  Defaults to 1.7.
         contact_error (float): _ Defaults to 0.2.
 
     Returns:
@@ -191,7 +191,17 @@ def generate_sites(
 
     for cycle in valid:
         normal, ref_pos = get_normals(cycle, atoms, graph)
-        offset = normal * ad_dist / norm(normal)
+        if isinstance(ad_dist, str):
+            if ad_dist in ads.get_chemical_symbols():
+                ads_dist = covalent_radii[atomic_numbers[ad_dist]]
+                ads_dist += np.average([covalent_radii[atoms[i].number] for i in cycle])
+        elif isinstance(ad_dist, float):
+            if ad_dist < np.average([covalent_radii[atoms[i].number] for i in cycle]):
+                print("Issue in distance of adsorbate and substrate")
+                continue
+            else:
+                ads_dist = ad_dist
+        offset = normal * ads_dist / norm(normal)
         ads_copy = ads.copy()
         ads_copy.rotate([0, 0, 1], normal, center=[0, 0, 0])
         atoms_copy = add_ads(atoms, ads_copy, offset=offset + ref_pos)

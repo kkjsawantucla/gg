@@ -1,6 +1,7 @@
 """Import Modules for basic functioning"""
 
 import random
+from typing import Union
 from itertools import product
 from ase.io import read as read_atoms
 from ase import Atoms
@@ -105,7 +106,7 @@ class Add(ParentModifier):
         ads: str,
         ads_coord: int,
         surf_sym: list,
-        ad_dist: float = 1.8,
+        ad_dist: Union[float, str] = 1.8,
         print_movie: bool = False,
         unique: bool = True,
     ):
@@ -116,7 +117,8 @@ class Add(ParentModifier):
             ads (str) or (ase.Atoms): Adsorbate to add
             ads_coord (int): Adsorbate coordination number for adding
             surf_sym (list): Surface elements where adsorbate can add
-            ad_dist (float, optional): Distance of adsorbate from surface site.
+            ad_dist (float or str, optional): Distance of adsorbate from surface site.
+            If its a string denoting chemical symbol of an adsorbate atom, then distance is  by atomic radii
             Defaults to 1.8.
             print_movie (bool, optional): return a movie of all sites or one random site.
             Defaults to False.

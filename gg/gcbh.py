@@ -52,9 +52,9 @@ class Gcbh(Dynamics):
 
         Args:
             atoms (ase.Atoms): The Atoms object to operate on.
-            logfile (str, optional): Pickle file used to store the trajectory of atomic movement.
+            logfile (str, optional): If *logfile* is a string, a file will be opened.
             Defaults to "gcbh.log".
-            trajectory (str, optional):  If *logfile* is a string, a file will be opened.
+            trajectory (str, optional): Pickle file used to store the trajectory of atomic movement.
             Defaults to "gcbh.traj".
             config_file (str[.yaml file], optional): Input file to gcbh. Defaults to None.
             restart (bool, optional):
@@ -95,17 +95,20 @@ class Gcbh(Dynamics):
         self.current_atoms_name = "CONTCAR"
         self.status_file = "current_status.pkl"
         self.opt_folder = "opt_folder"
+
         if os.path.exists("local_minima.traj"):
             self.lm_trajectory = Trajectory("local_minima.traj", "a", atoms)
         else:
             self.lm_trajectory = Trajectory("local_minima.traj", "w", atoms)
 
-        self.traj = Trajectory(trajectory, "w", atoms)
+        if os.path.exists(trajectory):
+            self.traj = Trajectory(trajectory, "a", atoms)
+        else:
+            self.traj = Trajectory(trajectory, "w", atoms)
 
         self.structure_modifiers = {}  # Setup empty class to add structure modifiers
-        self.c["acc_hist"] = (
-            []
-        )  # used for adjusting the temperature of Metropolis algorithm
+        self.c["acc_hist"] = []
+        # used for adjusting the temperature of Metropolis algorithm
         # a series of 0 and 1, 0 stands for not accepted, 1 stands for accepted
 
         # Print the chemical potential for different elements
@@ -114,7 +117,7 @@ class Gcbh(Dynamics):
             for k, v in self.mu.items():
                 self.logtxt(f"Chemical potential of {k} is {v}")
         else:
-            self.mu = None
+            raise RuntimeError("No chemical potential was provided")
 
         self.c["energy"] = None
         self.c["fe"] = None
@@ -323,7 +326,7 @@ class Gcbh(Dynamics):
         formula = self.atoms.get_chemical_formula()
         en = self.c["energy"]
         self.append_graph(self.atoms)
-        self.traj.write(self.atoms,energy=en)
+        self.traj.write(self.atoms, energy=en)
         self.logtxt(
             f'Atoms: {formula} E(initial): {en:.2f} F(initial) {self.c["fe"]:.2f}'
         )
@@ -433,7 +436,7 @@ class Gcbh(Dynamics):
         self.dump(self.status_file)
         self.logtxt("-------------------------------------------------------")
 
-    def optimize(self, atoms: Atoms, fmax: float = 0.05):
+    def optimize(self, atoms: Atoms, fmax: float = 0.05, steps: int = 500):
         """Optimize atoms"""
         optimizer = self.optimizer
         if atoms.get_calculator() is None:
@@ -449,8 +452,8 @@ class Gcbh(Dynamics):
             os.makedirs(subdir)
         os.chdir(subdir)
         atoms.write("POSCAR", format="vasp")
-        dyn = optimizer(atoms, trajectory="opt.traj", logfile="opt_log")
-        dyn.run(fmax=fmax)
+        dyn = optimizer(atoms, trajectory="opt.traj", logfile="opt.log")
+        dyn.run(fmax=fmax, steps=steps)
         atoms.write("CONTCAR", format="vasp")
         self.logtxt(
             f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
