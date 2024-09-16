@@ -1,0 +1,16 @@
+#!/bin/bash -f
+#$ -N v_sawantk_bin
+#$ -cwd
+#$ -o log.$JOB_ID
+#$ -j y
+#$ -l gpu,P4,cuda=1,h_rt=24:00:00
+
+source /u/local/Modules/default/init/modules.sh
+module load intel
+module load anaconda3
+conda activate myenv
+module load cuda/10.2
+
+python run.py
+
+

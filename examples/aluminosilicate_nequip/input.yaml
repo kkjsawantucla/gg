@@ -1,0 +1,15 @@
+temperature: 1500.0
+
+maximum_temp: 
+
+minimum_temp: 
+
+stop_steps: 400
+
+chemical_potential :
+  SiO2: -23.96
+  H2O: -15.93
+  Al32O48: -593.41 
+
+max_bond: 2
+max_bond_ratio: 0

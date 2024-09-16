@@ -146,12 +146,15 @@ class Gcbh(Dynamics):
                     for arg in [self.c["energy"], self.c["fe"], self.c["fe_min"]]
                 ):
                     self.initialize()
-            if self.c["opt_on"] > 0:
-                subdir = os.path.join(
-                    os.getcwd(), self.opt_folder, f'opt_{self.c["opt_on"]}'
-                )
-                if os.path.isdir(subdir):
-                    print(f'Restarting from {self.c["opt_on"]}')
+
+                elif self.c["opt_on"] > 0:
+                    subdir = os.path.join(
+                        os.getcwd(), self.opt_folder, f'opt_{self.c["opt_on"]}'
+                    )
+                    if os.path.isdir(subdir):
+                        print(f'Restarting from {self.c["opt_on"]}')
+            else:
+                self.initialize()
 
         else:
             self.initialize()
