@@ -423,7 +423,9 @@ class Gcbh(Dynamics):
 
         if accept:
             int_accept = 1
-            self.logtxt(f'Accepted, F(old)={self.c["fe"]:.2f} F(new)={fn:.2f}')
+            self.logtxt(
+                f'Accepted, F(old)={self.c["fe"]:.2f} F(new)={fn:.2f} at step {self.c["nsteps"]}'
+            )
             self.atoms = newatoms
             self.c["energy"] = en
             self.c["fe"] = fn
@@ -431,7 +433,9 @@ class Gcbh(Dynamics):
 
         else:
             int_accept = 0
-            self.logtxt(f'Rejected, F(old)={self.c["fe"]:.2f} F(new)={fn:.2f}')
+            self.logtxt(
+                f'Rejected, F(old)={self.c["fe"]:.2f} F(new)={fn:.2f} at step {self.c["nsteps"]}'
+            )
 
         self.adjust_temp(int_accept)
 
