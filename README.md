@@ -77,7 +77,7 @@ p = Add(weight=1, ss, ads=ads_OH, ads_coord=1, ad_dist="O", surf_sym=["Pt"])
 
 ##### 4. Combining Modifiers
 
-#### Running Gcbh
+### Running Gcbh
 ~~~bash
 G.run(steps=10)
 ~~~
