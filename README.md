@@ -27,7 +27,7 @@ cd gg/
 pip install .
 ~~~
 
-Alternatively, you can add ./fga to your $PYTHONPATH. (not recommended)
+Alternatively, you can add ./gg to your $PYTHONPATH. (not recommended)
 ~~~bash
 export PYTHONPATH=$PYTHONPATH:"<path_to_gg>"
 ~~~
@@ -77,3 +77,8 @@ p = Add(weight=1, ss, ads=ads_OH, ads_coord=1, ad_dist="O", surf_sym=["Pt"])
 
 ##### 4. Combining Modifiers
 
+#### Running Gcbh
+~~~bash
+G.run(steps=10)
+~~~
+The code will generate a folder called "opt_folder" containing individual geometric optimization runs. Additionally, it will log the details of the gcbh run in "gcbh.log" and the trajectory of atoms visited at "gcbh.traj". The run will also dump the status of the run in "current_status.pkl", which will be useful in restarting a calculation. Finally, it will log the accepted structures in "local_minima.traj"
