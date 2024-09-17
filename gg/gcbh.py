@@ -489,7 +489,9 @@ class Gcbh(Dynamics):
         )
         if self.c["graphs"]:
             if is_unique_graph(new_g, self.c["graphs"]):
-                self.logtxt(f"Appending new graph at step {self.c['nsteps']}")
+                self.logtxt(
+                    f"Appending graph at step:{self.c['nsteps']} and graph len:{len(self.c['graphs'])}"
+                )
                 self.c["graphs"].append(new_g)
                 return True
             else:

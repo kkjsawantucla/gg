@@ -11,5 +11,5 @@ chemical_potential :
   H2O: -15.93
   Al32O48: -593.41 
 
-max_bond: 2
-max_bond_ratio: 0
+max_bond: 0
+max_bond_ratio: 1.2
