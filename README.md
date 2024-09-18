@@ -43,7 +43,7 @@ The Gcbh calculator is an ase Dynamics Child on unhealthy steriods. It runs the 
 3. trajectory (str): path to a file that logs all the atoms structure files visited by the calculator.
 4. config file (str): A yaml file that takes specific inputs for the Gcbh calculaor. In the future, more functionalities will be read from the config file. Please check the example folders to check the currently available functionalities.
 5. restart (bool): To control restart from previous calculations.
-6. optimizer (ase.optimizer): Optimizer that controls geometric optimization of a given ase.atoms object. The default is BFGS.
+6. optimizer (ase.optimizer): An [ase Optimizer](https://wiki.fysik.dtu.dk/ase/ase/optimize.html) that controls geometric optimization of a given ase.atoms object and reduce forces. The default is BFGS.
 
 ~~~bash
 from gg.gcbh import Gcbh
@@ -58,20 +58,34 @@ G = Gcbh(atoms,config_file='input.yaml')
 #### Modifiers
 The modifiers form the building block of the code. They determine how the atoms are modified during each basin hopping step. The code provides basic modifiers as building blocks for more complex modifiers.
 
+##### 0. Sites
+The user need to specify a Site class so that the modifier knows which specific atoms to work on when an ase.Atoms object is provided. Here we show an example of Surface Site class which uses the co ordination number of each element as way to recognize surface atoms.
+
+~~~bash
+from gg.sites import SurfaceSites
+
+max_coord = {"Pt": 12, "O": 2, "H": 1} #The max coord of each element in the atoms object
+ss = SurfaceSites(max_coord, max_bond_ratio=1.2) #The max_bond_ratio is needed to make graph
+~~~
+
 ##### 1. Add Modifier
 The modifier can add an adsorbate, or moiety at specific sites on the parent atoms object.
 
 ~~~bash
 from gg.modifiers import Add
-from gg.sites import SurfaceSites
 
-max_coord = {"Pt": 12, "O": 2, "H": 1}
-ss = SurfaceSites(max_coord, max_bond_ratio=1.2)
-ads_OH = read("OH.POSCAR")
-p = Add(weight=1, ss, ads=ads_OH, ads_coord=1, ad_dist="O", surf_sym=["Pt"])
+adsorbate_OH = read("OH.POSCAR") #adsorbate to be added
+add_OH = Add(weight=1, ss, ads=adsorbate_OH, surf_coord=1, ad_dist="O", surf_sym=["Pt"])
+G.add_modifier(add_OH,'Add_OH') #add the modifier to Gcbh and give it a name for identification
 ~~~
 
 ##### 2. Remove Modifier
+The modifier can remove an adsorbate, or moiety at specific sites on the parent atoms object.
+
+~~~bash
+from gg.modifiers import Remove
+
+~~~
 
 ##### 3. Swap Modifier
 

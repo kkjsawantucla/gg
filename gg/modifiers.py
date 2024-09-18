@@ -104,7 +104,7 @@ class Add(ParentModifier):
         weight: float,
         surface_sites: SurfaceSites,
         ads: str,
-        ads_coord: int,
+        surf_coord: int,
         surf_sym: list,
         ad_dist: Union[float, str] = 1.8,
         print_movie: bool = False,
@@ -131,7 +131,7 @@ class Add(ParentModifier):
         elif isinstance(ads, Atoms):
             self.ads = custom_copy(ads)
         self.surf_sym = surf_sym
-        self.ads_coord = ads_coord
+        self.surf_coord = surf_coord
         self.ad_dist = ad_dist
         self.print_movie = print_movie
         self.unique = unique
@@ -151,7 +151,7 @@ class Add(ParentModifier):
             self.ads,
             g,
             index,
-            self.ads_coord,
+            self.surf_coord,
             ad_dist=self.ad_dist,
             contact_error=self.ss.contact_error,
         )
