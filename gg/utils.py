@@ -149,7 +149,7 @@ def generate_sites(
     graph: nx.Graph,
     index: list,
     coordination: int,
-    ad_dist: Union[float,str] = 1.7,
+    ad_dist: Union[float, str] = 1.7,
     contact_error: float = 0.2,
 ):
     """
@@ -191,20 +191,30 @@ def generate_sites(
 
     for cycle in valid:
         normal, ref_pos = get_normals(cycle, atoms, graph)
+        offset = ref_pos
+        unit_normal = normal / norm(normal)
         if isinstance(ad_dist, str):
             if ad_dist in ads.get_chemical_symbols():
-                ads_dist = covalent_radii[atomic_numbers[ad_dist]]
-                ads_dist += np.average([covalent_radii[atoms[i].number] for i in cycle])
+                for i in cycle:
+                    current_dist = norm(offset - atoms[i].position)
+                    req_dist = (
+                        covalent_radii[atoms[i].number]
+                        + covalent_radii[atomic_numbers[ad_dist]] * 0.9
+                    )
+                    if current_dist < req_dist:
+                        proj_len = distance_point_to_line(
+                            offset, unit_normal, atoms[i].position
+                        )
+                        offset += proj_len * unit_normal / len(cycle)
         elif isinstance(ad_dist, float):
             if ad_dist < np.average([covalent_radii[atoms[i].number] for i in cycle]):
                 print("Issue in distance of adsorbate and substrate")
                 continue
             else:
-                ads_dist = ad_dist
-        offset = normal * ads_dist / norm(normal)
+                offset += ad_dist * unit_normal
         ads_copy = ads.copy()
         ads_copy.rotate([0, 0, 1], normal, center=[0, 0, 0])
-        atoms_copy = add_ads(atoms, ads_copy, offset=offset + ref_pos)
+        atoms_copy = add_ads(atoms, ads_copy, offset=offset)
         if check_contact(atoms_copy, error=contact_error):
             continue
         else:
@@ -268,3 +278,22 @@ def check_contact(atoms, error=0.1, print_contact=False):
         return True
     else:
         return False
+
+
+def distance_point_to_line(p1, d, p0):
+    """_summary_
+
+    Args:
+        p1 (_type_): _description_
+        d (_type_): _description_
+        p0 (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    # Calculate the vector from the point on the line to the point
+    p1_to_p0 = p0 - p1
+    # Calculate the cross product of the direction vector and the vector from the line to the point
+    cross_product = np.cross(d, p1_to_p0)
+    distance = norm(cross_product) / norm(d)
+    return distance
