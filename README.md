@@ -3,7 +3,7 @@
 
 gg is an open-source code for building graph-based grand canonical basin hopping calculator
 
-[![Documentation Status](http://graph-gcbh.readthedocs.io/]()
+[![Documentation Status](https://readthedocs.org/projects/graph-gcbh/badge/?version=latest)](https://graph-gcbh.readthedocs.io/en/latest/?badge=latest)
 
 **PLEASE NOTE:** The code is currently under active development and is still in beta versions 0. x.x.
 
