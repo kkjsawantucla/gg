@@ -1,7 +1,7 @@
 """ Recognizing sites to apply modifier on """
 
 from typing import Optional
-import pandas as pd
+from pandas import DataFrame
 from ase import Atoms
 from ase.neighborlist import NeighborList, natural_cutoffs
 import networkx as nx
@@ -34,7 +34,7 @@ class Sites:
 
     def get_graph(
         self, atoms: Atoms, self_interaction: bool = False, bothways: bool = True
-    ):
+    ) -> nx.Graph:
         """
         Args:
             atoms (_type_): _description_
@@ -55,7 +55,7 @@ class Sites:
         self.graph = g
         return g
 
-    def get_sites(self, atoms: Atoms):
+    def get_sites(self, atoms: Atoms) -> list:
         """
         Returns:
             ase.Atoms:
@@ -75,7 +75,7 @@ class IndexSites(Sites):
         super().__init__(max_bond_ratio, max_bond)
         self.index = index
 
-    def get_sites(self, atoms: Atoms):
+    def get_sites(self, atoms: Atoms) -> list:
         return self.index
 
 
@@ -98,7 +98,7 @@ class SurfaceSites(Sites):
 
     def get_sites(
         self, atoms: Atoms, self_interaction: bool = False, bothways: bool = True
-    ):
+    ) -> list:
         """
         Args:
             atoms (_type_): _description_
@@ -129,7 +129,7 @@ class SurfaceSites(Sites):
                 }
             )
 
-        df = pd.DataFrame(sites)
+        df = DataFrame(sites)
 
         if self.com:
             df = df[df.z_coord > atoms.get_center_of_mass()[2]]

@@ -1,5 +1,7 @@
 """Make the logo string"""
 
+__author__ = "Kaustubh Sawant"
+
 def logo():
     """return logo str"""
     lg = ""
@@ -9,11 +11,11 @@ def logo():
     lg += "#   g::::::::::::::::g   g::::::::::::::::g  #\n"
     lg += "#  g:::::::::::::::::g  g:::::::::::::::::g  #\n"
     lg += "#  g::::::ggggg::::::g  g::::::ggggg::::::g  #\n"
-    lg += "#  g:::::g     g:::::g  g:::::g     g:::::g  #\n"
-    lg += "#  g:::::g     g:::::g  g:::::g     g:::::g  #\n"
-    lg += "#  g:::::g     g:::::g  g:::::g     g:::::g  #\n"
-    lg += "#  g::::::g    g:::::g  g::::::g    g:::::g  #\n"
-    lg += "#  g:::::::ggggg:::::g  g:::::::ggggg:::::g  #\n"
+    lg += "#  g::::gg     gg::::g  g::::gg     gg::::g  #\n"
+    lg += "#  g::::gg     gg::::g  g::::gg     gg::::g  #\n"
+    lg += "#  g::::gg     gg::::g  g::::gg     gg::::g  #\n"
+    lg += "#  g:::::gg    gg::::g  g:::::gg    gg::::g  #\n"
+    lg += "#  g::::::gggggg:::::g  g::::::gggggg:::::g  #\n"
     lg += "#   g::::::::::::::::g   g::::::::::::::::g  #\n"
     lg += "#    gg::::::::::::::g    gg::::::::::::::g  #\n"
     lg += "#      gggggggg::::::g      gggggggg::::::g  #\n"
@@ -25,6 +27,7 @@ def logo():
     lg += "#      ggg::::::ggg         ggg::::::ggg     #\n"
     lg += "#         gggggg               gggggg        #\n"
     lg += "#                                            #\n"
+    lg += "# (c) Kaustubh Sawant                        #\n"
     lg += "#############################################\n"
 
     return lg

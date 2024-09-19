@@ -151,7 +151,7 @@ def generate_sites(
     coordination: int,
     ad_dist: Union[float, str] = 1.7,
     contact_error: float = 0.2,
-):
+) -> list:
     """
     Args:
         atoms (ase.Atoms):
@@ -222,7 +222,7 @@ def generate_sites(
     return movie
 
 
-def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0):
+def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0) -> nx.Graph:
     """
     Args:
         formula (str) or (ase.Atoms)
@@ -244,7 +244,7 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0):
     return g
 
 
-def check_contact(atoms, error=0.1, print_contact=False):
+def check_contact(atoms, error=0.1, print_contact=False) -> bool:
     """Check if atoms touch within an error tolerance
     Args:
         atoms (ase.Atoms):
@@ -280,16 +280,16 @@ def check_contact(atoms, error=0.1, print_contact=False):
         return False
 
 
-def distance_point_to_line(p1, d, p0):
+def distance_point_to_line(p1: np.array, d: np.array, p0) -> float:
     """_summary_
 
     Args:
-        p1 (_type_): _description_
-        d (_type_): _description_
-        p0 (_type_): _description_
+        p1 (np.array): point on the line
+        d (np.array): direction of line (unit normal)
+        p0 (np.array): fixed point
 
     Returns:
-        _type_: _description_
+        float: distance of point from line
     """
     # Calculate the vector from the point on the line to the point
     p1_to_p0 = p0 - p1

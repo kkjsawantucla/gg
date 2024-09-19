@@ -8,7 +8,7 @@ from ase.data import chemical_symbols
 __author__ = "Kaustubh Sawant"
 
 
-def parse_chemical_formula(formula):
+def parse_chemical_formula(formula) -> dict:
     """
     Args:
         formula (str): chemical formula
@@ -29,7 +29,7 @@ def parse_chemical_formula(formula):
     return dict(elements)
 
 
-def construct_matrix_a(ref):
+def construct_matrix_a(ref) -> dict:
     """
     Args:
         ref (Dict): Default dictionary with chemical formula and potential
@@ -48,7 +48,7 @@ def construct_matrix_a(ref):
     return dict(a)
 
 
-def solve_chemical_equations(chemical_dict_a, chemical_dict_b):
+def solve_chemical_equations(chemical_dict_a, chemical_dict_b) -> np.array:
     """Solve Ax=B as dictionaries
 
     Args:
@@ -78,7 +78,7 @@ def solve_chemical_equations(chemical_dict_a, chemical_dict_b):
     return solution
 
 
-def get_ref_coeff(ref, product_formula):
+def get_ref_coeff(ref, product_formula) -> dict:
     """
     Args:
         ref (Dict): reference chemical potential dictionary
@@ -101,7 +101,7 @@ def get_ref_coeff(ref, product_formula):
     return ref_coeff
 
 
-def is_element(symbol):
+def is_element(symbol) -> bool:
     """Check if the symbol is an element
     Args:
         symbol (str):
@@ -112,7 +112,7 @@ def is_element(symbol):
     return symbol in chemical_symbols
 
 
-def is_chemical_formula(formula):
+def is_chemical_formula(formula) -> bool:
     """_summary_
 
     Args:
@@ -126,7 +126,7 @@ def is_chemical_formula(formula):
     return bool(re.match(pattern, formula))
 
 
-def parse_formula_to_list(formula):
+def parse_formula_to_list(formula) -> list:
     """Convert chemical formula into a list
     Args:
         formula (str):

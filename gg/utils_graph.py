@@ -133,13 +133,13 @@ def atoms_to_graph(
     return g
 
 
-def get_graph_hash(graph: nx.Graph):
+def get_graph_hash(graph: nx.Graph) -> hash:
     """
     Args:
         graph (nx.Graph): Graph to be hashed
 
     Returns:
-        _type_: _description_
+        hash : get hashed representation of the graph
     """
     # Create a sorted tuple of node attributes and edges to generate a unique hash
     node_attrs = tuple(
@@ -149,13 +149,13 @@ def get_graph_hash(graph: nx.Graph):
     return hash((node_attrs, edges))
 
 
-def get_unique_graph_indexes(graph_list: list):
+def get_unique_graph_indexes(graph_list: list) -> list:
     """
     Args:
         graph_list (list): list[nx.Graph]
 
     Returns:
-        _type_: _description_
+        list: get list of unique graph indexes
     """
     unique_graphs = []
     seen_hashes = set()
@@ -217,7 +217,7 @@ def get_unique_atoms(
     return [movie[i] for i in unique_indexes]
 
 
-def is_unique_graph(graph: nx.Graph, graph_list: list):
+def is_unique_graph(graph: nx.Graph, graph_list: list) -> bool:
     """Check if the given graph is not isomorphic to any graph in the list.
 
     Args:
@@ -235,12 +235,12 @@ def is_unique_graph(graph: nx.Graph, graph_list: list):
     return True
 
 
-def draw_graph(graph: nx.Graph, graph_type="none", **kwargs):
+def draw_graph(graph: nx.Graph, graph_type: str ="none", **kwargs) -> plt.figure:
     """Draw atoms graph
 
     Args:
-        graph (_type_): _description_
-        graph_type (str, optional): _description_. Defaults to "none".
+        graph (nx.Graph): Graph to draw
+        graph_type (str, optional): Defaults to "none".
     """
     color = []
     edgecolors = []
