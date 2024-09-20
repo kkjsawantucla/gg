@@ -383,6 +383,8 @@ class Gcbh(Dynamics):
                         self.traj.write(converged_atoms)
                         self.append_graph(converged_atoms)
                         en = converged_atoms.get_potential_energy()
+                        if self.c["opt_on"] == -1:
+                            continue
                         self.logtxt(f"Optimization Done with E = {en:.2f}")
                         self.accepting_new_structures(converged_atoms, modifier_name)
                         self.c["opt_on"] = -1  # switch off the optimization status
@@ -467,10 +469,16 @@ class Gcbh(Dynamics):
         atoms.write("POSCAR", format="vasp")
         dyn = optimizer(atoms, trajectory="opt.traj", logfile="opt.log")
         dyn.run(fmax=fmax, steps=steps)
-        atoms.write("CONTCAR", format="vasp")
-        self.logtxt(
-            f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
-        )
+        if dyn.nsteps == steps:
+            self.logtxt(
+                f"Optimization is incomplete after {steps} steps, ignoring this gcbh step"
+            )
+            self.c["opt_on"] = -1
+        else:
+            atoms.write("CONTCAR", format="vasp")
+            self.logtxt(
+                f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
+            )
         os.chdir(topdir)
         return atoms
 
