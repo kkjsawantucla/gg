@@ -97,8 +97,8 @@ def atoms_to_graph(
 ) -> nx.Graph:
     """
     Args:
-        atoms (_type_):
-        nl (_type_):
+        atoms (ase.Atoms): an ase atoms object
+        nl (ase.nl): Ase neighborlist
         max_bond (int, optional): . Defaults to 0.
         max_bond_ratio (int, optional): . Defaults to 0.
 
