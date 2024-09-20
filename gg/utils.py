@@ -18,7 +18,7 @@ __author__ = "Kaustubh Sawant"
 
 
 class NoReasonableStructureFound(Exception):
-    """Custom error to handle touching atoms"""
+    """Custom error to handle unrealistic or empty atoms"""
 
 
 def custom_copy(atoms: Atoms) -> Atoms:
@@ -27,13 +27,10 @@ def custom_copy(atoms: Atoms) -> Atoms:
         atoms (ase.Atoms):
 
     Returns:
-        ase.Atoms:
+        ase.Atoms
     """
     atoms_copy = atoms.copy()
     if atoms.get_calculator():
-        # calc_type = type(atoms.calc)
-        # calc_params = atoms.calc.parameters
-        # atoms_copy.calc = calc_type(**calc_params)
         atoms_copy.calc = atoms.calc
     return atoms_copy
 
@@ -76,6 +73,7 @@ def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.ar
         normal vector, reference position:
     """
     # Initially, get the right position vectors for the adsorption cluster
+    # This is important if the adsorption site is between 2+ atoms
     ads_pos = np.zeros((len(index), 3))
     initial = index[0]
     ads_pos[0] = np.array([0, 0, 0])
@@ -120,6 +118,7 @@ def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.ar
     max_index = np.argmax(sums_per_vector)
     vector_with_smallest_sum = matrix1[max_index]
 
+    # Return the vector direction and position from where to start
     ref_pos = ads_pos_sum + atoms[initial].position
     return vector_with_smallest_sum, ref_pos
 
@@ -143,7 +142,7 @@ def move_along_normal(index: int, atoms: Atoms, g: nx.Graph) -> Atoms:
     return atoms
 
 
-def generate_sites(
+def generate_add_sites(
     atoms: Atoms,
     ads: Atoms,
     graph: nx.Graph,
@@ -165,34 +164,43 @@ def generate_sites(
     Returns:
        ase.Atoms:
     """
+    # If the coordination > 1, enumerate different combinations of 2
     possible = list(combinations(index, coordination))
     valid = []
 
+    # The for loop to ensure the combination of indices are valid
     for cycle in possible:
         if coordination == 1:
             valid.append(list(cycle))
 
+        # Check of the 2 atoms selected are connected
         if coordination == 2:
             if graph.has_edge(
                 node_symbol(atoms[cycle[0]]), node_symbol(atoms[cycle[1]])
             ):
                 valid.append(list(cycle))
 
+        # Check if the atoms are connected to each other in a cyclic manner
         if coordination == 3:
             nodes = [node_symbol(atoms[i]) for i in cycle]
             pos = [atoms[i].position for i in cycle]
             if is_cycle(graph, nodes):
+                # Some small unit cell can give collinear atoms as 3 adsorbate cycle
                 if not are_points_collinear_with_tolerance(
                     pos[0], pos[1], pos[2], tolerance=0.01
                 ):
                     valid.append(list(cycle))
 
     movie = []
-
+    # This for loops find the best position to add and generate atoms
     for cycle in valid:
         normal, ref_pos = get_normals(cycle, atoms, graph)
         offset = ref_pos
         unit_normal = normal / norm(normal)
+
+        # If the adsorbae distance is a chemical symbol
+        # It will try to find the best position according to covalent radii
+        # Not very accurate
         if isinstance(ad_dist, str):
             if ad_dist in ads.get_chemical_symbols():
                 for i in cycle:
@@ -215,6 +223,8 @@ def generate_sites(
         ads_copy = ads.copy()
         ads_copy.rotate([0, 0, 1], normal, center=[0, 0, 0])
         atoms_copy = add_ads(atoms, ads_copy, offset=offset)
+
+        # Make a final check if atoms are too close to each other
         if check_contact(atoms_copy, error=contact_error):
             continue
         else:
@@ -237,8 +247,11 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0) -> nx.Graph:
     else:
         raise RuntimeError("Issue in reading formula")
 
+    # Make the ase.NeighborList
     nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
     nl.update(atoms)
+
+    # Make graph from atoms
     g = atoms_to_graph(atoms, nl, max_bond_ratio=max_bond_ratio, max_bond=max_bond)
 
     return g
@@ -281,8 +294,7 @@ def check_contact(atoms, error=0.1, print_contact=False) -> bool:
 
 
 def distance_point_to_line(p1: np.array, d: np.array, p0) -> float:
-    """_summary_
-
+    """
     Args:
         p1 (np.array): point on the line
         d (np.array): direction of line (unit normal)
@@ -293,7 +305,9 @@ def distance_point_to_line(p1: np.array, d: np.array, p0) -> float:
     """
     # Calculate the vector from the point on the line to the point
     p1_to_p0 = p0 - p1
+
     # Calculate the cross product of the direction vector and the vector from the line to the point
     cross_product = np.cross(d, p1_to_p0)
     distance = norm(cross_product) / norm(d)
+
     return distance

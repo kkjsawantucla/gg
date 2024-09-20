@@ -9,7 +9,7 @@ from ase.data import covalent_radii
 from networkx.algorithms import isomorphism
 from gg.utils import (
     check_contact,
-    generate_sites,
+    generate_add_sites,
     custom_copy,
     formula_to_graph,
     move_along_normal,
@@ -146,7 +146,8 @@ class Add(ParentModifier):
         g = self.ss.graph
         index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
 
-        movie = generate_sites(
+        #Read gg.utils.generate_add_sites to understand the working
+        movie = generate_add_sites(
             self.atoms,
             self.ads,
             g,
@@ -185,6 +186,7 @@ class Remove(
         max_bond_ratio: float = 1.2,
         max_bond: float = 0,
         print_movie: bool = False,
+        unique: bool = False,
     ):
         """
         Args:
@@ -202,11 +204,14 @@ class Remove(
         super().__init__(weight)
 
         self.to_del = to_del
+
+        # Make graph for the adsorbate
         self.ads_g = formula_to_graph(
             self.to_del, max_bond_ratio=max_bond_ratio, max_bond=max_bond
         )
         self.ss = surface_sites
         self.print_movie = print_movie
+        self.unique = unique
 
     def node_match(self, n1: str, n2: str):
         """node matching criteria
@@ -226,6 +231,8 @@ class Remove(
         self.atoms = atoms
         df_ind = self.ss.get_sites(self.atoms)
         atoms_g = self.ss.graph
+
+        # Check if th4e adsorbate graph exists in atoms graph
         graph_match = isomorphism.GraphMatcher(
             atoms_g, self.ads_g, node_match=self.node_match
         )
@@ -235,6 +242,7 @@ class Remove(
                 "No adsorbate in the atoms to remove in Remove Modifier"
             )
 
+        # Figure out the indices of the atoms to remove
         ind_to_remove_list = []
         for mapping in all_isomorphisms:
             matched_nodes = list(mapping.keys())
@@ -243,7 +251,7 @@ class Remove(
                 ind_to_remove_list.append(ind_to_remove)
             else:
                 continue
-
+        #Check its not empty
         if not ind_to_remove_list:
             raise NoReasonableStructureFound(
                 "Index of the atoms to be removed isnt in Site Class"
@@ -255,7 +263,14 @@ class Remove(
                 a = custom_copy(self.atoms)
                 del a[ind_to_remove]
                 movie.append(a)
-            return movie
+            if self.unique:
+                return get_unique_atoms(
+                    movie,
+                    max_bond=self.ss.max_bond,
+                    max_bond_ratio=self.ss.max_bond_ratio,
+                )
+            else:
+                return movie
         else:
             random_remove = random.sample(ind_to_remove_list, 1)[0]
             del self.atoms[random_remove]
@@ -309,6 +324,8 @@ class Swap(
                 raise RuntimeError("Multiple indices given to Swap Modifier")
         else:
             df_ind = self.ss.get_sites(self.atoms)
+
+            # Randomly select two elements to swap
             random_elem = random.sample(self.swap_sym, 2)
 
             ind_1 = []
@@ -322,6 +339,8 @@ class Swap(
                     else:
                         continue
         movie = []
+
+        # select comination of indices for the two elements
         combinations = product(ind_1, ind_2)
         for comb in combinations:
             atoms = custom_copy(self.atoms)
@@ -339,6 +358,8 @@ class Swap(
                 index = swap_2
             self.ss.get_graph(atoms)
             g = self.ss.graph
+
+            # Move atoms if there is significant diff in covalent radii
             atoms = move_along_normal(index, atoms, g)
 
             if check_contact(atoms, error=self.ss.contact_error):

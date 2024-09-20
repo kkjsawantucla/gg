@@ -168,7 +168,7 @@ class Gcbh(Dynamics):
             input_config = yaml.safe_load(f)
         self.c.update(input_config)
 
-    def todict(self):
+    def todict(self) -> dict:
         description = {
             "type": "optimization",
             "optimizer": self.__class__.__name__,
@@ -182,6 +182,7 @@ class Gcbh(Dynamics):
             self.c["mod_weights"][key] = value.weight
         with open(filename, "wb") as file:
             pickle.dump(self.c, file, protocol=pickle.HIGHEST_PROTOCOL)
+        return
 
     def update_from_file(self, filename: str):
         """Update variable dictionary from file"""
@@ -191,6 +192,7 @@ class Gcbh(Dynamics):
         if self.c["mod_weights"]:
             for key, value in self.c["mod_weights"].items():
                 self.logtxt(f"{key} weight = {value:.2f}")
+        return
 
     def logtxt(
         self,
@@ -203,6 +205,7 @@ class Gcbh(Dynamics):
         real_message = f"{msg.strip()} \n"
         self.logfile.write(real_message)
         self.logfile.flush()
+        return
 
     def add_modifier(self, instance, name: str):
         """
@@ -217,7 +220,7 @@ class Gcbh(Dynamics):
             self.structure_modifiers[name].weight = self.c["mod_weights"][name]
         return
 
-    def select_modifier(self):
+    def select_modifier(self) -> str:
         """
         Returns:
             str: random modifier name
@@ -311,8 +314,9 @@ class Gcbh(Dynamics):
             self.c["temp"] = self.c["min_temp"]
         elif self.c["temp"] > self.c["max_temp"]:
             self.c["temp"] = self.c["max_temp"]
+        return
 
-    def move(self, name: str):
+    def move(self, name: str) -> Atoms:
         """Move atoms by a random modifier."""
         atoms = self.atoms
         self.logtxt(f"Modifier '{name}' formula {atoms.get_chemical_formula()}")
@@ -368,6 +372,7 @@ class Gcbh(Dynamics):
                     NoReasonableStructureFound
                 ) as emsg:  # emsg stands for error message
                     if not isinstance(emsg, str):
+                        print(emsg, type(emsg))
                         emsg = "Unknown"
                     self.logtxt(
                         f"{modifier_name} did not find a good structure because of {emsg}"
@@ -384,6 +389,7 @@ class Gcbh(Dynamics):
                         self.append_graph(converged_atoms)
                         en = converged_atoms.get_potential_energy()
                         if self.c["opt_on"] == -1:
+                            self.c["nsteps"] += 1
                             continue
                         self.logtxt(f"Optimization Done with E = {en:.2f}")
                         self.accepting_new_structures(converged_atoms, modifier_name)
@@ -471,7 +477,7 @@ class Gcbh(Dynamics):
         dyn.run(fmax=fmax, steps=steps)
         if dyn.nsteps == steps:
             self.logtxt(
-                f"Optimization is incomplete after {steps} steps, ignoring this gcbh step"
+                f'Optimization is incomplete in {steps} steps, ignore gcbh {self.c["nsteps"]} step'
             )
             self.c["opt_on"] = -1
         else:
@@ -498,7 +504,7 @@ class Gcbh(Dynamics):
         if self.c["graphs"]:
             if is_unique_graph(new_g, self.c["graphs"]):
                 self.logtxt(
-                    f"Appending graph at step:{self.c['nsteps']} and graph len:{len(self.c['graphs'])}"
+                    f"Add graph at step:{self.c['nsteps']} and graph loc:{len(self.c['graphs'])}"
                 )
                 self.c["graphs"].append(new_g)
                 return True
