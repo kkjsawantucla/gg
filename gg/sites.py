@@ -16,8 +16,21 @@ class Sites:
         self,
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
-        contact_error: Optional[float] = 0.2
+        contact_error: Optional[float] = 0.2,
     ):
+        """
+        Args: All the variables help in making graphs
+
+            max_bond_ratio (float, optional): While making bonds how much error is allowed.
+            Defaults to 1.2.
+
+            max_bond (float, optional): Fixed bond distance to use, any distance above is ignored.
+            Defaults to 0. If 0 , it is ignored
+
+            contact_error (float, optional): Error allowed if atoms are too close to each other.
+            Defaults to 0.2.
+
+        """
         self.graph = None
         self.max_bond_ratio = max_bond_ratio
         self.max_bond = max_bond
@@ -27,7 +40,7 @@ class Sites:
     def graph(self) -> nx.Graph:
         """
         Returns:
-            nx.Graph: _description_
+            nx.Graph:
         """
         return self.g
 
@@ -75,8 +88,20 @@ class FlexibleSites(Sites):
         index: list = None,
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
-        contact_error: Optional[float] = 0.2
+        contact_error: Optional[float] = 0.2,
     ):
+        """_summary_
+
+        Args:
+            constraints (bool, optional): If true, only atoms which arent constrained considered.
+            Defaults to False.
+
+            index (list, optional): If list if indices is give, it will be used as it is.
+            Defaults to None.
+
+        Raises:
+            RuntimeError: _description_
+        """
         super().__init__(max_bond_ratio, max_bond, contact_error)
 
         if index is not None or constraints is True:
@@ -115,6 +140,15 @@ class SurfaceSites(Sites):
         contact_error: Optional[float] = 0.2,
         com: Optional[bool] = True,
     ):
+        """_summary_
+
+        Args:
+            max_coord (dict): Dictionary of the maximum coordination of each element used.
+            Only atoms with coordination less than this value will be considered.
+
+            com (Optional[bool], optional): If true atoms below the center of mass are ignored
+            Defaults to True.
+        """
         super().__init__(max_bond_ratio, max_bond, contact_error)
         self.max_coord = max_coord
         self.com = com
@@ -125,9 +159,9 @@ class SurfaceSites(Sites):
     ) -> list:
         """
         Args:
-            atoms (_type_): _description_
-            self_interaction (bool, optional): _description_. Defaults to False.
-            both ways (bool, optional): _description_. Defaults to True.
+            atoms (ase.Atoms):
+            self_interaction (bool, optional): Defaults to False.
+            both ways (bool, optional): Defaults to True.
 
         Returns:
             _type_: _description_
