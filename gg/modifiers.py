@@ -118,7 +118,7 @@ class Add(ParentModifier):
             ads_coord (int): Adsorbate coordination number for adding
             surf_sym (list): Surface elements where adsorbate can add
             ad_dist (float or str, optional): Distance of adsorbate from surface site.
-            If its string denoting chemical symbol of an adsorbate atom, then distance is  by atomic radii
+            If its string denoting chemical symbol of adsorbate atom, then distance is by atomic radii
             Defaults to 1.8.
             print_movie (bool, optional): return a movie of all sites or one random site.
             Defaults to False.
@@ -146,7 +146,7 @@ class Add(ParentModifier):
         g = self.ss.graph
         index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
 
-        #Read gg.utils.generate_add_sites to understand the working
+        # Read gg.utils.generate_add_sites to understand the working
         movie = generate_add_sites(
             self.atoms,
             self.ads,
@@ -251,7 +251,7 @@ class Remove(
                 ind_to_remove_list.append(ind_to_remove)
             else:
                 continue
-        #Check its not empty
+        # Check its not empty
         if not ind_to_remove_list:
             raise NoReasonableStructureFound(
                 "Index of the atoms to be removed isnt in Site Class"
@@ -295,7 +295,7 @@ class Swap(
         Args:
             weight (str):
             surface_sites (gg.SurfaceSites): A class which figures out surface sites
-            swap_sym (list): List of atoms to swap
+            swap_sym (list): List of atom symbols that are allowed to swap
             swap_ind (list): List of indices to swap. Default to None
             print_movie (bool, optional): return a movie of all sites or one random site.
             Defaults to False.
@@ -317,9 +317,9 @@ class Swap(
 
         if self.swap_ind:
             if len(self.swap_ind) == 2:
-                swap_1 = self.swap_ind[0]
-                swap_2 = self.swap_ind[1]
-                random_elem = [self.atoms[swap_1].symbol, self.atoms[swap_2].symbol]
+                ind_1 = [self.swap_ind[0]]
+                ind_2 = [self.swap_ind[1]]
+                random_elem = [self.atoms[ind_1[0]].symbol, self.atoms[ind_2[0]].symbol]
             else:
                 raise RuntimeError("Multiple indices given to Swap Modifier")
         else:

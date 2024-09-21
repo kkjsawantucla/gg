@@ -3,6 +3,7 @@
 from typing import Optional
 from pandas import DataFrame
 from ase import Atoms
+from ase.constraints import FixAtoms
 from ase.neighborlist import NeighborList, natural_cutoffs
 import networkx as nx
 from gg.utils_graph import atoms_to_graph
@@ -13,12 +14,14 @@ class Sites:
 
     def __init__(
         self,
-        max_bond_ratio: Optional[float] = 0,
+        max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
+        contact_error: Optional[float] = 0.2
     ):
         self.graph = None
         self.max_bond_ratio = max_bond_ratio
         self.max_bond = max_bond
+        self.contact_error = contact_error
 
     @property
     def graph(self) -> nx.Graph:
@@ -63,20 +66,42 @@ class Sites:
         raise NotImplementedError
 
 
-class IndexSites(Sites):
-    """A class which returns sites identified by index"""
+class FlexibleSites(Sites):
+    """A class which returns sites identified by index or constariants"""
 
     def __init__(
         self,
-        index: list,
-        max_bond_ratio: Optional[float] = 0,
+        constraints: bool = False,
+        index: list = None,
+        max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
+        contact_error: Optional[float] = 0.2
     ):
-        super().__init__(max_bond_ratio, max_bond)
-        self.index = index
+        super().__init__(max_bond_ratio, max_bond, contact_error)
+
+        if index is not None or constraints is True:
+            self.index = index
+            self.constraints = constraints
+        else:
+            raise RuntimeError("Specify either index or constraits")
 
     def get_sites(self, atoms: Atoms) -> list:
-        return self.index
+        if self.index:
+            index = self.index
+
+        else:
+            index = range(len(atoms))
+
+        if self.constraints:
+            constrained_indices = set()
+            for constraint in atoms.constraints:
+                if isinstance(constraint, FixAtoms):
+                    constrained_indices.update(constraint.index)
+
+            unconstrained_indices = [i for i in index if i not in constrained_indices]
+            return unconstrained_indices
+        else:
+            return list(index)
 
 
 class SurfaceSites(Sites):
@@ -85,14 +110,13 @@ class SurfaceSites(Sites):
     def __init__(
         self,
         max_coord: dict,
-        max_bond_ratio: Optional[float] = 0,
+        max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
         contact_error: Optional[float] = 0.2,
         com: Optional[bool] = True,
     ):
-        super().__init__(max_bond_ratio, max_bond)
+        super().__init__(max_bond_ratio, max_bond, contact_error)
         self.max_coord = max_coord
-        self.contact_error = contact_error
         self.com = com
         self.df = None
 
