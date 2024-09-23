@@ -11,12 +11,12 @@ from networkx.algorithms import isomorphism
 from gg.utils import (
     check_contact,
     generate_add_sites,
+    replace,
     custom_copy,
     formula_to_graph,
     move_along_normal,
     NoReasonableStructureFound,
 )
-from gg.utils import replace
 from gg.utils_graph import get_unique_atoms
 from gg.sites import SurfaceSites
 
