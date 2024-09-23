@@ -3,6 +3,7 @@
 import random
 from typing import Union
 from itertools import product
+import numpy as np
 from ase.io import read as read_atoms
 from ase import Atoms
 from ase.data import covalent_radii
@@ -15,6 +16,7 @@ from gg.utils import (
     move_along_normal,
     NoReasonableStructureFound,
 )
+from gg.utils import replace
 from gg.utils_graph import get_unique_atoms
 from gg.sites import SurfaceSites
 
@@ -113,7 +115,7 @@ class Add(ParentModifier):
         """
         Args:
             weight (float): _description_
-            surface_sites (gg.SurfaceSites): a class that figures out surface sites
+            surface_sites (gg.Sites): a class that figures out surface sites
             ads (str) or (ase.Atoms): Adsorbate to add
             ads_coord (int): Adsorbate coordination number for adding
             surf_sym (list): Surface elements where adsorbate can add
@@ -192,14 +194,16 @@ class Remove(
         Args:
             weight (str):
 
-            surface_sites (gg.SurfaceSites): a class that figures out surface sites
+            surface_sites (gg.Sites): a class that figures out surface sites
 
             to_del (str) or (ase.Atoms): atoms to delete. If a string is provided,
             it tries to make a molecule out of it.
 
             max_bond_ratio (float, optional): Defaults to 1.2.
-
             max_bond (int, optional):  Defaults to 0.
+            print_movie (bool, optional): return a movie of all sites or one random site.
+            Defaults to False.
+            unique (bool, optional): return only unique sites
         """
         super().__init__(weight)
 
@@ -223,7 +227,7 @@ class Remove(
         """
         return n1["symbol"] == n2["symbol"]
 
-    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
+    def get_ind_to_remove_list(self, atoms: Atoms) -> list:
         """
         Returns:
             ase.Atoms:
@@ -256,6 +260,14 @@ class Remove(
             raise NoReasonableStructureFound(
                 "Index of the atoms to be removed isnt in Site Class"
             )
+        return ind_to_remove_list
+
+    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
+        """
+        Returns:
+            ase.Atoms:
+        """
+        ind_to_remove_list = self.get_ind_to_remove_list(atoms)
 
         if self.print_movie:
             movie = []
@@ -293,8 +305,8 @@ class Swap(
     ):
         """
         Args:
-            weight (str):
-            surface_sites (gg.SurfaceSites): A class which figures out surface sites
+            weight (float):
+            surface_sites (gg.Sites): A class which figures out surface sites
             swap_sym (list): List of atom symbols that are allowed to swap
             swap_ind (list): List of indices to swap. Default to None
             print_movie (bool, optional): return a movie of all sites or one random site.
@@ -383,3 +395,82 @@ class Swap(
                 return movie
         else:
             return random.sample(movie, 1)[0]
+
+
+class Replace(
+    Remove,
+):
+    """Modifier that replaces one atoms object with another"""
+
+    def __init__(
+        self,
+        weight: float,
+        surface_sites: SurfaceSites,
+        to_del: Union[Atoms, str],
+        with_replace: Union[Atoms, str],
+        max_bond_ratio: float = 1.2,
+        max_bond: float = 0,
+        print_movie: bool = False,
+        unique: bool = True,
+    ):
+        """
+        Args:
+            weight (float):
+            surface_sites (gg.Sites): A class which figures out surface sites
+
+            to_del (str) or (ase.Atoms): atoms to delete. If a string is provided,
+            it tries to make a molecule out of it.
+
+            with_replace (str) or (ase.Atoms): atoms to replace with. If a string is provided,
+            it tries to make a molecule out of it.
+
+            max_bond_ratio (float, optional): Defaults to 1.2.
+
+            max_bond (int, optional):  Defaults to 0.
+            print_movie (bool, optional): return a movie of all sites or one random site.
+            Defaults to False.
+            unique (bool, optional): return only unique sites
+        """
+        super().__init__(
+            weight,
+            surface_sites,
+            to_del,
+            max_bond_ratio=max_bond_ratio,
+            max_bond=max_bond,
+            print_movie=print_movie,
+            unique=unique,
+        )
+
+        self.with_rep = with_replace
+
+    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
+        """
+        Returns:
+            ase.Atoms:
+        """
+        ind_to_remove_list = self.get_ind_to_remove_list(atoms)
+
+        if self.print_movie:
+            movie = []
+            for ind_to_remove in ind_to_remove_list:
+                a = custom_copy(self.atoms)
+                positions = a.get_positions()[ind_to_remove]
+                offset = np.mean(positions, axis=0)
+                del a[ind_to_remove]
+                a = replace(a, self.with_rep, offset)
+                movie.append(a)
+            if self.unique:
+                return get_unique_atoms(
+                    movie,
+                    max_bond=self.ss.max_bond,
+                    max_bond_ratio=self.ss.max_bond_ratio,
+                )
+            else:
+                return movie
+        else:
+            random_remove = random.sample(ind_to_remove_list, 1)[0]
+            positions = self.atoms.get_positions()[random_remove]
+            offset = np.mean(positions, axis=0)
+            del self.atoms[random_remove]
+            self.atoms = replace(self.atoms, self.with_rep, offset)
+            return self.atoms

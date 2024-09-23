@@ -311,3 +311,22 @@ def distance_point_to_line(p1: np.array, d: np.array, p0) -> float:
     distance = norm(cross_product) / norm(d)
 
     return distance
+
+def replace(atoms: Atoms, replace_with: Union[str,Atoms], offset: np.array) -> Atoms:
+    """
+    Args:
+        atoms (Atoms): 
+        replace_with (str or atoms): 
+        offset (array):
+
+    Returns:
+        Atoms: 
+    """
+    if isinstance(replace_with, str):
+        rep_atoms = molecule(replace_with)
+    elif isinstance(replace_with, Atoms):
+        rep_atoms = replace_with
+    rep_atoms_copy = rep_atoms.copy()
+    rep_atoms_copy.center()
+    atoms = add_ads(atoms, rep_atoms_copy, offset)
+    return atoms

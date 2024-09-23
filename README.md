@@ -1,5 +1,5 @@
 
-# g(raph) - g(gcbh)
+# g(raph) - g(cbh)
 
 gg is an open-source code for building graph-based grand canonical basin hopping calculator
 

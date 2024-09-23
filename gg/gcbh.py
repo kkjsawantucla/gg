@@ -70,6 +70,7 @@ class Gcbh(Dynamics):
         super().__init__(atoms=atoms, logfile=logfile, trajectory=None)
         self.logfile.write(logo())
         self.logfile.flush()
+        self.atoms.center()
 
         # Read Config File if it exists
         self.c = {
@@ -388,7 +389,8 @@ class Gcbh(Dynamics):
                         self.traj.write(converged_atoms)
                         self.append_graph(converged_atoms)
                         en = converged_atoms.get_potential_energy()
-                        if self.c["opt_on"] == -1:
+                        if self.c["opt_on"] == -1 or en < -100000:
+                            self.c["opt_on"] = -1
                             self.c["nsteps"] += 1
                             continue
                         self.logtxt(f"Optimization Done with E = {en:.2f}")
