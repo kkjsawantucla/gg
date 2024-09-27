@@ -59,12 +59,24 @@ class ParentModifier:
 class ModifierAdder(ParentModifier):
     """Add modifiers together to create a new modifier"""
 
-    def __init__(self, weight: float, modifier_instances: list):
+    def __init__(
+        self,
+        weight: float,
+        modifier_instances: list,
+        max_bond_ratio: float = 1.2,
+        max_bond: float = 0,
+        print_movie: bool = False,
+        unique: bool = True,
+    ):
         super().__init__(weight)
         if isinstance(modifier_instances, list):
             self.modifier_instances = modifier_instances
         else:
             raise RuntimeError("modifier_instances isn't a list. Please provide a list")
+        self.max_bond_ratio = max_bond_ratio
+        self.max_bond = max_bond
+        self.print_movie = print_movie
+        self.unique = unique
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
@@ -72,10 +84,33 @@ class ModifierAdder(ParentModifier):
             ase.Atoms:
         """
         self.atoms = atoms
-        for instance in self.modifier_instances:
-            self.atoms = instance.get_modified_atoms(self.atoms)
-        return self.atoms
-
+        if self.print_movie:
+            movie = [self.atoms]
+            for instance in self.modifier_instances:
+                new_movie = []
+                for atoms in movie:
+                    new_atoms = instance.get_modified_atoms(atoms)
+                    if isinstance(new_atoms,Atoms):
+                        new_movie.append(new_atoms)
+                    elif isinstance(new_atoms,list):
+                        new_movie = new_movie + new_atoms
+                    else:
+                        continue
+                movie = new_movie
+            if not movie:
+                raise NoReasonableStructureFound("Movie was empty")
+            if self.unique:
+                return get_unique_atoms(
+                    movie,
+                    max_bond=self.max_bond,
+                    max_bond_ratio=self.max_bond_ratio,
+                )
+            else:
+                return movie
+        else:
+            for instance in self.modifier_instances:
+                self.atoms = instance.get_modified_atoms(self.atoms)
+            return self.atoms
 
 class Rattle(ParentModifier):
     """Modifier that rattles the atoms with some stdev"""
@@ -145,7 +180,7 @@ class Add(ParentModifier):
         """
         self.atoms = atoms
         df_ind = self.ss.get_sites(self.atoms)
-        g = self.ss.graph
+        g = self.ss.get_graph(self.atoms)
         index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
 
         # Read gg.utils.generate_add_sites to understand the working
@@ -234,9 +269,9 @@ class Remove(
         """
         self.atoms = atoms
         df_ind = self.ss.get_sites(self.atoms)
-        atoms_g = self.ss.graph
+        atoms_g = self.ss.get_graph(self.atoms)
 
-        # Check if th4e adsorbate graph exists in atoms graph
+        # Check if the adsorbate graph exists in atoms graph
         graph_match = isomorphism.GraphMatcher(
             atoms_g, self.ads_g, node_match=self.node_match
         )
@@ -368,8 +403,7 @@ class Swap(
                 index = swap_1
             else:
                 index = swap_2
-            self.ss.get_graph(atoms)
-            g = self.ss.graph
+            g = self.ss.get_graph(atoms)
 
             # Move atoms if there is significant diff in covalent radii
             atoms = move_along_normal(index, atoms, g)

@@ -60,7 +60,6 @@ class Sites:
         Returns:
             _type_: _description_
         """
-
         nl = NeighborList(
             natural_cutoffs(atoms), self_interaction=self_interaction, bothways=bothways
         )
@@ -69,7 +68,7 @@ class Sites:
             atoms, nl, max_bond_ratio=self.max_bond_ratio, max_bond=self.max_bond
         )
         self.graph = g
-        return g
+        return self.graph
 
     def get_sites(self, atoms: Atoms) -> list:
         """

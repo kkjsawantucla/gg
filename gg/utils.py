@@ -10,6 +10,7 @@ from ase.neighborlist import NeighborList, natural_cutoffs
 from ase.io import read as read_atoms
 from ase.data import covalent_radii, atomic_numbers
 from ase.build import molecule
+from ase.collections import g2
 from gg.utils_graph import node_symbol, relative_position, atoms_to_graph
 from gg.utils_graph import is_cycle, are_points_collinear_with_tolerance
 
@@ -209,11 +210,14 @@ def generate_add_sites(
                         covalent_radii[atoms[i].number]
                         + covalent_radii[atomic_numbers[ad_dist]] * 0.9
                     )
-                    if current_dist < req_dist:
+                    if current_dist == 0:
+                        offset += req_dist * unit_normal / len(cycle)
+                    elif current_dist < req_dist:
                         proj_len = distance_point_to_line(
                             offset, unit_normal, atoms[i].position
                         )
                         offset += proj_len * unit_normal / len(cycle)
+
         elif isinstance(ad_dist, float):
             if ad_dist < np.average([covalent_radii[atoms[i].number] for i in cycle]):
                 print("Issue in distance of adsorbate and substrate")
@@ -241,7 +245,10 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0) -> nx.Graph:
         _type_: _description_
     """
     if isinstance(formula, str):
-        atoms = molecule(formula)
+        if formula in g2.names:
+            atoms = molecule(formula)
+        else:
+            atoms = Atoms(formula,positions = [(0,0,0)])
     elif isinstance(formula, Atoms):
         atoms = formula
     else:
@@ -323,7 +330,10 @@ def replace(atoms: Atoms, replace_with: Union[str,Atoms], offset: np.array) -> A
         Atoms: 
     """
     if isinstance(replace_with, str):
-        rep_atoms = molecule(replace_with)
+        if replace_with in g2.names:
+            rep_atoms = molecule(replace_with)
+        else:
+            rep_atoms = Atoms(replace_with, positions=[(0,0,0)])
     elif isinstance(replace_with, Atoms):
         rep_atoms = replace_with
     rep_atoms_copy = rep_atoms.copy()
