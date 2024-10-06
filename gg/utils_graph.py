@@ -110,9 +110,11 @@ def atoms_to_graph(
 
     g = nx.Graph()
     for index, atom in enumerate(atoms):
+        index_n = []
         if not g.has_node(node_symbol(atom)):
             g.add_node(node_symbol(atom), index=atom.index, symbol=atom.symbol)
         for neighbor, offset in zip(*nl.get_neighbors(index)):
+            index_n.append(neighbor)
             atom2 = atoms[neighbor]
             vector = atom.position - relative_position(atoms, neighbor, offset)
             distance = np.linalg.norm(vector)
@@ -130,6 +132,10 @@ def atoms_to_graph(
                     weight2=vector,
                     start=index,
                 )
+        if len(index_n) != len(set(index_n)):
+            raise RuntimeError(
+                "Two atoms connected multiple times! unit cell is too small to make graphs"
+            )
     return g
 
 
@@ -235,7 +241,7 @@ def is_unique_graph(graph: nx.Graph, graph_list: list) -> bool:
     return True
 
 
-def draw_graph(graph: nx.Graph, graph_type: str ="none", **kwargs) -> plt.figure:
+def draw_graph(graph: nx.Graph, graph_type: str = "none", **kwargs) -> plt.figure:
     """Draw atoms graph
 
     Args:
