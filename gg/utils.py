@@ -1,18 +1,16 @@
 """ General utilities for the modifiers """
 
 from typing import Tuple, Union
-from itertools import combinations
 import numpy as np
 import networkx as nx
 from numpy.linalg import norm
 from ase import Atoms
 from ase.neighborlist import NeighborList, natural_cutoffs
 from ase.io import read as read_atoms
-from ase.data import covalent_radii, atomic_numbers
+from ase.data import covalent_radii
 from ase.build import molecule
 from ase.collections import g2
 from gg.utils_graph import node_symbol, relative_position, atoms_to_graph
-from gg.utils_graph import is_cycle, are_points_collinear_with_tolerance
 
 
 __author__ = "Kaustubh Sawant"
@@ -143,99 +141,6 @@ def move_along_normal(index: int, atoms: Atoms, g: nx.Graph) -> Atoms:
     return atoms
 
 
-def generate_add_sites(
-    atoms: Atoms,
-    ads: Atoms,
-    graph: nx.Graph,
-    index: list,
-    coordination: int,
-    ad_dist: Union[float, str] = 1.7,
-    contact_error: float = 0.2,
-) -> list:
-    """
-    Args:
-        atoms (ase.Atoms):
-        ads (ase.Atoms):
-        graph (nx.Graph):
-        index (list):
-        coordination (int):
-        ad_dist (float or str):  Defaults to 1.7.
-        contact_error (float): _ Defaults to 0.2.
-
-    Returns:
-       ase.Atoms:
-    """
-    # If the coordination > 1, enumerate different combinations of 2
-    possible = list(combinations(index, coordination))
-    valid = []
-
-    # The for loop to ensure the combination of indices are valid
-    for cycle in possible:
-        if coordination == 1:
-            valid.append(list(cycle))
-
-        # Check of the 2 atoms selected are connected
-        if coordination == 2:
-            if graph.has_edge(
-                node_symbol(atoms[cycle[0]]), node_symbol(atoms[cycle[1]])
-            ):
-                valid.append(list(cycle))
-
-        # Check if the atoms are connected to each other in a cyclic manner
-        if coordination == 3:
-            nodes = [node_symbol(atoms[i]) for i in cycle]
-            pos = [atoms[i].position for i in cycle]
-            if is_cycle(graph, nodes):
-                # Some small unit cell can give collinear atoms as 3 adsorbate cycle
-                if not are_points_collinear_with_tolerance(
-                    pos[0], pos[1], pos[2], tolerance=0.01
-                ):
-                    valid.append(list(cycle))
-
-    movie = []
-    # This for loops find the best position to add and generate atoms
-    for cycle in valid:
-        normal, ref_pos = get_normals(cycle, atoms, graph)
-        offset = ref_pos
-        unit_normal = normal / norm(normal)
-
-        # If the adsorbae distance is a chemical symbol
-        # It will try to find the best position according to covalent radii
-        # Not very accurate
-        if isinstance(ad_dist, str):
-            if ad_dist in ads.get_chemical_symbols():
-                for i in cycle:
-                    current_dist = norm(offset - atoms[i].position)
-                    req_dist = (
-                        covalent_radii[atoms[i].number]
-                        + covalent_radii[atomic_numbers[ad_dist]] * 0.9
-                    )
-                    if current_dist == 0:
-                        offset += req_dist * unit_normal / len(cycle)
-                    elif current_dist < req_dist:
-                        proj_len = distance_point_to_line(
-                            offset, unit_normal, atoms[i].position
-                        )
-                        offset += proj_len * unit_normal / len(cycle)
-
-        elif isinstance(ad_dist, float):
-            if ad_dist < np.average([covalent_radii[atoms[i].number] for i in cycle]):
-                print("Issue in distance of adsorbate and substrate")
-                continue
-            else:
-                offset += ad_dist * unit_normal
-        ads_copy = ads.copy()
-        ads_copy.rotate([0, 0, 1], normal, center=[0, 0, 0])
-        atoms_copy = add_ads(atoms, ads_copy, offset=offset)
-
-        # Make a final check if atoms are too close to each other
-        if check_contact(atoms_copy, error=contact_error):
-            continue
-        else:
-            movie.append(atoms_copy)
-    return movie
-
-
 def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0) -> nx.Graph:
     """
     Args:
@@ -248,7 +153,7 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0) -> nx.Graph:
         if formula in g2.names:
             atoms = molecule(formula)
         else:
-            atoms = Atoms(formula,positions = [(0,0,0)])
+            atoms = Atoms(formula, positions=[(0, 0, 0)])
     elif isinstance(formula, Atoms):
         atoms = formula
     else:
@@ -300,43 +205,67 @@ def check_contact(atoms, error=0.1, print_contact=False) -> bool:
         return False
 
 
-def distance_point_to_line(p1: np.array, d: np.array, p0) -> float:
+def replace(atoms: Atoms, replace_with: Union[str, Atoms], offset: np.array) -> Atoms:
     """
     Args:
-        p1 (np.array): point on the line
-        d (np.array): direction of line (unit normal)
-        p0 (np.array): fixed point
-
-    Returns:
-        float: distance of point from line
-    """
-    # Calculate the vector from the point on the line to the point
-    p1_to_p0 = p0 - p1
-
-    # Calculate the cross product of the direction vector and the vector from the line to the point
-    cross_product = np.cross(d, p1_to_p0)
-    distance = norm(cross_product) / norm(d)
-
-    return distance
-
-def replace(atoms: Atoms, replace_with: Union[str,Atoms], offset: np.array) -> Atoms:
-    """
-    Args:
-        atoms (Atoms): 
-        replace_with (str or atoms): 
+        atoms (Atoms):
+        replace_with (str or atoms):
         offset (array):
 
     Returns:
-        Atoms: 
+        Atoms:
     """
     if isinstance(replace_with, str):
         if replace_with in g2.names:
             rep_atoms = molecule(replace_with)
         else:
-            rep_atoms = Atoms(replace_with, positions=[(0,0,0)])
+            rep_atoms = Atoms(replace_with, positions=[(0, 0, 0)])
     elif isinstance(replace_with, Atoms):
         rep_atoms = replace_with
     rep_atoms_copy = rep_atoms.copy()
     rep_atoms_copy.center()
     atoms = add_ads(atoms, rep_atoms_copy, offset)
     return atoms
+
+
+def is_within_tolerance(value: float, target: float, tolerance: float) -> bool:
+    """
+    Check if a value is within a specified tolerance of a target value.
+    
+    Parameters:
+    value (float): The number to check.
+    target (float): The target number.
+    tolerance (float): The tolerance range.
+
+    Returns:
+    bool: True if value is within tolerance of target, False otherwise.
+    """
+    return abs(value - target) <= tolerance
+
+def get_ref_pos_index(index: list, atoms: Atoms, g: nx.Graph) -> np.array:
+    """
+    Args:
+        index (list): 
+        atoms (Atoms): 
+        g (nx.Graph): 
+
+    Returns:
+        np.array:
+    """
+    # Initially, get the right position vectors for the adsorption cluster
+    # This is important if the adsorption site is between 2+ atoms
+    ads_pos = np.zeros((len(index), 3))
+    initial = index[0]
+    ads_pos[0] = np.array([0, 0, 0])
+    for i, j in enumerate(index[1:]):
+        atom = atoms[j]
+        edge_data = g.get_edge_data(node_symbol(atoms[initial]), node_symbol(atom))
+        vector = edge_data["weight2"]
+        start = edge_data["start"]
+        if start == initial:
+            ads_pos[i + 1] = vector
+        else:
+            ads_pos[i + 1] = -vector
+
+    ads_pos_sum = np.sum(-ads_pos, axis=0) / len(index)
+    return ads_pos_sum + atoms[initial].position

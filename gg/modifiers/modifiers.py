@@ -10,7 +10,6 @@ from ase.data import covalent_radii
 from networkx.algorithms import isomorphism
 from gg.utils import (
     check_contact,
-    generate_add_sites,
     replace,
     custom_copy,
     formula_to_graph,
@@ -90,9 +89,9 @@ class ModifierAdder(ParentModifier):
                 new_movie = []
                 for atoms in movie:
                     new_atoms = instance.get_modified_atoms(atoms)
-                    if isinstance(new_atoms,Atoms):
+                    if isinstance(new_atoms, Atoms):
                         new_movie.append(new_atoms)
-                    elif isinstance(new_atoms,list):
+                    elif isinstance(new_atoms, list):
                         new_movie = new_movie + new_atoms
                     else:
                         continue
@@ -110,7 +109,12 @@ class ModifierAdder(ParentModifier):
         else:
             for instance in self.modifier_instances:
                 self.atoms = instance.get_modified_atoms(self.atoms)
+                if isinstance(self.atoms, list):
+                    raise NoReasonableStructureFound(
+                        f"Switch Print Movie for instance {instance}"
+                    )
             return self.atoms
+
 
 class Rattle(ParentModifier):
     """Modifier that rattles the atoms with some stdev"""
@@ -131,83 +135,6 @@ class Rattle(ParentModifier):
             raise NoReasonableStructureFound("Atoms Touching")
         else:
             return self.atoms
-
-
-class Add(ParentModifier):
-    """Modifier that adds an adsorbate at certain specific sites"""
-
-    def __init__(
-        self,
-        weight: float,
-        surface_sites: SurfaceSites,
-        ads: str,
-        surf_coord: int,
-        surf_sym: list,
-        ad_dist: Union[float, str] = 1.8,
-        print_movie: bool = False,
-        unique: bool = True,
-    ):
-        """
-        Args:
-            weight (float): _description_
-            surface_sites (gg.Sites): a class that figures out surface sites
-            ads (str) or (ase.Atoms): Adsorbate to add
-            ads_coord (int): Adsorbate coordination number for adding
-            surf_sym (list): Surface elements where adsorbate can add
-            ad_dist (float or str, optional): Distance of adsorbate from surface site.
-            If its string denoting chemical symbol of adsorbate atom, then distance is by atomic radii
-            Defaults to 1.8.
-            print_movie (bool, optional): return a movie of all sites or one random site.
-            Defaults to False.
-            unique (bool, optional): return only unique sites
-        """
-        super().__init__(weight)
-        self.ss = surface_sites
-        if isinstance(ads, str):
-            self.ads = read_atoms(ads)
-        elif isinstance(ads, Atoms):
-            self.ads = custom_copy(ads)
-        self.surf_sym = surf_sym
-        self.surf_coord = surf_coord
-        self.ad_dist = ad_dist
-        self.print_movie = print_movie
-        self.unique = unique
-
-    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
-        """
-        Returns:
-            ase.Atoms:
-        """
-        self.atoms = atoms
-        df_ind = self.ss.get_sites(self.atoms)
-        g = self.ss.get_graph(self.atoms)
-        index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
-
-        # Read gg.utils.generate_add_sites to understand the working
-        movie = generate_add_sites(
-            self.atoms,
-            self.ads,
-            g,
-            index,
-            self.surf_coord,
-            ad_dist=self.ad_dist,
-            contact_error=self.ss.contact_error,
-        )
-        if not movie:
-            raise NoReasonableStructureFound(
-                "Movie was empty, most likely due to issues with atoms touching in Add Modifier"
-            )
-        if self.print_movie:
-            if self.unique:
-                return get_unique_atoms(
-                    movie,
-                    max_bond=self.ss.max_bond,
-                    max_bond_ratio=self.ss.max_bond_ratio,
-                )
-            else:
-                return movie
-        else:
-            return random.sample(movie, 1)[0]
 
 
 class Remove(
