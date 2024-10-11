@@ -2,8 +2,8 @@
 
 import random
 from typing import Union
-from ase.io import read as read_atoms
 from itertools import combinations
+from ase.io import read as read_atoms
 from ase import Atoms
 from gg.utils import (
     custom_copy,
@@ -116,7 +116,7 @@ class AddBi(Add):
         surf_coord: int,
         surf_sym: list,
         ads_id: list,
-        ad_dist: Union[float, str] = 1.8,
+        ad_dist: Union[float, str] = None,
         print_movie: bool = False,
         unique: bool = True,
         ads_rotate: bool = True,
@@ -134,7 +134,7 @@ class AddBi(Add):
 
             surf_sym (list): Surface elements where adsorbate can add
 
-            ads_id (llist of [float or str, optional]):
+            ads_id (list of [int or str, optional]):
 
             ad_dist (list of [float or str, optional]): Distance of adsorbate from surface site
             If its string denoting chemical symbol of adsorbate atom,
@@ -158,11 +158,17 @@ class AddBi(Add):
         )
 
         self.ads_id_list = ads_id
-        if not isinstance(self.ad_dist, list):
-            self.ad_dist = [self.ad_dist, self.ad_dist]
 
         if all(isinstance(item, int) for item in self.ads_id_list):
             assert len(self.ads_id_list) == 2
+            if self.ad_dist:
+                if not isinstance(self.ad_dist, list):
+                    self.ad_dist = [self.ad_dist, self.ad_dist]
+            else:
+                self.ad_dist = [
+                    self.ads[self.ads_id_list[0]].symbol,
+                    self.ads[self.ads_id_list[1]].symbol,
+                ]
             if ads_rotate:
                 self.ads = rotate_bi(self.ads, self.ads_id_list)
                 if (
@@ -179,13 +185,12 @@ class AddBi(Add):
                     )
             self.ads_id_list = [self.ads_id_list]
             self.ads = [self.ads]
+            self.ads_dist_list = [self.ad_dist]
 
         if all(isinstance(item, str) for item in self.ads_id_list):
-            self.ads_id_list, self.ads = self.get_all_adsorbates(
+            self.ads_id_list, self.ads, self.ads_dist_list = self.get_all_adsorbates(
                 self.ads, self.ads_id_list
             )
-
-
 
         self.ads_add_error = add_ads_error
 
@@ -198,6 +203,7 @@ class AddBi(Add):
         """
         list_ads = []
         ads_list = []
+        ads_dist_list = []
         possible = list(combinations(range(len(atoms)), 2))
         for ind in possible:
             ind_1, ind_2 = ind
@@ -206,7 +212,7 @@ class AddBi(Add):
                 atoms[ind_1].symbol in chem_symbol_list
                 and atoms[ind_2].symbol in chem_symbol_list
             ):
-                ads = rotate_bi(atoms.copy(),ads_id)
+                ads = rotate_bi(atoms.copy(), ads_id)
                 if (
                     ads.get_positions()[ads_id[0]][0]
                     > ads.get_positions()[ads_id[1]][0]
@@ -217,8 +223,9 @@ class AddBi(Add):
                     )
                 list_ads.append(ads_id)
                 ads_list.append(ads)
+                ads_dist_list.append([atoms[ads_id[0]].symbol, atoms[ads_id[1]].symbol])
 
-        return list_ads, ads_list
+        return list_ads, ads_list, ads_dist_list
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
@@ -239,7 +246,7 @@ class AddBi(Add):
                 g,
                 index,
                 self.surf_coord,
-                ad_dist=self.ad_dist,
+                ad_dist=self.ads_dist_list[i],
                 ads_index=ads_id,
                 contact_error=self.ss.contact_error,
                 ads_add_error=self.ads_add_error,

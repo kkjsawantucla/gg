@@ -1,10 +1,9 @@
 #! /usr/bin/env python
 
-"""Simple file for command line tool to add monodentate ligand/adsorbate"""
-
+"""Add monodentate adsorbate/ligand"""
 import argparse
-from gg.modifiers import Add
-from gg.sites import SurfaceSites, FlexibleSites
+from gg.modifiers import AddBi
+from gg.sites import FlexibleSites
 from ase.io import read, write
 
 parser = argparse.ArgumentParser(description="Command line utilities")
@@ -25,26 +24,25 @@ parser.add_argument(
     help="Path to adsorbate atoms objects to process",
 )
 parser.add_argument(
-    "--surf_symb",
+    "--surf_sym",
     "-surf_sym",
     "-ss",
-    type=list,
-    default=None,
+    type=str,
+    nargs="+",
     help="Symbols of atoms that can adsorb",
 )
 parser.add_argument(
     "--ads_atom",
     "-ads_atom",
     "-aa",
-    type=list,
+    type=str,
     help="Atom through which the adsorbate attaches to the surface",
 )
 parser.add_argument(
     "--surf_coord",
     "-surf_coord",
     "-sc",
-    type=list,
-    default=1,
+    type=int,
     nargs="+",
     help="Co - ordination of surface atoms: eg. 1-top, 2-bridge, 3-fcc/hcp",
 )
@@ -69,20 +67,30 @@ parser.add_argument(
     "-max_bond",
     "-mb",
     type=float,
-    default=None,
+    default=0,
     help="Fixed allowable bond distance",
 )
 
 args = parser.parse_args()
 print("--------------------------------------------")
-print("\nSurface Atoms found :", args.surface)
-print("\nAdsorbate Atoms found :", args.adsorbate)
+print("Surface Atoms found :", args.surface)
+print("Adsorbate Atoms found :", args.adsorbate)
+
+if args.surf_coord:
+    print(f"\nSurface Co-ordination : {args.surf_coord}")
+else:
+    raise RuntimeError("Please provide Surface coordination using -sc")
+
+if args.ads_atom:
+    print(f"Adding adosrbate through {args.ads_atom}")
+else:
+    raise RuntimeError("Please provide Adsorbate atom that binds using -aa")
 
 if args.surface and args.adsorbate:
-    for surface in args.surface:
-        for adsorbate in args.adsorbate:
-            surface = read(surface)
-            adsorbate = read(adsorbate)
+    for surface_name in args.surface:
+        for adsorbate_name in args.adsorbate:
+            surface = read(surface_name)
+            adsorbate = read(adsorbate_name)
 
             FS = FlexibleSites(
                 constraints=True,
@@ -94,20 +102,25 @@ if args.surface and args.adsorbate:
             if not args.surf_sym:
                 args.surf_sym = set(surface.get_chemical_symbols())
 
-            a = Add(
+            a = AddBi(
                 weight=1,
                 surface_sites=FS,
-                ads=args.adsorbate,
+                ads=adsorbate,
                 surf_coord=args.surf_coord,
                 surf_sym=args.surf_sym,
-                ad_dist=args.ads_atom,
+                ad_dist=None,
+                ads_id=args.ads_atom,
                 print_movie=True,
                 unique=args.unique,
+                ads_rotate=True,
+                add_ads_error = 0.2,
             )
 
-            filename = f"{args.adsorbate}_{args.surface}.traj"
+            filename = f"{adsorbate.get_chemical_formula()}_{surface.get_chemical_formula()}.traj"
             new_modified_atoms = a.get_modified_atoms(surface)
             print(f"\nFound {len(new_modified_atoms)} structures")
-            print(f"\nWriting Structures to {filename}")
-            print("\n--------------------------------------------")
+            print(f"Writing Structures to {filename}")
+            print("--------------------------------------------")
             write(filename=filename, images=new_modified_atoms, format="traj")
+else:
+    raise RuntimeError("Input is empty")
