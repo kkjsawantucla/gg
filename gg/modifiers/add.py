@@ -3,8 +3,8 @@
 import random
 from typing import Union
 from ase.io import read as read_atoms
-from ase import Atoms
 from itertools import combinations
+from ase import Atoms
 from gg.utils import (
     custom_copy,
     NoReasonableStructureFound,

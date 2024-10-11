@@ -10,5 +10,6 @@ setup(
     packages=find_packages(include=["gg", "gg.*"]),
     license="LGPLv2.1+",
     install_requires=["numpy", "ase", "networkx", "pandas"],
+    scripts=["bin/add_mono", "bin/add_bi"],
     zip_safe=False,
 )
