@@ -70,12 +70,14 @@ class Add(ParentModifier):
         self.unique = unique
         self.ads_rotate = ads_rotate
 
+        #Check multiple possibilities of adsorbate
         if isinstance(self.ad_dist, list):
             if all(isinstance(item, str) for item in self.ad_dist):
-                self.ads, self.ad_dist = self.get_all_adsorbates(self.ads, self.ad_dist)
+                self.ads_list, self.ad_dist_list = self.get_all_adsorbates(self.ads, self.ad_dist)
         else:
-            self.ads = [self.ads]
-            self.ad_dist = [self.ad_dist]
+            self.ads_list = [self.ads]
+            self.ad_dist_list = [self.ad_dist]
+
 
     def get_all_adsorbates(self, atoms: Atoms, chem_symbol_list) -> list:
         """
@@ -99,12 +101,13 @@ class Add(ParentModifier):
         Returns:
             ase.Atoms:
         """
+
         self.atoms = atoms
         df_ind = self.ss.get_sites(self.atoms)
         g = self.ss.get_graph(self.atoms)
         index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
         movie = []
-        for i, ads in enumerate(self.ads):
+        for i, ads in enumerate(self.ads_list):
             # Read gg.utils_add to understand the working
             movie += generate_add_mono(
                 self.atoms,
@@ -112,7 +115,7 @@ class Add(ParentModifier):
                 g,
                 index,
                 self.surf_coord,
-                ad_dist=self.ad_dist[i],
+                ad_dist=self.ad_dist_list[i],
                 contact_error=self.ss.contact_error,
             )
         if not movie:
@@ -229,6 +232,7 @@ class AddBi(Add):
         Returns:
             list:
         """
+
         list_ads = []
         ads_list = []
         ads_dist_list = []
@@ -249,6 +253,7 @@ class AddBi(Add):
                         ads_id[1],
                         ads_id[0],
                     )
+
                 list_ads.append(ads_id)
                 ads_list.append(ads)
                 ads_dist_list.append([atoms[ads_id[0]].symbol, atoms[ads_id[1]].symbol])
