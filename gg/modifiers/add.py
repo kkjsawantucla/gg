@@ -9,7 +9,7 @@ from gg.utils import (
     custom_copy,
     NoReasonableStructureFound,
 )
-from gg.utils_add import generate_add_mono, rotate_bi, generate_add_bi
+from gg.utils_add import generate_add_mono, rotate_mono, rotate_bi, generate_add_bi
 from gg.utils_graph import get_unique_atoms
 from gg.sites import SurfaceSites
 from gg.modifiers.modifiers import ParentModifier
@@ -28,6 +28,7 @@ class Add(ParentModifier):
         ad_dist: Union[float, str] = 1.8,
         print_movie: bool = False,
         unique: bool = True,
+        ads_rotate: bool = True,
     ):
         """
         Args:
@@ -67,6 +68,31 @@ class Add(ParentModifier):
         self.ad_dist = ad_dist
         self.print_movie = print_movie
         self.unique = unique
+        self.ads_rotate = ads_rotate
+
+        if isinstance(self.ad_dist, list):
+            if all(isinstance(item, str) for item in self.ad_dist):
+                self.ads, self.ad_dist = self.get_all_adsorbates(self.ads, self.ad_dist)
+        else:
+            self.ads = [self.ads]
+            self.ad_dist = [self.ad_dist]
+
+    def get_all_adsorbates(self, atoms: Atoms, chem_symbol_list) -> list:
+        """
+        Args:
+            atoms (Atoms):
+        Returns:
+            list:
+        """
+        ads_list = []
+        ads_dist_list = []
+        for ind, atom in enumerate(atoms):
+            if atom.symbol in chem_symbol_list:
+                ads = rotate_mono(atoms.copy(), ind)
+                ads_list.append(ads)
+                ads_dist_list.append(atom.symbol)
+
+        return ads_list, ads_dist_list
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
@@ -77,17 +103,18 @@ class Add(ParentModifier):
         df_ind = self.ss.get_sites(self.atoms)
         g = self.ss.get_graph(self.atoms)
         index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
-
-        # Read gg.utils_add to understand the working
-        movie = generate_add_mono(
-            self.atoms,
-            self.ads,
-            g,
-            index,
-            self.surf_coord,
-            ad_dist=self.ad_dist,
-            contact_error=self.ss.contact_error,
-        )
+        movie = []
+        for i, ads in enumerate(self.ads):
+            # Read gg.utils_add to understand the working
+            movie += generate_add_mono(
+                self.atoms,
+                ads,
+                g,
+                index,
+                self.surf_coord,
+                ad_dist=self.ad_dist[i],
+                contact_error=self.ss.contact_error,
+            )
         if not movie:
             raise NoReasonableStructureFound(
                 "Movie was empty, most likely due to issues with atoms touching in Add Modifier"
@@ -155,6 +182,7 @@ class AddBi(Add):
             ad_dist,
             print_movie,
             unique,
+            ads_rotate,
         )
 
         self.ads_id_list = ads_id
@@ -169,7 +197,7 @@ class AddBi(Add):
                     self.ads[self.ads_id_list[0]].symbol,
                     self.ads[self.ads_id_list[1]].symbol,
                 ]
-            if ads_rotate:
+            if self.ads_rotate:
                 self.ads = rotate_bi(self.ads, self.ads_id_list)
                 if (
                     self.ads.get_positions()[self.ads_id_list[0]][0]

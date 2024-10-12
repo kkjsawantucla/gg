@@ -386,3 +386,32 @@ def safe_arccos(x: float):
         return np.pi
     elif -1 < x < 1:
         return np.arccos(x)
+
+
+def rotate_mono(atoms: Atoms, index: int) -> Atoms:
+    """
+    Args:
+        atoms (ase.Atoms):
+        index (list): list of index of atoms that generate
+
+    Returns:
+        ase.Atoms:
+    """
+    # Get the position of the first atom
+    first_atom_position = atoms.positions[index]
+
+    # Translate all atoms so that the first atom is at the origin
+    new_positions = atoms.positions - first_atom_position
+    atoms.set_positions(new_positions)
+
+    y_positions = atoms.positions[:, 1]
+    z_positions = atoms.positions[:, 2]
+    angle_x = np.degrees(np.arctan2(np.mean(z_positions), np.mean(y_positions)))
+    atoms.rotate(-angle_x + 90, "x")
+
+    x_positions = atoms.positions[:, 0]
+    z_positions = atoms.positions[:, 2]
+    angle_x = np.degrees(np.arctan2(np.mean(z_positions), np.mean(x_positions)))
+    atoms.rotate(-90 + angle_x, "y")
+
+    return atoms

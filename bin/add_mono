@@ -36,6 +36,7 @@ parser.add_argument(
     "-ads_atom",
     "-aa",
     type=str,
+    nargs="+",
     help="Atom through which the adsorbate attaches to the surface",
 )
 parser.add_argument(
@@ -115,7 +116,8 @@ if args.surface and args.adsorbate:
 
             filename = f"{adsorbate.get_chemical_formula()}_{surface.get_chemical_formula()}.traj"
             new_modified_atoms = a.get_modified_atoms(surface)
-            print(f"\nFound {len(new_modified_atoms)} structures")
+            print(f"\nUniqueness is {args.unique}")
+            print(f"Found {len(new_modified_atoms)} structures")
             print(f"Writing Structures to {filename}")
             print("--------------------------------------------")
             write(filename=filename, images=new_modified_atoms, format="traj")
