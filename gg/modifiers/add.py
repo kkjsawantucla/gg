@@ -25,7 +25,8 @@ class Add(ParentModifier):
         ads: str,
         surf_coord: int,
         surf_sym: list,
-        ad_dist: Union[float, str] = 1.8,
+        ads_id: Union[str] = None,
+        ads_dist: Union[float] = 1.8,
         print_movie: bool = False,
         unique: bool = True,
         ads_rotate: bool = True,
@@ -41,10 +42,11 @@ class Add(ParentModifier):
             surf_coord (int): How many bonds the adsorbate will make the surface
 
             surf_sym (list): Surface elements where adsorbate can add
+            
+            ads_id (list[float]): strings denoting chemical symbol of adsorbate atom
 
-            ad_dist (float or str, optional): Distance of adsorbate from surface site
-            If its string denoting chemical symbol of adsorbate atom,
-            then distance is set by atomic radii
+            ads_dist (str, optional): Distance of adsorbate from surface site, 
+            if ads_id is mentioned, this variable is ignored
             Defaults to 1.8.
 
             print_movie (bool, optional): return a movie of all sites or one random site.
@@ -65,7 +67,10 @@ class Add(ParentModifier):
             self.surf_coord = surf_coord
         else:
             raise NoReasonableStructureFound("Please enter proper value for surf_coord")
-        self.ad_dist = ad_dist
+        if ads_id:
+            self.ad_dist = ads_id
+        else:
+            self.ad_dist = ads_dist
         self.print_movie = print_movie
         self.unique = unique
         self.ads_rotate = ads_rotate
@@ -146,7 +151,7 @@ class AddBi(Add):
         surf_coord: int,
         surf_sym: list,
         ads_id: list,
-        ad_dist: Union[float, str] = None,
+        ads_dist: Union[float, str] = None,
         print_movie: bool = False,
         unique: bool = True,
         ads_rotate: bool = True,
@@ -166,7 +171,7 @@ class AddBi(Add):
 
             ads_id (list of [int or str, optional]):
 
-            ad_dist (list of [float or str, optional]): Distance of adsorbate from surface site
+            ads_dist (list of [float or str, optional]): Distance of adsorbate from surface site
             If its string denoting chemical symbol of adsorbate atom,
             then distance is set by atomic radii
             Defaults to 1.8.
@@ -182,10 +187,10 @@ class AddBi(Add):
             ads,
             surf_coord,
             surf_sym,
-            ad_dist,
-            print_movie,
-            unique,
-            ads_rotate,
+            ads_dist=ads_dist,
+            print_movie = print_movie,
+            unique=unique,
+            ads_rotate=ads_rotate,
         )
 
         self.ads_id_list = ads_id

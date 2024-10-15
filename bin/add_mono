@@ -109,7 +109,7 @@ if args.surface and args.adsorbate:
                 ads=adsorbate,
                 surf_coord=args.surf_coord,
                 surf_sym=args.surf_sym,
-                ad_dist=args.ads_atom,
+                ads_dist=args.ads_atom,
                 print_movie=True,
                 unique=args.unique,
             )
