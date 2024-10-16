@@ -9,7 +9,7 @@ Prerequisites
 Make sure you have the following prerequisites installed on your system:
 
 - Python (>=3.6)
-- [NumPy
+- NumPy
 - ase
 - NetworkX
 - pandas
