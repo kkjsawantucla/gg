@@ -9,12 +9,12 @@ gg is an open-source code for building graph-based grand canonical basin hopping
 **PLEASE NOTE:** The code is currently under active development and is still in beta versions 0. x.x.
 
 ## Requirements
-- [Python](https://www.python.org/) 3.7  or later
-- [NumPy](https://numpy.org/doc/stable/reference/)
+- [python](https://www.python.org/) 3.7  or later
+- [numPy](https://numpy.org/doc/stable/reference/)
 - [ase](https://wiki.fysik.dtu.dk/ase/)
-- [NetworkX](https://networkx.org/)
+- [networkx](https://networkx.org/)
 - [pandas](https://pandas.pydata.org/)
-- [yaml](https://pyyaml.org/)
+- [pyYAML](https://pyyaml.org/)
 
 ## Installation
 Clone Directory
