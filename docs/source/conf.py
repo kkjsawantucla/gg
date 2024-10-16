@@ -17,6 +17,7 @@ release = '0.0.1'
 extensions = [
     # other extensions
     'sphinx.ext.githubpages',
+    'sphinx.ext.autodoc',
 ]
 
 html_context = {
