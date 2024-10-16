@@ -1,0 +1,141 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GCBH &mdash; graph_gcbh 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=7ab3649f" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=959672f5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Modifiers" href="modifiers.html" />
+    <link rel="prev" title="Install" href="install.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            graph_gcbh
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">GCBH</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#calculator">Calculator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modifiers.html">Modifiers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">graph_gcbh</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">GCBH</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/kkjsawantucla/gg/blob/main/docs/source/GCBH.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="gcbh">
+<h1>GCBH<a class="headerlink" href="#gcbh" title="Link to this heading"></a></h1>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#calculator" id="id1">Calculator</a></p></li>
+</ul>
+</nav>
+<section id="calculator">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Calculator</a><a class="headerlink" href="#calculator" title="Link to this heading"></a></h2>
+<p>The Gcbh calculator is an ase Dynamics Child on unhealthy steriods. It runs the grand canonical basin hopping, however certain functionalities are hard coded.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.gcbh</span> <span class="kn">import</span> <span class="n">Gcbh</span>
+<span class="kn">from</span> <span class="nn">ase.io</span> <span class="kn">import</span> <span class="n">read</span>
+<span class="kn">from</span> <span class="nn">ase.calculators.emt</span> <span class="kn">import</span> <span class="n">EMT</span>
+
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">)</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">calc</span> <span class="o">=</span> <span class="n">EMT</span><span class="p">()</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">Gcbh</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span><span class="n">config_file</span><span class="o">=</span><span class="s1">&#39;input.yaml&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Inputs for GCBH Calculator</p>
+<ol class="arabic simple">
+<li><p>atoms (ase.Atoms): An <a class="reference external" href="https://wiki.fysik.dtu.dk/ase/ase/atoms.html">ase Atoms</a> object as a starting point. The object should have a <a class="reference external" href="https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html">ase.calculator</a> attached.</p></li>
+<li><p>logfile (str): path to a file that logs the calculator's output.</p></li>
+<li><p>trajectory (str): path to a file that logs all the atoms structure files visited by the calculator.</p></li>
+<li><p>config file (str): A yaml file that takes specific inputs for the Gcbh calculaor. In the future, more functionalities will be read from the config file. Please check the example folders to check the currently available functionalities.</p></li>
+<li><p>restart (bool): To control restart from previous calculations.</p></li>
+<li><p>optimizer (ase.optimizer): An <a class="reference external" href="https://wiki.fysik.dtu.dk/ase/ase/optimize.html">ase Optimizer</a> that controls geometric optimization of a given ase.atoms object and reduce forces. The default is BFGS.</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="install.html" class="btn btn-neutral float-left" title="Install" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modifiers.html" class="btn btn-neutral float-right" title="Modifiers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Kaustubh Sawant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

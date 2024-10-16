@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join('..', '..','gg')))
+sys.path.insert(0, os.path.abspath(os.path.join('..', '..')))
 
 project = 'graph_gcbh'
 copyright = '2024, Kaustubh Sawant'
