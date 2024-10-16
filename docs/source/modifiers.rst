@@ -17,7 +17,9 @@ The modifier can add an adsorbate, or moiety at specific sites on the parent ato
   add_OH = Add(weight=1, ss, ads=adsorbate_OH, surf_coord=[1], ads_id=["O"], surf_sym=["Pt"])
 
 .. automodule::`gg.modifiers.add.Add`
+
   :members:
+
 
 Add Bidentate
 ---------------
