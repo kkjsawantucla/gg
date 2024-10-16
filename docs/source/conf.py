@@ -12,11 +12,8 @@ author = 'Kaustubh Sawant'
 release = '0.0.1'
 
 # -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configurations
 
-python
-
-Copy
 extensions = [
     # other extensions
     'sphinx.ext.githubpages',
