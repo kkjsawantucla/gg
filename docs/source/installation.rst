@@ -1,5 +1,5 @@
-Install
-=======
+Installation
+============
 
 .. contents::
    :local:
@@ -13,7 +13,7 @@ Make sure you have the following prerequisites installed on your system:
 - ase
 - networkx
 - pandas
-- yaml
+- PyYAML
 
 
 Installing the Software
