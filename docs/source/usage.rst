@@ -1,11 +1,11 @@
-Usage
-=====
+GCBH
+====
 
 .. contents::
    :local:
 
-GCBH
-----
+Calculator
+----------
 The Gcbh calculator is an ase Dynamics Child on unhealthy steriods. It runs the grand canonical basin hopping, however certain functionalities are hard coded.
 
 .. code-block:: python
@@ -19,8 +19,8 @@ The Gcbh calculator is an ase Dynamics Child on unhealthy steriods. It runs the 
    G = Gcbh(atoms,config_file='input.yaml')
 
 
-Inputs
-------
+Inputs for GCBH Calculator
+
 1. atoms (ase.Atoms): An `ase Atoms <https://wiki.fysik.dtu.dk/ase/ase/atoms.html>`_ object as a starting point. The object should have a `ase.calculator <https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html>`_ attached. 
 2. logfile (str): path to a file that logs the calculator's output.
 3. trajectory (str): path to a file that logs all the atoms structure files visited by the calculator.
