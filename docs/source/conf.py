@@ -24,11 +24,11 @@ extensions = [
 
 html_context = {
     "display_github": True,  # Integrate GitHub
-    "github_user": "kkjsawant",  # Username
+    "github_user": "kkjsawantucla",  # Username
     "github_repo": "gg",  # Repo name
     "github_version": "main",  # Version
-    "conf_py_path": "/docs/",  # Path in the checkout to the docs root
-
+    "conf_py_path": "/docs/source/",  # Path in the checkout to the docs root
+}
 
 templates_path = ['_templates']
 exclude_patterns = []
