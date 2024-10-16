@@ -45,7 +45,13 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">GCBH</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#calculator">Calculator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#calculator">Calculator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gg.gcbh.Gcbh"><code class="docutils literal notranslate"><span class="pre">Gcbh</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gg.gcbh.Gcbh.run"><code class="docutils literal notranslate"><span class="pre">Gcbh.run()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="modifiers.html">Modifiers</a></li>
@@ -95,15 +101,36 @@
 <span class="n">G</span> <span class="o">=</span> <span class="n">Gcbh</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span><span class="n">config_file</span><span class="o">=</span><span class="s1">&#39;input.yaml&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Inputs for GCBH Calculator</p>
-<ol class="arabic simple">
-<li><p>atoms (ase.Atoms): An <a class="reference external" href="https://wiki.fysik.dtu.dk/ase/ase/atoms.html">ase Atoms</a> object as a starting point. The object should have a <a class="reference external" href="https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html">ase.calculator</a> attached.</p></li>
-<li><p>logfile (str): path to a file that logs the calculator's output.</p></li>
-<li><p>trajectory (str): path to a file that logs all the atoms structure files visited by the calculator.</p></li>
-<li><p>config file (str): A yaml file that takes specific inputs for the Gcbh calculaor. In the future, more functionalities will be read from the config file. Please check the example folders to check the currently available functionalities.</p></li>
-<li><p>restart (bool): To control restart from previous calculations.</p></li>
-<li><p>optimizer (ase.optimizer): An <a class="reference external" href="https://wiki.fysik.dtu.dk/ase/ase/optimize.html">ase Optimizer</a> that controls geometric optimization of a given ase.atoms object and reduce forces. The default is BFGS.</p></li>
-</ol>
+<dl class="py class">
+<dt class="sig sig-object py" id="gg.gcbh.Gcbh">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gg.gcbh.</span></span><span class="sig-name descname"><span class="pre">Gcbh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms:</span> <span class="pre">~ase.atoms.Atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'gcbh.log'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajectory:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'gcbh.traj'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_file:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer=&lt;class</span> <span class="pre">'ase.optimize.bfgs.BFGS'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gg/gcbh.html#Gcbh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.gcbh.Gcbh" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Dynamics</span></code></p>
+<dl>
+<dt>Args:</dt><dd><p>atoms (ase.Atoms): The Atoms object to operate on.</p>
+<p>logfile (str, optional): If <em>logfile</em> is a string, a file will be opened.
+Defaults to &quot;gcbh.log&quot;.</p>
+<p>trajectory (str, optional): Pickle file used to store the trajectory of atomic movement.
+Defaults to &quot;gcbh.traj&quot;.</p>
+<p>config_file (str[.yaml file], optional): Input file to gcbh. Defaults to None.
+restart (bool, optional):</p>
+<p>optimizer: ase optimizer for geometric relaxation.
+Defaults to ase.optimize.BFGS</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="gg.gcbh.Gcbh.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maximum_trial</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gg/gcbh.html#Gcbh.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.gcbh.Gcbh.run" title="Link to this definition"></a></dt>
+<dd><dl>
+<dt>Args:</dt><dd><p>steps (int): Number of steps to run
+Defaults to 4000</p>
+<p>maximum_trial (int): Number of failed modification steps before terminating.
+Defaults to 30</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 

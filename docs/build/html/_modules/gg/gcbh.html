@@ -1,0 +1,638 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gg.gcbh &mdash; graph_gcbh 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=7ab3649f" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=959672f5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            graph_gcbh
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GCBH.html">GCBH</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modifiers.html">Modifiers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../support.html">Support</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">graph_gcbh</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gg.gcbh</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for gg.gcbh</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Main grand canonical basin hopping class &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">strftime</span><span class="p">,</span> <span class="n">localtime</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">ase</span> <span class="kn">import</span> <span class="n">Atoms</span>
+<span class="kn">from</span> <span class="nn">ase</span> <span class="kn">import</span> <span class="n">units</span>
+<span class="kn">from</span> <span class="nn">ase.optimize.optimize</span> <span class="kn">import</span> <span class="n">Dynamics</span>
+<span class="kn">from</span> <span class="nn">ase.io.trajectory</span> <span class="kn">import</span> <span class="n">Trajectory</span>
+<span class="kn">from</span> <span class="nn">ase.optimize</span> <span class="kn">import</span> <span class="n">BFGS</span>
+<span class="kn">from</span> <span class="nn">ase.neighborlist</span> <span class="kn">import</span> <span class="n">NeighborList</span><span class="p">,</span> <span class="n">natural_cutoffs</span>
+<span class="kn">from</span> <span class="nn">gg.reference</span> <span class="kn">import</span> <span class="n">get_ref_coeff</span>
+<span class="kn">from</span> <span class="nn">gg.utils</span> <span class="kn">import</span> <span class="n">NoReasonableStructureFound</span>
+<span class="kn">from</span> <span class="nn">gg.utils_graph</span> <span class="kn">import</span> <span class="n">atoms_to_graph</span><span class="p">,</span> <span class="n">is_unique_graph</span>
+<span class="kn">from</span> <span class="nn">gg.logo</span> <span class="kn">import</span> <span class="n">logo</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Kaustubh Sawant, Geng Sun&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">get_current_time</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Current time</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">time_label</span> <span class="o">=</span> <span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">-%b-%Y %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">localtime</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">time_label</span>
+
+
+<div class="viewcode-block" id="Gcbh">
+<a class="viewcode-back" href="../../GCBH.html#gg.gcbh.Gcbh">[docs]</a>
+<span class="k">class</span> <span class="nc">Gcbh</span><span class="p">(</span><span class="n">Dynamics</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Basin hopping algorithm.</span>
+
+<span class="sd">    After Wales and Doye, J. Phys. Chem. A, vol 101 (1997) 5111-5116</span>
+
+<span class="sd">    and</span>
+
+<span class="sd">    David J. Wales and Harold A. Scheraga, Science, Vol. 285, 1368 (1999)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">,</span>
+        <span class="n">logfile</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gcbh.log&quot;</span><span class="p">,</span>
+        <span class="n">trajectory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gcbh.traj&quot;</span><span class="p">,</span>
+        <span class="n">config_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">restart</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="o">=</span><span class="n">BFGS</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (ase.Atoms): The Atoms object to operate on.</span>
+<span class="sd">            </span>
+<span class="sd">            logfile (str, optional): If *logfile* is a string, a file will be opened.</span>
+<span class="sd">            Defaults to &quot;gcbh.log&quot;.</span>
+<span class="sd">            </span>
+<span class="sd">            trajectory (str, optional): Pickle file used to store the trajectory of atomic movement.</span>
+<span class="sd">            Defaults to &quot;gcbh.traj&quot;.</span>
+<span class="sd">            </span>
+<span class="sd">            config_file (str[.yaml file], optional): Input file to gcbh. Defaults to None.</span>
+<span class="sd">            restart (bool, optional):</span>
+<span class="sd">            </span>
+<span class="sd">            optimizer: ase optimizer for geometric relaxation.</span>
+<span class="sd">            Defaults to ase.optimize.BFGS</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">Atoms</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;The input atoms is not as Atoms object&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_calculator</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;The atoms instance has no calculator&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Intitalize by setting up the parent Dynamics Class</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">atoms</span><span class="o">=</span><span class="n">atoms</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="n">logfile</span><span class="p">,</span> <span class="n">trajectory</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">logo</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">center</span><span class="p">()</span>
+
+        <span class="c1"># Read Config File if it exists</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;temp&quot;</span><span class="p">:</span> <span class="mi">1500</span><span class="p">,</span>
+            <span class="s2">&quot;max_temp&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;min_temp&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;stop_steps&quot;</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span>
+            <span class="s2">&quot;chemical_potential&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;max_history&quot;</span><span class="p">:</span> <span class="mi">25</span><span class="p">,</span>
+            <span class="s2">&quot;max_bond&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">&quot;max_bond_ratio&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span>
+        <span class="k">if</span> <span class="n">config_file</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+        <span class="c1"># Setup Temperature</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_temp&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_temp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">((</span><span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1.5</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_temp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_temp&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;min_temp&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;min_temp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">((</span><span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;min_temp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;min_temp&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]])</span>
+
+        <span class="c1"># Some file names and folders are hardcoded</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_atoms_name</span> <span class="o">=</span> <span class="s2">&quot;CONTCAR&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_file</span> <span class="o">=</span> <span class="s2">&quot;current_status.pkl&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opt_folder</span> <span class="o">=</span> <span class="s2">&quot;opt_folder&quot;</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">&quot;local_minima.traj&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lm_trajectory</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="s2">&quot;local_minima.traj&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lm_trajectory</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="s2">&quot;local_minima.traj&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">trajectory</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">traj</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="n">trajectory</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">traj</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="n">trajectory</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># Setup empty class to add structure modifiers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;acc_hist&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># used for adjusting the temperature of Metropolis algorithm</span>
+        <span class="c1"># a series of 0 and 1, 0 stands for not accepted, 1 stands for accepted</span>
+
+        <span class="c1"># Print the chemical potential for different elements</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;chemical_potential&quot;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;chemical_potential&quot;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chemical potential of </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> is </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No chemical potential was provided&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;no_impr_step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;mod_weights&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># negative value indicates no ongoing structure optimization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># Graphing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;graphs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">restart</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status_file</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_from_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status_file</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+                    <span class="n">arg</span> <span class="ow">is</span> <span class="kc">None</span>
+                    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe_min&quot;</span><span class="p">]]</span>
+                <span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">subdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_folder</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;opt_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">subdir</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Restarting from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">set_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;_</span>
+<span class="sd">        Args:</span>
+<span class="sd">            config_file (dict): Dictionary of key inputs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">input_config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">input_config</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">todict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">description</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;optimization&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">description</span>
+
+    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;dump dictionary of variables to store&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">value</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;mod_weights&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">weight</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="n">pickle</span><span class="o">.</span><span class="n">HIGHEST_PROTOCOL</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">update_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update variable dictionary from file&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">c_old</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">c_old</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;mod_weights&quot;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;mod_weights&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> weight = </span><span class="si">{</span><span class="n">value</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">logtxt</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dump txt into logfile</span>
+<span class="sd">        Args:</span>
+<span class="sd">            msg (str, optional): The message to dump. Defaults to &quot;&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">real_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">msg</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">real_message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">add_modifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            instance (Modifier): Instance of a ParentModifier or a child</span>
+<span class="sd">            name (str): Name for the instance/modifier</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Structure modifier </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> exists already!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;mod_weights&quot;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;mod_weights&quot;</span><span class="p">][</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">select_modifier</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: random modifier name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">modifier_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="n">modifier_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">modifier_names</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">modifier_weights</span> <span class="o">=</span> <span class="n">modifier_weights</span> <span class="o">/</span> <span class="n">modifier_weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">modifier_names</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">modifier_weights</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_modifier_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): _description_</span>
+<span class="sd">            action (str): _description_</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;operator name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> not recognized&quot;</span><span class="p">)</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="n">action</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">action</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;action must be &#39;increase&#39;, &#39;decrease&#39; or &#39;rest&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span>
+            <span class="n">og_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">og_weight</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">og_weight</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Modifier </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> weight is reset to original weight : </span><span class="si">{</span><span class="n">og_weight</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">:</span>
+            <span class="n">og_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">og_weight</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">og_weight</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="mf">1.05</span><span class="p">,</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;d&quot;</span><span class="p">:</span>
+            <span class="n">og_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">og_weight</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">og_weight</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span> <span class="o">/</span> <span class="mf">1.05</span><span class="p">,</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> weight = </span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">weight</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">get_ref_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (ase.Atoms): _description_</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            float: total ref value to substract</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="p">:</span>
+            <span class="n">formula</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_chemical_formula</span><span class="p">()</span>
+            <span class="n">ref_sum</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">to_print</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">formula</span><span class="si">}</span><span class="s2"> =&quot;</span>
+            <span class="n">ref_coeff</span> <span class="o">=</span> <span class="n">get_ref_coeff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">ref_sum</span> <span class="o">+=</span> <span class="n">ref_coeff</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">*</span> <span class="n">value</span>
+                <span class="n">to_print</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">ref_coeff</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">:</span><span class="s2">+.2f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="n">to_print</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ref_sum</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">adjust_temp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">int_accept</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start adjusting temperature beyond max_history</span>
+<span class="sd">        Args:</span>
+<span class="sd">            int_accept (int): 0 or 1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># adjust the temperatures</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;acc_hist&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">int_accept</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;acc_hist&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_history&quot;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;acc_hist&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">_balance</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;acc_hist&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_history&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">_balance</span> <span class="o">&gt;</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">_balance</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1.03</span>
+            <span class="k">elif</span> <span class="n">_balance</span> <span class="o">&lt;</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">_balance</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.03</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;min_temp&quot;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;min_temp&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_temp&quot;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_temp&quot;</span><span class="p">]</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Atoms</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Move atoms by a random modifier.&quot;&quot;&quot;</span>
+        <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Modifier &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; formula </span><span class="si">{</span><span class="n">atoms</span><span class="o">.</span><span class="n">get_chemical_formula</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">atoms</span><span class="o">.</span><span class="n">center</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">atoms</span>
+
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Atoms&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">get_potential_energy</span><span class="p">()</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ref_potential</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">ref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">formula</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">get_chemical_formula</span><span class="p">()</span>
+        <span class="n">en</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">traj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="n">energy</span><span class="o">=</span><span class="n">en</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;Atoms: </span><span class="si">{</span><span class="n">formula</span><span class="si">}</span><span class="s1"> E(initial): </span><span class="si">{</span><span class="n">en</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> F(initial) </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Gcbh.run">
+<a class="viewcode-back" href="../../GCBH.html#gg.gcbh.Gcbh.run">[docs]</a>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span> <span class="n">maximum_trial</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            steps (int): Number of steps to run</span>
+<span class="sd">            Defaults to 4000</span>
+<span class="sd">            </span>
+<span class="sd">            maximum_trial (int): Number of failed modification steps before terminating.</span>
+<span class="sd">            Defaults to 30</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="s2">&quot;Intitial Weights:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_modifiers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> weight = </span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">weight</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">steps</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;no_impr_step&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;stop_steps&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;The best solution has not improved after </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;no_impr_step&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1"> steps&#39;</span>
+                <span class="p">)</span>
+                <span class="k">break</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">-------------------------------------------------------&quot;</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">get_current_time</span><span class="p">()</span><span class="si">}</span><span class="s1">:  Starting Basin-Hopping Step </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">trials</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maximum_trial</span><span class="p">):</span>
+                <span class="n">modifier_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_modifier</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">newatoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">modifier_name</span><span class="p">)</span>
+                <span class="k">except</span> <span class="p">(</span>
+                    <span class="n">NoReasonableStructureFound</span>
+                <span class="p">)</span> <span class="k">as</span> <span class="n">emsg</span><span class="p">:</span>  <span class="c1"># emsg stands for error message</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">emsg</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">emsg</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">emsg</span><span class="p">))</span>
+                        <span class="n">emsg</span> <span class="o">=</span> <span class="s2">&quot;Unknown&quot;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">modifier_name</span><span class="si">}</span><span class="s2"> did not find a good structure because of </span><span class="si">{</span><span class="n">emsg</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_graph</span><span class="p">(</span><span class="n">newatoms</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;One structure found with modifier </span><span class="si">{</span><span class="n">modifier_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status_file</span><span class="p">)</span>
+                        <span class="n">converged_atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">newatoms</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">traj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">converged_atoms</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">append_graph</span><span class="p">(</span><span class="n">converged_atoms</span><span class="p">)</span>
+                        <span class="n">en</span> <span class="o">=</span> <span class="n">converged_atoms</span><span class="o">.</span><span class="n">get_potential_energy</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">en</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">100000</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                            <span class="k">continue</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimization Done with E = </span><span class="si">{</span><span class="n">en</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">accepting_new_structures</span><span class="p">(</span><span class="n">converged_atoms</span><span class="p">,</span> <span class="n">modifier_name</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># switch off the optimization status</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status_file</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="k">break</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="s2">&quot;Atoms object visited previously&quot;</span><span class="p">)</span>
+                        <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Program does not find a good structure after </span><span class="si">{</span><span class="n">trials</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> tests&quot;</span>
+                <span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">accepting_new_structures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">newatoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">,</span> <span class="n">modifier_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This function takes care of all the accepting algorithms. I.E metropolis algorithms</span>
+<span class="sd">        newatoms is the newly optimized structure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">newatoms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">en</span> <span class="o">=</span> <span class="n">newatoms</span><span class="o">.</span><span class="n">get_potential_energy</span><span class="p">()</span>  <span class="c1"># Energy_new</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">en</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ref_potential</span><span class="p">(</span><span class="n">newatoms</span><span class="p">)</span>  <span class="c1"># Free_energy_new</span>
+
+        <span class="k">if</span> <span class="n">fn</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]:</span>
+            <span class="n">accept</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">modifier_weight_action</span> <span class="o">=</span> <span class="s2">&quot;increase&quot;</span>
+
+        <span class="c1"># Check Probability for acceptance</span>
+        <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span><span class="p">(</span><span class="n">fn</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">kB</span>
+        <span class="p">):</span>
+            <span class="n">accept</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">modifier_weight_action</span> <span class="o">=</span> <span class="s2">&quot;decrease&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">accept</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">modifier_weight_action</span> <span class="o">=</span> <span class="s2">&quot;decrease&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_modifier_weights</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">modifier_name</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="n">modifier_weight_action</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">accept</span><span class="p">:</span>
+            <span class="n">int_accept</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;Accepted, F(old)=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> F(new)=</span><span class="si">{</span><span class="n">fn</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> at step </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="n">newatoms</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">en</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lm_trajectory</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">newatoms</span><span class="p">,</span> <span class="n">energy</span><span class="o">=</span><span class="n">en</span><span class="p">,</span> <span class="n">accept</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">int_accept</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;Rejected, F(old)=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> F(new)=</span><span class="si">{</span><span class="n">fn</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> at step </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">adjust_temp</span><span class="p">(</span><span class="n">int_accept</span><span class="p">)</span>
+
+        <span class="c1"># update the best result for this basin-hopping</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe_min&quot;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;fe&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;no_impr_step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;no_impr_step&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="s2">&quot;-------------------------------------------------------&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">optimize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">,</span> <span class="n">fmax</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Optimize atoms&quot;&quot;&quot;</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span>
+        <span class="k">if</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_calculator</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;The atoms object has no calculator&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">get_current_time</span><span class="p">()</span><span class="si">}</span><span class="s1">: Begin structure optimization routine at step </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="p">)</span>
+        <span class="n">opt_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_folder</span>
+        <span class="n">topdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="n">subdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">topdir</span><span class="p">,</span> <span class="n">opt_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;opt_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">subdir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">subdir</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">subdir</span><span class="p">)</span>
+        <span class="n">atoms</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;POSCAR&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;vasp&quot;</span><span class="p">)</span>
+        <span class="n">dyn</span> <span class="o">=</span> <span class="n">optimizer</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">trajectory</span><span class="o">=</span><span class="s2">&quot;opt.traj&quot;</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="s2">&quot;opt.log&quot;</span><span class="p">)</span>
+        <span class="n">dyn</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">fmax</span><span class="o">=</span><span class="n">fmax</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dyn</span><span class="o">.</span><span class="n">nsteps</span> <span class="o">==</span> <span class="n">steps</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;Optimization is incomplete in </span><span class="si">{</span><span class="n">steps</span><span class="si">}</span><span class="s1"> steps, ignore gcbh </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1"> step&#39;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;opt_on&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">atoms</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;CONTCAR&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;vasp&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">get_current_time</span><span class="p">()</span><span class="si">}</span><span class="s1">: Structure optimization completed for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;nsteps&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">topdir</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">atoms</span>
+
+    <span class="k">def</span> <span class="nf">append_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append the graph to list if its unique</span>
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (_type_): _description_</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nl</span> <span class="o">=</span> <span class="n">NeighborList</span><span class="p">(</span><span class="n">natural_cutoffs</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="n">self_interaction</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bothways</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">nl</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">new_g</span> <span class="o">=</span> <span class="n">atoms_to_graph</span><span class="p">(</span>
+            <span class="n">atoms</span><span class="p">,</span>
+            <span class="n">nl</span><span class="p">,</span>
+            <span class="n">max_bond</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_bond&quot;</span><span class="p">],</span>
+            <span class="n">max_bond_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;max_bond_ratio&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;graphs&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">is_unique_graph</span><span class="p">(</span><span class="n">new_g</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;graphs&quot;</span><span class="p">]):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Add graph at step:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;nsteps&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> and graph loc:</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;graphs&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;graphs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_g</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;graphs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_g</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logtxt</span><span class="p">(</span><span class="s2">&quot;Appending first graph&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Kaustubh Sawant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -46,8 +46,41 @@
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install</a></li>
 <li class="toctree-l1"><a class="reference internal" href="GCBH.html">GCBH</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Modifiers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#add-monodentate">Add Monodentate</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#add-bidentate">Add Bidentate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#add-monodentate">Add Monodentate</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gg.modifiers.add.Add"><code class="docutils literal notranslate"><span class="pre">Add</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gg.modifiers.add.Add.get_modified_atoms"><code class="docutils literal notranslate"><span class="pre">Add.get_modified_atoms()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#add-bidentate">Add Bidentate</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gg.modifiers.add.AddBi"><code class="docutils literal notranslate"><span class="pre">AddBi</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gg.modifiers.add.AddBi.get_modified_atoms"><code class="docutils literal notranslate"><span class="pre">AddBi.get_modified_atoms()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#remove-adsorbate">Remove Adsorbate</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gg.modifiers.modifiers.Remove"><code class="docutils literal notranslate"><span class="pre">Remove</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gg.modifiers.modifiers.Remove.get_modified_atoms"><code class="docutils literal notranslate"><span class="pre">Remove.get_modified_atoms()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#replace-atoms-molecules">Replace Atoms/Molecules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gg.modifiers.modifiers.Replace"><code class="docutils literal notranslate"><span class="pre">Replace</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gg.modifiers.modifiers.Replace.get_modified_atoms"><code class="docutils literal notranslate"><span class="pre">Replace.get_modified_atoms()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#swap-atoms">Swap Atoms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gg.modifiers.modifiers.Swap"><code class="docutils literal notranslate"><span class="pre">Swap</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gg.modifiers.modifiers.Swap.get_modified_atoms"><code class="docutils literal notranslate"><span class="pre">Swap.get_modified_atoms()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
@@ -83,22 +116,243 @@
 The code provides basic modifiers as building blocks for more complex modifiers.</p>
 <section id="add-monodentate">
 <h2>Add Monodentate<a class="headerlink" href="#add-monodentate" title="Link to this heading"></a></h2>
-<p>The modifier can add an adsorbate, or moiety at specific sites on the parent atoms object.</p>
+<p>The modifier can add a monodentate adsorbate, or moiety at specific sites on the parent atoms object.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.modifiers</span> <span class="kn">import</span> <span class="n">Add</span>
+<span class="kn">from</span> <span class="nn">gg.sites</span> <span class="kn">import</span> <span class="n">FlexibleSites</span>
 
+<span class="n">FS</span> <span class="o">=</span> <span class="n">FlexibleSites</span><span class="p">(</span><span class="n">constraints</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">max_bond_ratio</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span> <span class="c1">#Define class to figure out surface</span>
 <span class="n">adsorbate_OH</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;OH.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be added</span>
-<span class="n">add_OH</span> <span class="o">=</span> <span class="n">Add</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ss</span><span class="p">,</span> <span class="n">ads</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">surf_coord</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ads_id</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;O&quot;</span><span class="p">],</span> <span class="n">surf_sym</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Pt&quot;</span><span class="p">])</span>
+<span class="n">add_OH</span> <span class="o">=</span> <span class="n">Add</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">ads</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">surf_coord</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="n">ads_id</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;O&quot;</span><span class="p">],</span> <span class="n">surf_sym</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Pt&quot;</span><span class="p">],</span><span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">)</span> <span class="c1">#The surface that will adsorb</span>
+<span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">add_OH</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
 </pre></div>
 </div>
+<dl class="py class">
+<dt class="sig sig-object py" id="gg.modifiers.add.Add">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gg.modifiers.add.</span></span><span class="sig-name descname"><span class="pre">Add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surface_sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SurfaceSites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_coord</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_sym</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ads_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ads_dist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_movie</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unique</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ads_rotate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gg/modifiers/add.html#Add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.add.Add" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ParentModifier</span></code></p>
+<dl>
+<dt>Args:</dt><dd><p>surface_sites (gg.Sites): Class that figures out surface sites</p>
+<p>ads (str) or (ase.Atoms): Adsorbate to add</p>
+<p>surf_coord (list[int]): How many bonds the adsorbate will make with the surface</p>
+<p>surf_sym (list[str]): Surface elements where adsorbate can add</p>
+<p>ads_id (list[float]): Strings denoting chemical symbol of adsorbate atom
+Defaults to None</p>
+<p>ads_dist (str, optional): Distance of adsorbate from surface site, 
+if ads_id is mentioned, this variable is ignored.
+Defaults to 1.8.</p>
+<p>print_movie (bool, optional): return a movie of all sites or one random site.
+Defaults to False.</p>
+<p>unique (bool, optional): return only unique sites.
+Defaults to True.</p>
+<p>weight (float): weight for gcbh.
+Defaults to 1.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="gg.modifiers.add.Add.get_modified_atoms">
+<span class="sig-name descname"><span class="pre">get_modified_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Atoms</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Atoms</span></span></span><a class="reference internal" href="_modules/gg/modifiers/add.html#Add.get_modified_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.add.Add.get_modified_atoms" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Args:</dt><dd><p>atoms (ase.Atoms): The atoms object on which the adsorbate will be added</p>
+</dd>
+<dt>Returns:</dt><dd><p>ase.Atoms if print_movie = True
+list[ase.Atoms] if print_movie = False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="add-bidentate">
 <h2>Add Bidentate<a class="headerlink" href="#add-bidentate" title="Link to this heading"></a></h2>
+<p>The modifier can add a bidentate adsorbate, or moiety at specific sites on the parent atoms object.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.modifiers</span> <span class="kn">import</span> <span class="n">AddBi</span>
 
 <span class="n">adsorbate_formate</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;OCHO.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be added (formate)</span>
-<span class="n">add_formate</span> <span class="o">=</span> <span class="n">AddBi</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ss</span><span class="p">,</span> <span class="n">ads</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">surf_coord</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ads_id</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;O&quot;</span><span class="p">],</span> <span class="n">surf_sym</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Pt&quot;</span><span class="p">])</span>
+<span class="n">add_formate</span> <span class="o">=</span> <span class="n">AddBi</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">ads</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">surf_coord</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="n">ads_id</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;O&quot;</span><span class="p">],</span> <span class="n">surf_sym</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Pt&quot;</span><span class="p">],</span> <span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">)</span> <span class="c1">#The surface that will adsorb</span>
+<span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">add_formate</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
 </pre></div>
 </div>
+<dl class="py class">
+<dt class="sig sig-object py" id="gg.modifiers.add.AddBi">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gg.modifiers.add.</span></span><span class="sig-name descname"><span class="pre">AddBi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surface_sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SurfaceSites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_coord</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_sym</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ads_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ads_dist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_movie</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unique</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ads_rotate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_ads_error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gg/modifiers/add.html#AddBi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.add.AddBi" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#gg.modifiers.add.Add" title="gg.modifiers.add.Add"><code class="xref py py-class docutils literal notranslate"><span class="pre">Add</span></code></a></p>
+<p>Args:</p>
+<blockquote>
+<div><p>surface_sites (gg.Sites): Class that figures out surface sites.</p>
+<p>ads (str) or (ase.Atoms): Adsorbate to add.</p>
+<p>surf_coord (list[int]): How many bonds the adsorbate will make with the surface.</p>
+<p>surf_sym (list[str]): Surface elements where adsorbate can add.</p>
+<p>ads_id (list of [int or str]): Strings denoting chemical symbol of adsorbate atom.</p>
+<p>ads_dist (list of [float or str, optional]): Distance of adsorbate from surface site.
+If its string denoting chemical symbol of adsorbate atom,
+then distance is set by atomic radii.
+Defaults to covalent radii of atoms mentioned in ads_id.</p>
+<p>print_movie (bool, optional): Return a movie of all sites or one random site.
+Defaults to False.</p>
+<p>unique (bool, optional): Return only unique sites.
+Defaults to True.</p>
+<p>ads_rotate (bool,optional): Rotate atoms such that they point in +z direction.
+Defaults to True.</p>
+<p>weight (float): weight for gcbh.
+Defaults to 1.</p>
+</div></blockquote>
+<dl class="py method">
+<dt class="sig sig-object py" id="gg.modifiers.add.AddBi.get_modified_atoms">
+<span class="sig-name descname"><span class="pre">get_modified_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Atoms</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Atoms</span></span></span><a class="reference internal" href="_modules/gg/modifiers/add.html#AddBi.get_modified_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.add.AddBi.get_modified_atoms" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Args:</dt><dd><p>atoms (ase.Atoms): The atoms object on which the adsorbate will be added</p>
+</dd>
+<dt>Returns:</dt><dd><p>ase.Atoms if print_movie = True, 
+list[ase.Atoms] if print_movie = False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="remove-adsorbate">
+<h2>Remove Adsorbate<a class="headerlink" href="#remove-adsorbate" title="Link to this heading"></a></h2>
+<p>Remove an adsorbate from the surface</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.modifiers</span> <span class="kn">import</span> <span class="n">Remove</span>
+
+<span class="n">adsorbate_OH</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;OH.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be removed</span>
+<span class="n">remove_OH</span> <span class="o">=</span> <span class="n">Remove</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">to_del</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR_with_OH&#39;</span><span class="p">)</span> <span class="c1">#The surface that has OHs to be removed</span>
+<span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">remove_OH</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="gg.modifiers.modifiers.Remove">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gg.modifiers.modifiers.</span></span><span class="sig-name descname"><span class="pre">Remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surface_sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SurfaceSites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_del</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Atoms</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_movie</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unique</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gg/modifiers/modifiers.html#Remove"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.modifiers.Remove" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ParentModifier</span></code></p>
+<dl>
+<dt>Args:</dt><dd><p>surface_sites (gg.Sites): Class that figures out surface sites</p>
+<p>to_del (str) or (ase.Atoms): Atoms to delete. If a string is provided,
+it tries to make a molecule out of it.</p>
+<p>max_bond_ratio (float, optional): Max bond ratio to make graph of atoms to delete.
+Defaults to 1.2.</p>
+<p>max_bond (int, optional): Max bond ratio to make graph of atoms to delete.
+Defaults to 0.</p>
+<p>print_movie (bool, optional): Return a movie of all sites or one random site.
+Defaults to False.</p>
+<p>unique (bool, optional): Return only unique sites.</p>
+<p>weight (float): weight for gcbh.
+Defaults to 1.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="gg.modifiers.modifiers.Remove.get_modified_atoms">
+<span class="sig-name descname"><span class="pre">get_modified_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Atoms</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Atoms</span></span></span><a class="reference internal" href="_modules/gg/modifiers/modifiers.html#Remove.get_modified_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.modifiers.Remove.get_modified_atoms" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Args:</dt><dd><p>atoms (ase.Atoms): The atoms object on which the adsorbate will be added</p>
+</dd>
+<dt>Returns:</dt><dd><p>ase.Atoms if print_movie = True
+list[ase.Atoms] if print_movie = False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="replace-atoms-molecules">
+<h2>Replace Atoms/Molecules<a class="headerlink" href="#replace-atoms-molecules" title="Link to this heading"></a></h2>
+<p>Remove an adsorbate from the surface</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.modifiers</span> <span class="kn">import</span> <span class="n">Replace</span>
+
+<span class="n">adsorbate_OH</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;OH.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be removed</span>
+<span class="n">adsorbate_NO</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;NO.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be replaced with</span>
+<span class="n">remove_OH</span> <span class="o">=</span> <span class="n">Replace</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">to_del</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">with_replace</span><span class="o">=</span> <span class="n">adsorbate_NO</span><span class="p">,</span> <span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR_with_OH&#39;</span><span class="p">)</span> <span class="c1">#The surface that has OHs to be removed</span>
+<span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">remove_OH</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="gg.modifiers.modifiers.Replace">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gg.modifiers.modifiers.</span></span><span class="sig-name descname"><span class="pre">Replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surface_sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SurfaceSites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_del</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Atoms</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_replace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Atoms</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_movie</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unique</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gg/modifiers/modifiers.html#Replace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.modifiers.Replace" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#gg.modifiers.modifiers.Remove" title="gg.modifiers.modifiers.Remove"><code class="xref py py-class docutils literal notranslate"><span class="pre">Remove</span></code></a></p>
+<dl>
+<dt>Args:</dt><dd><p>surface_sites (gg.Sites): Class that figures out surface sites</p>
+<p>to_del (str) or (ase.Atoms): Atoms to delete. If a string is provided,
+it tries to make a molecule out of it.</p>
+<p>with_replace (str) or (ase.Atoms): Atoms to replace with. If a string is provided,
+it tries to make a molecule out of it.</p>
+<p>max_bond_ratio (float, optional): Max bond ratio to make graph of atoms to delete.
+Defaults to 1.2.</p>
+<p>max_bond (int, optional): Max bond ratio to make graph of atoms to delete.
+Defaults to 0.</p>
+<p>print_movie (bool, optional): Return a movie of all sites or one random site.
+Defaults to False.</p>
+<p>unique (bool, optional): Return only unique sites.</p>
+<p>weight (float): weight for gcbh.
+Defaults to 1.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="gg.modifiers.modifiers.Replace.get_modified_atoms">
+<span class="sig-name descname"><span class="pre">get_modified_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Atoms</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Atoms</span></span></span><a class="reference internal" href="_modules/gg/modifiers/modifiers.html#Replace.get_modified_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.modifiers.Replace.get_modified_atoms" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Args:</dt><dd><p>atoms (ase.Atoms): The atoms object on which the adsorbate will be added</p>
+</dd>
+<dt>Returns:</dt><dd><p>ase.Atoms if print_movie = True
+list[ase.Atoms] if print_movie = False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="swap-atoms">
+<h2>Swap Atoms<a class="headerlink" href="#swap-atoms" title="Link to this heading"></a></h2>
+<p>Swap two atoms on the surface</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.modifiers</span> <span class="kn">import</span> <span class="n">Swap</span>
+
+<span class="n">swap</span> <span class="o">=</span> <span class="n">Swap</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">swap_sym</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Pt&quot;</span><span class="p">,</span><span class="s2">&quot;Au&quot;</span><span class="p">],</span> <span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR_PtAu&#39;</span><span class="p">)</span> <span class="c1">#The surface that has OHs to be removed</span>
+<span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">swap</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="gg.modifiers.modifiers.Swap">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gg.modifiers.modifiers.</span></span><span class="sig-name descname"><span class="pre">Swap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surface_sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SurfaceSites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swap_sym</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swap_ind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_movie</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unique</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gg/modifiers/modifiers.html#Swap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.modifiers.Swap" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ParentModifier</span></code></p>
+<dl>
+<dt>Args:</dt><dd><p>surface_sites (gg.Sites): Class which figures out surface sites</p>
+<p>swap_sym (list): List of atom symbols that are allowed to swap</p>
+<p>swap_ind (list): List of indices to swap. 
+Default to None.</p>
+<p>print_movie (bool, optional): Return a movie of all sites or one random site.
+Defaults to False.</p>
+<p>unique (bool, optional): Return only unique sites.
+Defaults to True</p>
+<p>weight (float): weight for gcbh.
+Defaults to 1.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="gg.modifiers.modifiers.Swap.get_modified_atoms">
+<span class="sig-name descname"><span class="pre">get_modified_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Atoms</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Atoms</span></span></span><a class="reference internal" href="_modules/gg/modifiers/modifiers.html#Swap.get_modified_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gg.modifiers.modifiers.Swap.get_modified_atoms" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Args:</dt><dd><p>atoms (ase.Atoms): The atoms object on which the adsorbate will be added</p>
+</dd>
+<dt>Returns:</dt><dd><p>ase.Atoms if print_movie = True
+list[ase.Atoms] if print_movie = False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 

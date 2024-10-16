@@ -1,0 +1,430 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gg.modifiers.add &mdash; graph_gcbh 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=7ab3649f" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=959672f5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            graph_gcbh
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GCBH.html">GCBH</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modifiers.html">Modifiers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../support.html">Support</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">graph_gcbh</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gg.modifiers.add</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for gg.modifiers.add</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span>
+<span class="kn">from</span> <span class="nn">ase.io</span> <span class="kn">import</span> <span class="n">read</span> <span class="k">as</span> <span class="n">read_atoms</span>
+<span class="kn">from</span> <span class="nn">ase</span> <span class="kn">import</span> <span class="n">Atoms</span>
+<span class="kn">from</span> <span class="nn">gg.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">custom_copy</span><span class="p">,</span>
+    <span class="n">NoReasonableStructureFound</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">gg.utils_add</span> <span class="kn">import</span> <span class="n">generate_add_mono</span><span class="p">,</span> <span class="n">rotate_mono</span><span class="p">,</span> <span class="n">rotate_bi</span><span class="p">,</span> <span class="n">generate_add_bi</span>
+<span class="kn">from</span> <span class="nn">gg.utils_graph</span> <span class="kn">import</span> <span class="n">get_unique_atoms</span>
+<span class="kn">from</span> <span class="nn">gg.sites</span> <span class="kn">import</span> <span class="n">SurfaceSites</span>
+<span class="kn">from</span> <span class="nn">gg.modifiers.modifiers</span> <span class="kn">import</span> <span class="n">ParentModifier</span>
+
+
+<div class="viewcode-block" id="Add">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.add.Add">[docs]</a>
+<span class="k">class</span> <span class="nc">Add</span><span class="p">(</span><span class="n">ParentModifier</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Modifier that adds an monodentate adsorbate&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">surface_sites</span><span class="p">:</span> <span class="n">SurfaceSites</span><span class="p">,</span>
+        <span class="n">ads</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">surf_coord</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">surf_sym</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">ads_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ads_dist</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.8</span><span class="p">,</span>
+        <span class="n">print_movie</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">unique</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">ads_rotate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            surface_sites (gg.Sites): Class that figures out surface sites</span>
+
+<span class="sd">            ads (str) or (ase.Atoms): Adsorbate to add</span>
+
+<span class="sd">            surf_coord (list[int]): How many bonds the adsorbate will make with the surface</span>
+
+<span class="sd">            surf_sym (list[str]): Surface elements where adsorbate can add</span>
+<span class="sd">            </span>
+<span class="sd">            ads_id (list[float]): Strings denoting chemical symbol of adsorbate atom</span>
+<span class="sd">            Defaults to None</span>
+
+<span class="sd">            ads_dist (str, optional): Distance of adsorbate from surface site, </span>
+<span class="sd">            if ads_id is mentioned, this variable is ignored.</span>
+<span class="sd">            Defaults to 1.8.</span>
+
+<span class="sd">            print_movie (bool, optional): return a movie of all sites or one random site.</span>
+<span class="sd">            Defaults to False.</span>
+
+<span class="sd">            unique (bool, optional): return only unique sites.</span>
+<span class="sd">            Defaults to True.</span>
+<span class="sd">            </span>
+<span class="sd">            weight (float): weight for gcbh.</span>
+<span class="sd">            Defaults to 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ss</span> <span class="o">=</span> <span class="n">surface_sites</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ads</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ads</span> <span class="o">=</span> <span class="n">read_atoms</span><span class="p">(</span><span class="n">ads</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ads</span><span class="p">,</span> <span class="n">Atoms</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ads</span> <span class="o">=</span> <span class="n">custom_copy</span><span class="p">(</span><span class="n">ads</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">surf_sym</span> <span class="o">=</span> <span class="n">surf_sym</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">surf_coord</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surf_coord</span> <span class="o">=</span> <span class="p">[</span><span class="n">surf_coord</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">surf_coord</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surf_coord</span> <span class="o">=</span> <span class="n">surf_coord</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoReasonableStructureFound</span><span class="p">(</span><span class="s2">&quot;Please enter proper value for surf_coord&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ads_id</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span> <span class="o">=</span> <span class="n">ads_id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span> <span class="o">=</span> <span class="n">ads_dist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span> <span class="o">=</span> <span class="n">print_movie</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unique</span> <span class="o">=</span> <span class="n">unique</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ads_rotate</span> <span class="o">=</span> <span class="n">ads_rotate</span>
+
+        <span class="c1">#Check multiple possibilities of adsorbate</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ads_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_adsorbates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ads_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">]</span>
+
+
+    <span class="k">def</span> <span class="nf">get_all_adsorbates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">,</span> <span class="n">chem_symbol_list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (ase.Atoms):</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            list:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ads_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ads_dist_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atoms</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">symbol</span> <span class="ow">in</span> <span class="n">chem_symbol_list</span><span class="p">:</span>
+                <span class="n">ads</span> <span class="o">=</span> <span class="n">rotate_mono</span><span class="p">(</span><span class="n">atoms</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">ind</span><span class="p">)</span>
+                <span class="n">ads_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ads</span><span class="p">)</span>
+                <span class="n">ads_dist_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">symbol</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ads_list</span><span class="p">,</span> <span class="n">ads_dist_list</span>
+
+<div class="viewcode-block" id="Add.get_modified_atoms">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.add.Add.get_modified_atoms">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_modified_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Atoms</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (ase.Atoms): The atoms object on which the adsorbate will be added</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms if print_movie = True</span>
+<span class="sd">            list[ase.Atoms] if print_movie = False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="n">atoms</span>
+        <span class="n">df_ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">get_sites</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">get_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">ind</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">df_ind</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">symbol</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surf_sym</span><span class="p">]</span>
+        <span class="n">movie</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ads</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_list</span><span class="p">):</span>
+            <span class="c1"># Read gg.utils_add to understand the working</span>
+            <span class="n">movie</span> <span class="o">+=</span> <span class="n">generate_add_mono</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span>
+                <span class="n">ads</span><span class="p">,</span>
+                <span class="n">g</span><span class="p">,</span>
+                <span class="n">index</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">surf_coord</span><span class="p">,</span>
+                <span class="n">ad_dist</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ad_dist_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">contact_error</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">contact_error</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">movie</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoReasonableStructureFound</span><span class="p">(</span>
+                <span class="s2">&quot;Movie was empty, most likely due to issues with atoms touching in Add Modifier&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">get_unique_atoms</span><span class="p">(</span>
+                    <span class="n">movie</span><span class="p">,</span>
+                    <span class="n">max_bond</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond</span><span class="p">,</span>
+                    <span class="n">max_bond_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond_ratio</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">movie</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">movie</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AddBi">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.add.AddBi">[docs]</a>
+<span class="k">class</span> <span class="nc">AddBi</span><span class="p">(</span><span class="n">Add</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Modifier that adds an adsorbate at certain specific sites&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">surface_sites</span><span class="p">:</span> <span class="n">SurfaceSites</span><span class="p">,</span>
+        <span class="n">ads</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">surf_coord</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">surf_sym</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">ads_id</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">ads_dist</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">print_movie</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">unique</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">ads_rotate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">add_ads_error</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+
+<span class="sd">            surface_sites (gg.Sites): Class that figures out surface sites.</span>
+
+<span class="sd">            ads (str) or (ase.Atoms): Adsorbate to add.</span>
+
+<span class="sd">            surf_coord (list[int]): How many bonds the adsorbate will make with the surface.</span>
+
+<span class="sd">            surf_sym (list[str]): Surface elements where adsorbate can add.</span>
+
+<span class="sd">            ads_id (list of [int or str]): Strings denoting chemical symbol of adsorbate atom.</span>
+
+<span class="sd">            ads_dist (list of [float or str, optional]): Distance of adsorbate from surface site.</span>
+<span class="sd">            If its string denoting chemical symbol of adsorbate atom,</span>
+<span class="sd">            then distance is set by atomic radii.</span>
+<span class="sd">            Defaults to covalent radii of atoms mentioned in ads_id.</span>
+
+<span class="sd">            print_movie (bool, optional): Return a movie of all sites or one random site.</span>
+<span class="sd">            Defaults to False.</span>
+
+<span class="sd">            unique (bool, optional): Return only unique sites.</span>
+<span class="sd">            Defaults to True.</span>
+<span class="sd">            </span>
+<span class="sd">            ads_rotate (bool,optional): Rotate atoms such that they point in +z direction.</span>
+<span class="sd">            Defaults to True.</span>
+<span class="sd">            </span>
+<span class="sd">            weight (float): weight for gcbh.</span>
+<span class="sd">            Defaults to 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">weight</span><span class="p">,</span>
+            <span class="n">surface_sites</span><span class="p">,</span>
+            <span class="n">ads</span><span class="p">,</span>
+            <span class="n">surf_coord</span><span class="p">,</span>
+            <span class="n">surf_sym</span><span class="p">,</span>
+            <span class="n">ads_dist</span><span class="o">=</span><span class="n">ads_dist</span><span class="p">,</span>
+            <span class="n">print_movie</span> <span class="o">=</span> <span class="n">print_movie</span><span class="p">,</span>
+            <span class="n">unique</span><span class="o">=</span><span class="n">unique</span><span class="p">,</span>
+            <span class="n">ads_rotate</span><span class="o">=</span><span class="n">ads_rotate</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span> <span class="o">=</span> <span class="n">ads_id</span>
+
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
+                <span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads_rotate</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ads</span> <span class="o">=</span> <span class="n">rotate_bi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="o">.</span><span class="n">get_positions</span><span class="p">()[</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="o">.</span><span class="n">get_positions</span><span class="p">()[</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ads</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ads_dist_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ad_dist</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads_dist_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_adsorbates</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ads_add_error</span> <span class="o">=</span> <span class="n">add_ads_error</span>
+
+    <span class="k">def</span> <span class="nf">get_all_adsorbates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">,</span> <span class="n">chem_symbol_list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (ase.Atoms):</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">list_ads</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ads_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ads_dist_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">possible</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">)),</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">possible</span><span class="p">:</span>
+            <span class="n">ind_1</span><span class="p">,</span> <span class="n">ind_2</span> <span class="o">=</span> <span class="n">ind</span>
+            <span class="n">ads_id</span> <span class="o">=</span> <span class="p">[</span><span class="n">ind_1</span><span class="p">,</span> <span class="n">ind_2</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">atoms</span><span class="p">[</span><span class="n">ind_1</span><span class="p">]</span><span class="o">.</span><span class="n">symbol</span> <span class="ow">in</span> <span class="n">chem_symbol_list</span>
+                <span class="ow">and</span> <span class="n">atoms</span><span class="p">[</span><span class="n">ind_2</span><span class="p">]</span><span class="o">.</span><span class="n">symbol</span> <span class="ow">in</span> <span class="n">chem_symbol_list</span>
+            <span class="p">):</span>
+                <span class="n">ads</span> <span class="o">=</span> <span class="n">rotate_bi</span><span class="p">(</span><span class="n">atoms</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">ads_id</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">ads</span><span class="o">.</span><span class="n">get_positions</span><span class="p">()[</span><span class="n">ads_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="o">&gt;</span> <span class="n">ads</span><span class="o">.</span><span class="n">get_positions</span><span class="p">()[</span><span class="n">ads_id</span><span class="p">[</span><span class="mi">1</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">):</span>
+                    <span class="n">ads_id</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ads_id</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">ads_id</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">ads_id</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="p">)</span>
+
+                <span class="n">list_ads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ads_id</span><span class="p">)</span>
+                <span class="n">ads_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ads</span><span class="p">)</span>
+                <span class="n">ads_dist_list</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">atoms</span><span class="p">[</span><span class="n">ads_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span> <span class="n">atoms</span><span class="p">[</span><span class="n">ads_id</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">symbol</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">list_ads</span><span class="p">,</span> <span class="n">ads_list</span><span class="p">,</span> <span class="n">ads_dist_list</span>
+
+<div class="viewcode-block" id="AddBi.get_modified_atoms">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.add.AddBi.get_modified_atoms">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_modified_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Atoms</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (ase.Atoms): The atoms object on which the adsorbate will be added</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms if print_movie = True, </span>
+<span class="sd">            list[ase.Atoms] if print_movie = False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="n">atoms</span>
+        <span class="n">df_ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">get_sites</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">get_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">ind</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">df_ind</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">symbol</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surf_sym</span><span class="p">]</span>
+        <span class="n">movie</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ads_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_id_list</span><span class="p">):</span>
+            <span class="c1"># Read gg.utils_add to understand the working</span>
+            <span class="n">movie</span> <span class="o">+=</span> <span class="n">generate_add_bi</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ads</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">g</span><span class="p">,</span>
+                <span class="n">index</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">surf_coord</span><span class="p">,</span>
+                <span class="n">ad_dist</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_dist_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">ads_index</span><span class="o">=</span><span class="n">ads_id</span><span class="p">,</span>
+                <span class="n">contact_error</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">contact_error</span><span class="p">,</span>
+                <span class="n">ads_add_error</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ads_add_error</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">movie</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoReasonableStructureFound</span><span class="p">(</span>
+                <span class="s2">&quot;Movie was empty, most likely due to issues with atoms touching in Add Modifier&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">get_unique_atoms</span><span class="p">(</span>
+                    <span class="n">movie</span><span class="p">,</span>
+                    <span class="n">max_bond</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond</span><span class="p">,</span>
+                    <span class="n">max_bond_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond_ratio</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">movie</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">movie</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Kaustubh Sawant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

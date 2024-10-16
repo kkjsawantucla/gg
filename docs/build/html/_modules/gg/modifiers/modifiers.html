@@ -1,0 +1,587 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gg.modifiers.modifiers &mdash; graph_gcbh 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=7ab3649f" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=959672f5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            graph_gcbh
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GCBH.html">GCBH</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modifiers.html">Modifiers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../support.html">Support</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">graph_gcbh</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gg.modifiers.modifiers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for gg.modifiers.modifiers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Import Modules for basic functioning&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">product</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">ase.io</span> <span class="kn">import</span> <span class="n">read</span> <span class="k">as</span> <span class="n">read_atoms</span>
+<span class="kn">from</span> <span class="nn">ase</span> <span class="kn">import</span> <span class="n">Atoms</span>
+<span class="kn">from</span> <span class="nn">ase.data</span> <span class="kn">import</span> <span class="n">covalent_radii</span>
+<span class="kn">from</span> <span class="nn">networkx.algorithms</span> <span class="kn">import</span> <span class="n">isomorphism</span>
+<span class="kn">from</span> <span class="nn">gg.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">check_contact</span><span class="p">,</span>
+    <span class="n">replace</span><span class="p">,</span>
+    <span class="n">custom_copy</span><span class="p">,</span>
+    <span class="n">formula_to_graph</span><span class="p">,</span>
+    <span class="n">move_along_normal</span><span class="p">,</span>
+    <span class="n">NoReasonableStructureFound</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">gg.utils_graph</span> <span class="kn">import</span> <span class="n">get_unique_atoms</span>
+<span class="kn">from</span> <span class="nn">gg.sites</span> <span class="kn">import</span> <span class="n">SurfaceSites</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Kaustubh Sawant&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">ParentModifier</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parent bare bones modifier which serves as the basis for other modifiers</span>
+<span class="sd">    Args:</span>
+<span class="sd">        weight (float): Modifier Weight</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">og_weight</span> <span class="o">=</span> <span class="n">weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atoms</span>
+
+    <span class="nd">@atoms</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_atoms</span> <span class="o">=</span> <span class="n">read_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">Atoms</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_atoms</span> <span class="o">=</span> <span class="n">custom_copy</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_modified_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Atoms</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+
+<span class="k">class</span> <span class="nc">ModifierAdder</span><span class="p">(</span><span class="n">ParentModifier</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add modifiers together to create a new modifier&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">modifier_instances</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">max_bond_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span><span class="p">,</span>
+        <span class="n">max_bond</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">print_movie</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">unique</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">modifier_instances</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">modifier_instances</span> <span class="o">=</span> <span class="n">modifier_instances</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;modifier_instances isn&#39;t a list. Please provide a list&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_bond_ratio</span> <span class="o">=</span> <span class="n">max_bond_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_bond</span> <span class="o">=</span> <span class="n">max_bond</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span> <span class="o">=</span> <span class="n">print_movie</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unique</span> <span class="o">=</span> <span class="n">unique</span>
+
+    <span class="k">def</span> <span class="nf">get_modified_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Atoms</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="n">atoms</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span><span class="p">:</span>
+            <span class="n">movie</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modifier_instances</span><span class="p">:</span>
+                <span class="n">new_movie</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="n">movie</span><span class="p">:</span>
+                    <span class="n">new_atoms</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_atoms</span><span class="p">,</span> <span class="n">Atoms</span><span class="p">):</span>
+                        <span class="n">new_movie</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_atoms</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_atoms</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="n">new_movie</span> <span class="o">=</span> <span class="n">new_movie</span> <span class="o">+</span> <span class="n">new_atoms</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                <span class="n">movie</span> <span class="o">=</span> <span class="n">new_movie</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">movie</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NoReasonableStructureFound</span><span class="p">(</span><span class="s2">&quot;Movie was empty&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">get_unique_atoms</span><span class="p">(</span>
+                    <span class="n">movie</span><span class="p">,</span>
+                    <span class="n">max_bond</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bond</span><span class="p">,</span>
+                    <span class="n">max_bond_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bond_ratio</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">movie</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modifier_instances</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">NoReasonableStructureFound</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Switch Print Movie for instance </span><span class="si">{</span><span class="n">instance</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span>
+
+
+<span class="k">class</span> <span class="nc">Rattle</span><span class="p">(</span><span class="n">ParentModifier</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Modifier that rattles the atoms with some stdev&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">stdev</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">contact_error</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdev</span> <span class="o">=</span> <span class="n">stdev</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">contact_error</span> <span class="o">=</span> <span class="n">contact_error</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_modified_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Atoms</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="n">atoms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">rattle</span><span class="p">(</span><span class="n">stdev</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stdev</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">check_contact</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">contact_error</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">NoReasonableStructureFound</span><span class="p">(</span><span class="s2">&quot;Atoms Touching&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span>
+
+
+<div class="viewcode-block" id="Remove">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.modifiers.Remove">[docs]</a>
+<span class="k">class</span> <span class="nc">Remove</span><span class="p">(</span>
+    <span class="n">ParentModifier</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Modifier that randomly removes an atom or molecule&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">surface_sites</span><span class="p">:</span> <span class="n">SurfaceSites</span><span class="p">,</span>
+        <span class="n">to_del</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Atoms</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">max_bond_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span><span class="p">,</span>
+        <span class="n">max_bond</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">print_movie</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">unique</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            surface_sites (gg.Sites): Class that figures out surface sites</span>
+
+<span class="sd">            to_del (str) or (ase.Atoms): Atoms to delete. If a string is provided,</span>
+<span class="sd">            it tries to make a molecule out of it.</span>
+
+<span class="sd">            max_bond_ratio (float, optional): Max bond ratio to make graph of atoms to delete.</span>
+<span class="sd">            Defaults to 1.2.</span>
+
+<span class="sd">            max_bond (int, optional): Max bond ratio to make graph of atoms to delete.</span>
+<span class="sd">            Defaults to 0.</span>
+
+<span class="sd">            print_movie (bool, optional): Return a movie of all sites or one random site.</span>
+<span class="sd">            Defaults to False.</span>
+
+<span class="sd">            unique (bool, optional): Return only unique sites.</span>
+
+<span class="sd">            weight (float): weight for gcbh.</span>
+<span class="sd">            Defaults to 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_del</span> <span class="o">=</span> <span class="n">to_del</span>
+
+        <span class="c1"># Make graph for the adsorbate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ads_g</span> <span class="o">=</span> <span class="n">formula_to_graph</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_del</span><span class="p">,</span> <span class="n">max_bond_ratio</span><span class="o">=</span><span class="n">max_bond_ratio</span><span class="p">,</span> <span class="n">max_bond</span><span class="o">=</span><span class="n">max_bond</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ss</span> <span class="o">=</span> <span class="n">surface_sites</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span> <span class="o">=</span> <span class="n">print_movie</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unique</span> <span class="o">=</span> <span class="n">unique</span>
+
+    <span class="k">def</span> <span class="nf">node_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">n2</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;node matching criteria</span>
+<span class="sd">        Args:</span>
+<span class="sd">            n1 (str):</span>
+<span class="sd">            n2 (str):</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Boolean:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">n1</span><span class="p">[</span><span class="s2">&quot;symbol&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">n2</span><span class="p">[</span><span class="s2">&quot;symbol&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_ind_to_remove_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="n">atoms</span>
+        <span class="n">df_ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">get_sites</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">atoms_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">get_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+
+        <span class="c1"># Check if the adsorbate graph exists in atoms graph</span>
+        <span class="n">graph_match</span> <span class="o">=</span> <span class="n">isomorphism</span><span class="o">.</span><span class="n">GraphMatcher</span><span class="p">(</span>
+            <span class="n">atoms_g</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ads_g</span><span class="p">,</span> <span class="n">node_match</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">node_match</span>
+        <span class="p">)</span>
+        <span class="n">all_isomorphisms</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">graph_match</span><span class="o">.</span><span class="n">subgraph_isomorphisms_iter</span><span class="p">())</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">all_isomorphisms</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoReasonableStructureFound</span><span class="p">(</span>
+                <span class="s2">&quot;No adsorbate in the atoms to remove in Remove Modifier&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Figure out the indices of the atoms to remove</span>
+        <span class="n">ind_to_remove_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">mapping</span> <span class="ow">in</span> <span class="n">all_isomorphisms</span><span class="p">:</span>
+            <span class="n">matched_nodes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">ind_to_remove</span> <span class="o">=</span> <span class="p">[</span><span class="n">atoms_g</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;index&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">matched_nodes</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">element</span> <span class="ow">in</span> <span class="n">df_ind</span> <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">ind_to_remove</span><span class="p">):</span>
+                <span class="n">ind_to_remove_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ind_to_remove</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>
+        <span class="c1"># Check its not empty</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ind_to_remove_list</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoReasonableStructureFound</span><span class="p">(</span>
+                <span class="s2">&quot;Index of the atoms to be removed isnt in Site Class&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">ind_to_remove_list</span>
+
+<div class="viewcode-block" id="Remove.get_modified_atoms">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.modifiers.Remove.get_modified_atoms">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_modified_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Atoms</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (ase.Atoms): The atoms object on which the adsorbate will be added</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms if print_movie = True</span>
+<span class="sd">            list[ase.Atoms] if print_movie = False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ind_to_remove_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ind_to_remove_list</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span><span class="p">:</span>
+            <span class="n">movie</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ind_to_remove</span> <span class="ow">in</span> <span class="n">ind_to_remove_list</span><span class="p">:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">custom_copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+                <span class="k">del</span> <span class="n">a</span><span class="p">[</span><span class="n">ind_to_remove</span><span class="p">]</span>
+                <span class="n">movie</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">get_unique_atoms</span><span class="p">(</span>
+                    <span class="n">movie</span><span class="p">,</span>
+                    <span class="n">max_bond</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond</span><span class="p">,</span>
+                    <span class="n">max_bond_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond_ratio</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">movie</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">random_remove</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ind_to_remove_list</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">random_remove</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Swap">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.modifiers.Swap">[docs]</a>
+<span class="k">class</span> <span class="nc">Swap</span><span class="p">(</span>
+    <span class="n">ParentModifier</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Modifier that swaps two atoms&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">surface_sites</span><span class="p">:</span> <span class="n">SurfaceSites</span><span class="p">,</span>
+        <span class="n">swap_sym</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">swap_ind</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">print_movie</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">unique</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            surface_sites (gg.Sites): Class which figures out surface sites</span>
+<span class="sd">            </span>
+<span class="sd">            swap_sym (list): List of atom symbols that are allowed to swap</span>
+<span class="sd">            </span>
+<span class="sd">            swap_ind (list): List of indices to swap. </span>
+<span class="sd">            Default to None.</span>
+<span class="sd">            </span>
+<span class="sd">            print_movie (bool, optional): Return a movie of all sites or one random site.</span>
+<span class="sd">            Defaults to False.</span>
+<span class="sd">            </span>
+<span class="sd">            unique (bool, optional): Return only unique sites.</span>
+<span class="sd">            Defaults to True</span>
+<span class="sd">            </span>
+<span class="sd">            weight (float): weight for gcbh.</span>
+<span class="sd">            Defaults to 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">swap_sym</span> <span class="o">=</span> <span class="n">swap_sym</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">swap_ind</span> <span class="o">=</span> <span class="n">swap_ind</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ss</span> <span class="o">=</span> <span class="n">surface_sites</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span> <span class="o">=</span> <span class="n">print_movie</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unique</span> <span class="o">=</span> <span class="n">unique</span>
+
+<div class="viewcode-block" id="Swap.get_modified_atoms">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.modifiers.Swap.get_modified_atoms">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_modified_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Atoms</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (ase.Atoms): The atoms object on which the adsorbate will be added</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms if print_movie = True</span>
+<span class="sd">            list[ase.Atoms] if print_movie = False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="n">atoms</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">swap_ind</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swap_ind</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">ind_1</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">swap_ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                <span class="n">ind_2</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">swap_ind</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                <span class="n">random_elem</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">ind_1</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">ind_2</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">symbol</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Multiple indices given to Swap Modifier&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">df_ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">get_sites</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+
+            <span class="c1"># Randomly select two elements to swap</span>
+            <span class="n">random_elem</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swap_sym</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="n">ind_1</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">ind_2</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">index</span> <span class="ow">in</span> <span class="n">df_ind</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">random_elem</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                        <span class="n">ind_1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">atom</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">random_elem</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                        <span class="n">ind_2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">continue</span>
+        <span class="n">movie</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># select comination of indices for the two elements</span>
+        <span class="n">combinations</span> <span class="o">=</span> <span class="n">product</span><span class="p">(</span><span class="n">ind_1</span><span class="p">,</span> <span class="n">ind_2</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">comb</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">:</span>
+            <span class="n">atoms</span> <span class="o">=</span> <span class="n">custom_copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+            <span class="n">swap_1</span><span class="p">,</span> <span class="n">swap_2</span> <span class="o">=</span> <span class="n">comb</span>
+            <span class="n">symbols</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_chemical_symbols</span><span class="p">()</span>
+            <span class="n">symbols</span><span class="p">[</span><span class="n">swap_1</span><span class="p">]</span> <span class="o">=</span> <span class="n">random_elem</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">symbols</span><span class="p">[</span><span class="n">swap_2</span><span class="p">]</span> <span class="o">=</span> <span class="n">random_elem</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">atoms</span><span class="o">.</span><span class="n">set_chemical_symbols</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">covalent_radii</span><span class="p">[</span><span class="n">atoms</span><span class="p">[</span><span class="n">swap_1</span><span class="p">]</span><span class="o">.</span><span class="n">number</span><span class="p">]</span>
+                <span class="o">&gt;=</span> <span class="n">covalent_radii</span><span class="p">[</span><span class="n">atoms</span><span class="p">[</span><span class="n">swap_2</span><span class="p">]</span><span class="o">.</span><span class="n">number</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">swap_1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">swap_2</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">get_graph</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+
+            <span class="c1"># Move atoms if there is significant diff in covalent radii</span>
+            <span class="n">atoms</span> <span class="o">=</span> <span class="n">move_along_normal</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">check_contact</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">contact_error</span><span class="p">):</span>
+                <span class="k">del</span> <span class="n">atoms</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">movie</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+                <span class="k">del</span> <span class="n">atoms</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">movie</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoReasonableStructureFound</span><span class="p">(</span>
+                <span class="s2">&quot;Movie was empty, most likely due to issues with atoms touching in Add Modifier&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">get_unique_atoms</span><span class="p">(</span>
+                    <span class="n">movie</span><span class="p">,</span>
+                    <span class="n">max_bond</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond</span><span class="p">,</span>
+                    <span class="n">max_bond_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond_ratio</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">movie</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">movie</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Replace">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.modifiers.Replace">[docs]</a>
+<span class="k">class</span> <span class="nc">Replace</span><span class="p">(</span>
+    <span class="n">Remove</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Modifier that replaces one atoms object with another&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">surface_sites</span><span class="p">:</span> <span class="n">SurfaceSites</span><span class="p">,</span>
+        <span class="n">to_del</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Atoms</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">with_replace</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Atoms</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">max_bond_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span><span class="p">,</span>
+        <span class="n">max_bond</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">print_movie</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">unique</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            surface_sites (gg.Sites): Class that figures out surface sites</span>
+
+<span class="sd">            to_del (str) or (ase.Atoms): Atoms to delete. If a string is provided,</span>
+<span class="sd">            it tries to make a molecule out of it.</span>
+
+<span class="sd">            with_replace (str) or (ase.Atoms): Atoms to replace with. If a string is provided,</span>
+<span class="sd">            it tries to make a molecule out of it.</span>
+
+<span class="sd">            max_bond_ratio (float, optional): Max bond ratio to make graph of atoms to delete.</span>
+<span class="sd">            Defaults to 1.2.</span>
+
+<span class="sd">            max_bond (int, optional): Max bond ratio to make graph of atoms to delete.</span>
+<span class="sd">            Defaults to 0.</span>
+
+<span class="sd">            print_movie (bool, optional): Return a movie of all sites or one random site.</span>
+<span class="sd">            Defaults to False.</span>
+
+<span class="sd">            unique (bool, optional): Return only unique sites.</span>
+
+<span class="sd">            weight (float): weight for gcbh.</span>
+<span class="sd">            Defaults to 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">surface_sites</span><span class="o">=</span><span class="n">surface_sites</span><span class="p">,</span>
+            <span class="n">to_del</span><span class="o">=</span><span class="n">to_del</span><span class="p">,</span>
+            <span class="n">max_bond_ratio</span><span class="o">=</span><span class="n">max_bond_ratio</span><span class="p">,</span>
+            <span class="n">max_bond</span><span class="o">=</span><span class="n">max_bond</span><span class="p">,</span>
+            <span class="n">print_movie</span><span class="o">=</span><span class="n">print_movie</span><span class="p">,</span>
+            <span class="n">unique</span><span class="o">=</span><span class="n">unique</span><span class="p">,</span>
+            <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_rep</span> <span class="o">=</span> <span class="n">with_replace</span>
+
+<div class="viewcode-block" id="Replace.get_modified_atoms">
+<a class="viewcode-back" href="../../../modifiers.html#gg.modifiers.modifiers.Replace.get_modified_atoms">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_modified_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Atoms</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            atoms (ase.Atoms): The atoms object on which the adsorbate will be added</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ase.Atoms if print_movie = True</span>
+<span class="sd">            list[ase.Atoms] if print_movie = False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ind_to_remove_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ind_to_remove_list</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">print_movie</span><span class="p">:</span>
+            <span class="n">movie</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ind_to_remove</span> <span class="ow">in</span> <span class="n">ind_to_remove_list</span><span class="p">:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">custom_copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+                <span class="n">positions</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">get_positions</span><span class="p">()[</span><span class="n">ind_to_remove</span><span class="p">]</span>
+                <span class="n">offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">del</span> <span class="n">a</span><span class="p">[</span><span class="n">ind_to_remove</span><span class="p">]</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_rep</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+                <span class="n">movie</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">get_unique_atoms</span><span class="p">(</span>
+                    <span class="n">movie</span><span class="p">,</span>
+                    <span class="n">max_bond</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond</span><span class="p">,</span>
+                    <span class="n">max_bond_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">max_bond_ratio</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">movie</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">random_remove</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ind_to_remove_list</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">get_positions</span><span class="p">()[</span><span class="n">random_remove</span><span class="p">]</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">random_remove</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_rep</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Kaustubh Sawant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

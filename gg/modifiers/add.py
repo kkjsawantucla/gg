@@ -1,5 +1,3 @@
-"""Import Modules for basic functioning"""
-
 import random
 from typing import Union
 from itertools import combinations
@@ -16,11 +14,10 @@ from gg.modifiers.modifiers import ParentModifier
 
 
 class Add(ParentModifier):
-    """Modifier that adds an adsorbate at certain specific sites"""
+    """Modifier that adds an monodentate adsorbate"""
 
     def __init__(
         self,
-        weight: float,
         surface_sites: SurfaceSites,
         ads: str,
         surf_coord: int,
@@ -30,29 +27,33 @@ class Add(ParentModifier):
         print_movie: bool = False,
         unique: bool = True,
         ads_rotate: bool = True,
+        weight: float = 1,
     ):
         """
         Args:
-            weight (float): _description_
-
-            surface_sites (gg.Sites): a class that figures out surface sites
+            surface_sites (gg.Sites): Class that figures out surface sites
 
             ads (str) or (ase.Atoms): Adsorbate to add
 
-            surf_coord (int): How many bonds the adsorbate will make the surface
+            surf_coord (list[int]): How many bonds the adsorbate will make with the surface
 
-            surf_sym (list): Surface elements where adsorbate can add
+            surf_sym (list[str]): Surface elements where adsorbate can add
             
-            ads_id (list[float]): strings denoting chemical symbol of adsorbate atom
+            ads_id (list[float]): Strings denoting chemical symbol of adsorbate atom
+            Defaults to None
 
             ads_dist (str, optional): Distance of adsorbate from surface site, 
-            if ads_id is mentioned, this variable is ignored
+            if ads_id is mentioned, this variable is ignored.
             Defaults to 1.8.
 
             print_movie (bool, optional): return a movie of all sites or one random site.
             Defaults to False.
 
-            unique (bool, optional): return only unique sites
+            unique (bool, optional): return only unique sites.
+            Defaults to True.
+            
+            weight (float): weight for gcbh.
+            Defaults to 1.
         """
         super().__init__(weight)
         self.ss = surface_sites
@@ -87,7 +88,7 @@ class Add(ParentModifier):
     def get_all_adsorbates(self, atoms: Atoms, chem_symbol_list) -> list:
         """
         Args:
-            atoms (Atoms):
+            atoms (ase.Atoms):
         Returns:
             list:
         """
@@ -103,10 +104,12 @@ class Add(ParentModifier):
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
+        Args:
+            atoms (ase.Atoms): The atoms object on which the adsorbate will be added
         Returns:
-            ase.Atoms:
+            ase.Atoms if print_movie = True
+            list[ase.Atoms] if print_movie = False
         """
-
         self.atoms = atoms
         df_ind = self.ss.get_sites(self.atoms)
         g = self.ss.get_graph(self.atoms)
@@ -145,7 +148,6 @@ class AddBi(Add):
 
     def __init__(
         self,
-        weight: float,
         surface_sites: SurfaceSites,
         ads: str,
         surf_coord: int,
@@ -156,30 +158,37 @@ class AddBi(Add):
         unique: bool = True,
         ads_rotate: bool = True,
         add_ads_error: float = 0.2,
+        weight: float = 1,
     ):
         """
         Args:
-            weight (float): _description_
 
-            surface_sites (gg.Sites): a class that figures out surface sites
+            surface_sites (gg.Sites): Class that figures out surface sites.
 
-            ads (str) or (ase.Atoms): Adsorbate to add
+            ads (str) or (ase.Atoms): Adsorbate to add.
 
-            surf_coord (int): How many bonds the adsorbate will make the surface
+            surf_coord (list[int]): How many bonds the adsorbate will make with the surface.
 
-            surf_sym (list): Surface elements where adsorbate can add
+            surf_sym (list[str]): Surface elements where adsorbate can add.
 
-            ads_id (list of [int or str, optional]):
+            ads_id (list of [int or str]): Strings denoting chemical symbol of adsorbate atom.
 
-            ads_dist (list of [float or str, optional]): Distance of adsorbate from surface site
+            ads_dist (list of [float or str, optional]): Distance of adsorbate from surface site.
             If its string denoting chemical symbol of adsorbate atom,
-            then distance is set by atomic radii
-            Defaults to 1.8.
+            then distance is set by atomic radii.
+            Defaults to covalent radii of atoms mentioned in ads_id.
 
-            print_movie (bool, optional): return a movie of all sites or one random site.
+            print_movie (bool, optional): Return a movie of all sites or one random site.
             Defaults to False.
 
-            unique (bool, optional): return only unique sites
+            unique (bool, optional): Return only unique sites.
+            Defaults to True.
+            
+            ads_rotate (bool,optional): Rotate atoms such that they point in +z direction.
+            Defaults to True.
+            
+            weight (float): weight for gcbh.
+            Defaults to 1.
         """
         super().__init__(
             weight,
@@ -233,11 +242,8 @@ class AddBi(Add):
     def get_all_adsorbates(self, atoms: Atoms, chem_symbol_list) -> list:
         """
         Args:
-            atoms (Atoms):
-        Returns:
-            list:
+            atoms (ase.Atoms):
         """
-
         list_ads = []
         ads_list = []
         ads_dist_list = []
@@ -267,8 +273,11 @@ class AddBi(Add):
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
+        Args:
+            atoms (ase.Atoms): The atoms object on which the adsorbate will be added
         Returns:
-            ase.Atoms:
+            ase.Atoms if print_movie = True, 
+            list[ase.Atoms] if print_movie = False
         """
         self.atoms = atoms
         df_ind = self.ss.get_sites(self.atoms)

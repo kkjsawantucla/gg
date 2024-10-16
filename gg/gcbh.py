@@ -48,17 +48,22 @@ class Gcbh(Dynamics):
         restart: bool = False,
         optimizer=BFGS,
     ):
-        """_summary_
+        """
 
         Args:
             atoms (ase.Atoms): The Atoms object to operate on.
+            
             logfile (str, optional): If *logfile* is a string, a file will be opened.
             Defaults to "gcbh.log".
+            
             trajectory (str, optional): Pickle file used to store the trajectory of atomic movement.
             Defaults to "gcbh.traj".
+            
             config_file (str[.yaml file], optional): Input file to gcbh. Defaults to None.
             restart (bool, optional):
-            optimizer: ase optimizer for geometric relaxation
+            
+            optimizer: ase optimizer for geometric relaxation.
+            Defaults to ase.optimize.BFGS
         """
         if not isinstance(atoms, Atoms):
             raise RuntimeError("The input atoms is not as Atoms object")
@@ -346,7 +351,14 @@ class Gcbh(Dynamics):
         )
 
     def run(self, steps: int = 4000, maximum_trial: int = 30):
-        """Hop the basins for defined number of steps."""
+        """
+        Args:
+            steps (int): Number of steps to run
+            Defaults to 4000
+            
+            maximum_trial (int): Number of failed modification steps before terminating.
+            Defaults to 30
+        """
         self.logtxt("Intitial Weights:")
         for key, value in self.structure_modifiers.items():
             self.logtxt(f"{key} weight = {value.weight:.2f}")

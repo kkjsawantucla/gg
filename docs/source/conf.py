@@ -17,6 +17,7 @@ extensions = [
 ]
 
 todo_include_todos = True
+autoclass_content = 'init'
 
 html_context = {
     "display_github": True,  # Integrate GitHub

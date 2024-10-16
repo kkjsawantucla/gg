@@ -144,28 +144,34 @@ class Remove(
 
     def __init__(
         self,
-        weight: float,
         surface_sites: SurfaceSites,
-        to_del: str,
+        to_del: Union[Atoms, str],
         max_bond_ratio: float = 1.2,
         max_bond: float = 0,
         print_movie: bool = False,
         unique: bool = False,
+        weight: float = 1,
     ):
         """
         Args:
-            weight (str):
+            surface_sites (gg.Sites): Class that figures out surface sites
 
-            surface_sites (gg.Sites): a class that figures out surface sites
-
-            to_del (str) or (ase.Atoms): atoms to delete. If a string is provided,
+            to_del (str) or (ase.Atoms): Atoms to delete. If a string is provided,
             it tries to make a molecule out of it.
 
-            max_bond_ratio (float, optional): Defaults to 1.2.
-            max_bond (int, optional):  Defaults to 0.
-            print_movie (bool, optional): return a movie of all sites or one random site.
+            max_bond_ratio (float, optional): Max bond ratio to make graph of atoms to delete.
+            Defaults to 1.2.
+
+            max_bond (int, optional): Max bond ratio to make graph of atoms to delete.
+            Defaults to 0.
+
+            print_movie (bool, optional): Return a movie of all sites or one random site.
             Defaults to False.
-            unique (bool, optional): return only unique sites
+
+            unique (bool, optional): Return only unique sites.
+
+            weight (float): weight for gcbh.
+            Defaults to 1.
         """
         super().__init__(weight)
 
@@ -226,8 +232,11 @@ class Remove(
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
+        Args:
+            atoms (ase.Atoms): The atoms object on which the adsorbate will be added
         Returns:
-            ase.Atoms:
+            ase.Atoms if print_movie = True
+            list[ase.Atoms] if print_movie = False
         """
         ind_to_remove_list = self.get_ind_to_remove_list(atoms)
 
@@ -258,22 +267,30 @@ class Swap(
 
     def __init__(
         self,
-        weight: float,
         surface_sites: SurfaceSites,
         swap_sym: list,
         swap_ind: list = None,
         print_movie: bool = False,
         unique: bool = True,
+        weight: float = 1,
     ):
         """
         Args:
-            weight (float):
-            surface_sites (gg.Sites): A class which figures out surface sites
+            surface_sites (gg.Sites): Class which figures out surface sites
+            
             swap_sym (list): List of atom symbols that are allowed to swap
-            swap_ind (list): List of indices to swap. Default to None
-            print_movie (bool, optional): return a movie of all sites or one random site.
+            
+            swap_ind (list): List of indices to swap. 
+            Default to None.
+            
+            print_movie (bool, optional): Return a movie of all sites or one random site.
             Defaults to False.
-            unique (bool, optional): return only unique sites
+            
+            unique (bool, optional): Return only unique sites.
+            Defaults to True
+            
+            weight (float): weight for gcbh.
+            Defaults to 1.
         """
         super().__init__(weight)
         self.swap_sym = swap_sym
@@ -284,8 +301,11 @@ class Swap(
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
+        Args:
+            atoms (ase.Atoms): The atoms object on which the adsorbate will be added
         Returns:
-            ase.Atoms:
+            ase.Atoms if print_movie = True
+            list[ase.Atoms] if print_movie = False
         """
         self.atoms = atoms
 
@@ -365,7 +385,6 @@ class Replace(
 
     def __init__(
         self,
-        weight: float,
         surface_sites: SurfaceSites,
         to_del: Union[Atoms, str],
         with_replace: Union[Atoms, str],
@@ -373,41 +392,51 @@ class Replace(
         max_bond: float = 0,
         print_movie: bool = False,
         unique: bool = True,
+        weight: float = 1,
     ):
         """
         Args:
-            weight (float):
-            surface_sites (gg.Sites): A class which figures out surface sites
+            surface_sites (gg.Sites): Class that figures out surface sites
 
-            to_del (str) or (ase.Atoms): atoms to delete. If a string is provided,
+            to_del (str) or (ase.Atoms): Atoms to delete. If a string is provided,
             it tries to make a molecule out of it.
 
-            with_replace (str) or (ase.Atoms): atoms to replace with. If a string is provided,
+            with_replace (str) or (ase.Atoms): Atoms to replace with. If a string is provided,
             it tries to make a molecule out of it.
 
-            max_bond_ratio (float, optional): Defaults to 1.2.
+            max_bond_ratio (float, optional): Max bond ratio to make graph of atoms to delete.
+            Defaults to 1.2.
 
-            max_bond (int, optional):  Defaults to 0.
-            print_movie (bool, optional): return a movie of all sites or one random site.
+            max_bond (int, optional): Max bond ratio to make graph of atoms to delete.
+            Defaults to 0.
+
+            print_movie (bool, optional): Return a movie of all sites or one random site.
             Defaults to False.
-            unique (bool, optional): return only unique sites
+
+            unique (bool, optional): Return only unique sites.
+
+            weight (float): weight for gcbh.
+            Defaults to 1.
         """
         super().__init__(
-            weight,
-            surface_sites,
-            to_del,
+            surface_sites=surface_sites,
+            to_del=to_del,
             max_bond_ratio=max_bond_ratio,
             max_bond=max_bond,
             print_movie=print_movie,
             unique=unique,
+            weight=weight,
         )
 
         self.with_rep = with_replace
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
+        Args:
+            atoms (ase.Atoms): The atoms object on which the adsorbate will be added
         Returns:
-            ase.Atoms:
+            ase.Atoms if print_movie = True
+            list[ase.Atoms] if print_movie = False
         """
         ind_to_remove_list = self.get_ind_to_remove_list(atoms)
 
