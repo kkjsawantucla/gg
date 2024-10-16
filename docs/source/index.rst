@@ -10,5 +10,6 @@ graph_gcbh documentation
    :maxdepth: 2
 
    install
-   usage
+   GCBH
+   modifiers
    support
