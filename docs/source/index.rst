@@ -9,7 +9,7 @@ graph_gcbh documentation
 .. toctree::
    :maxdepth: 2
 
-   install
+   installation
    GCBH
    sites
    modifiers
