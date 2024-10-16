@@ -1,6 +1,5 @@
-=====================
-Installation Guide
-=====================
+Install
+=======
 
 This guide will walk you through the installation process for our software.
 
