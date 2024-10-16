@@ -36,7 +36,7 @@ Follow these steps to install the software:
       cd gg/
 
 
-4. Install:
+3. Install:
 
    .. code-block:: bash
 
