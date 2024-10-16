@@ -89,17 +89,13 @@ class FlexibleSites(Sites):
         max_bond: Optional[float] = 0,
         contact_error: Optional[float] = 0.2,
     ):
-        """_summary_
-
+        """
         Args:
             constraints (bool, optional): If true, only atoms which arent constrained considered.
             Defaults to False.
 
             index (list, optional): If list if indices is give, it will be used as it is.
             Defaults to None.
-
-        Raises:
-            RuntimeError: _description_
         """
         super().__init__(max_bond_ratio, max_bond, contact_error)
 
@@ -107,9 +103,16 @@ class FlexibleSites(Sites):
             self.index = index
             self.constraints = constraints
         else:
-            raise RuntimeError("Specify either index or constraits")
+            raise RuntimeError("Specify either index or constraints")
 
     def get_sites(self, atoms: Atoms) -> list:
+        """
+        Args:
+            atoms (ase.Atoms): Atoms object to determine sites.
+
+        Returns:
+            list: list of atoms index considered for modifications.
+        """
         if self.index:
             index = self.index
 
@@ -139,11 +142,19 @@ class SurfaceSites(Sites):
         contact_error: Optional[float] = 0.2,
         com: Optional[bool] = True,
     ):
-        """_summary_
-
+        """
         Args:
             max_coord (dict): Dictionary of the maximum coordination of each element used.
             Only atoms with coordination less than this value will be considered.
+            
+            max_bond_ratio (float): Tolerance in the sum of covallent radii between two atoms to be considered a bond.
+            Defaults to 1.2
+            
+            max_bond (float): Maximum distance of a bond allowed, ignored if equal to zero.
+            Defaults to 0
+            
+            Contact Error (float): To ensure atoms arent too close to each other, the fraction of tolerance allowed.
+            Defaults to 0.2
 
             com (Optional[bool], optional): If true atoms below the center of mass are ignored
             Defaults to True.
@@ -158,12 +169,16 @@ class SurfaceSites(Sites):
     ) -> list:
         """
         Args:
-            atoms (ase.Atoms):
-            self_interaction (bool, optional): Defaults to False.
-            both ways (bool, optional): Defaults to True.
+            atoms (ase.Atoms): Atoms object to determine sites.
+            
+            self_interaction (bool): Input of ase.neighborlist.
+            Defaults to True.
+            
+            bothways (bool): Input of ase.neighborlist.
+            Defaults to False.
 
         Returns:
-            _type_: _description_
+            list: list of atoms index considered for modifications.
         """
         for sym in atoms.symbols:
             if sym not in list(self.max_coord.keys()):

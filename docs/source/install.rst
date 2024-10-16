@@ -8,10 +8,10 @@ Prerequisites
 -------------
 Make sure you have the following prerequisites installed on your system:
 
-- Python (>=3.6)
-- NumPy
+- python (>=3.6)
+- numPy
 - ase
-- NetworkX
+- networkx
 - pandas
 - yaml
 

@@ -11,5 +11,6 @@ graph_gcbh documentation
 
    install
    GCBH
+   sites
    modifiers
    support

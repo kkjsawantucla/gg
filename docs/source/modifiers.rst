@@ -13,7 +13,7 @@ The modifier can add a monodentate adsorbate, or moiety at specific sites on the
 
   from gg.modifiers import Add
   from gg.sites import FlexibleSites
-  
+
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
   adsorbate_OH = read("OH.POSCAR") #adsorbate to be added
   add_OH = Add(FS, ads=adsorbate_OH, surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"],print_movie=True)
@@ -22,9 +22,9 @@ The modifier can add a monodentate adsorbate, or moiety at specific sites on the
   modified_atoms = add_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 
 .. autoclass:: gg.modifiers.add.Add
-   :members: get_modified_atoms
-   :undoc-members:
-   :show-inheritance:
+  :members: get_modified_atoms
+  :undoc-members:
+  :show-inheritance:
 
 Add Bidentate
 ---------------

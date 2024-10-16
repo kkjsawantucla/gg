@@ -13,13 +13,13 @@ The Gcbh calculator is an ase Dynamics Child on unhealthy steriods. It runs the 
    from gg.gcbh import Gcbh
    from ase.io import read
    from ase.calculators.emt import EMT
-   
+
    atoms = read('POSCAR')
    atoms.calc = EMT()
    G = Gcbh(atoms,config_file='input.yaml')
 
 
 .. autoclass:: gg.gcbh.Gcbh
-  :members: run
-  :undoc-members:
-  :show-inheritance:
+   :members: run
+   :undoc-members:
+   :show-inheritance:
