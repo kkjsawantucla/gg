@@ -5,7 +5,7 @@ Install
    :local:
 
 Prerequisites
-=============
+-------------
 Make sure you have the following prerequisites installed on your system:
 
 - Python (>=3.6)
@@ -17,7 +17,7 @@ Make sure you have the following prerequisites installed on your system:
 
 
 Installing the Software
-=======================
+-----------------------
 Follow these steps to install the software:
 
 1. Clone the repository:
@@ -41,7 +41,7 @@ Follow these steps to install the software:
 
 
 Updating the Software
-=====================
+---------------------
 The code is currently under active development.
 To update the software to the latest version, use the following commands:
 
