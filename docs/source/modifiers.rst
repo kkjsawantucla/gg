@@ -18,6 +18,7 @@ The modifier can add an adsorbate, or moiety at specific sites on the parent ato
 
 .. automodule:: `gg.modifiers.add.Add`
   :members:
+  :undoc-members:
 
 Add Bidentate
 ---------------
