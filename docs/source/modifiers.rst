@@ -1,0 +1,29 @@
+Modifiers
+=========
+
+The modifiers form the building block of the code. They determine how the atoms are modified during each basin hopping step. 
+The code provides basic modifiers as building blocks for more complex modifiers.
+
+Add Monodentate
+---------------
+
+The modifier can add an adsorbate, or moiety at specific sites on the parent atoms object.
+
+.. code-block:: python
+
+  from gg.modifiers import Add
+  
+  adsorbate_OH = read("OH.POSCAR") #adsorbate to be added
+  add_OH = Add(weight=1, ss, ads=adsorbate_OH, surf_coord=[1], ads_id=["O"], surf_sym=["Pt"])
+
+:func:`gg.modifiers.add.Add`
+
+Add Bidentate
+---------------
+
+.. code-block:: python
+
+  from gg.modifiers import AddBi
+  
+  adsorbate_formate = read("OCHO.POSCAR") #adsorbate to be added (formate)
+  add_formate = AddBi(weight=1, ss, ads=adsorbate_OH, surf_coord=[1], ads_id=["O"], surf_sym=["Pt"])
