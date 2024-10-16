@@ -1,8 +1,6 @@
 Install
 =======
 
-This guide will walk you through the installation process for our software.
-
 .. contents::
    :local:
 
@@ -44,6 +42,7 @@ Follow these steps to install the software:
 
 Updating the Software
 =====================
+The code is currently under active development.
 To update the software to the latest version, use the following commands:
 
 .. code-block:: bash
