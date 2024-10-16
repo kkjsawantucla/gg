@@ -1,5 +1,8 @@
 Installation
+============
 
-Or, if you have pip installed:
+Clone Directory and install using pip
 
-pip install crawler
+git clone https://github.com/kkjsawantucla/gg.git
+cd gg/
+pip install .
