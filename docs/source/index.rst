@@ -9,13 +9,6 @@ graph_gcbh documentation
 .. toctree::
    :maxdepth: 2
 
-   install <Installation>
-   usage <Usage>
-   support <Support>
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   install
+   usage
+   support
