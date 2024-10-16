@@ -5,7 +5,7 @@ Usage
    :local:
 
 GCBH
-====
+----
 The Gcbh calculator is an ase Dynamics Child on unhealthy steriods. It runs the grand canonical basin hopping, however certain functionalities are hard coded.
 
 .. code-block:: python
