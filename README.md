@@ -32,3 +32,6 @@ Alternatively, you can add ./gg to your $PYTHONPATH. (not recommended)
 ~~~bash
 export PYTHONPATH=$PYTHONPATH:"<path_to_gg>"
 ~~~
+
+## Usage
+For usage check https://graph-gcbh.readthedocs.io/en/latest/index.html
