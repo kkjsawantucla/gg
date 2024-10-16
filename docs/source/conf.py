@@ -14,7 +14,21 @@ release = '0.0.1'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+python
+
+Copy
+extensions = [
+    # other extensions
+    'sphinx.ext.githubpages',
+]
+
+html_context = {
+    "display_github": True,  # Integrate GitHub
+    "github_user": "kkjsawant",  # Username
+    "github_repo": "gg",  # Repo name
+    "github_version": "main",  # Version
+    "conf_py_path": "/docs/",  # Path in the checkout to the docs root
+
 
 templates_path = ['_templates']
 exclude_patterns = []
