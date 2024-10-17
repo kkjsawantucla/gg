@@ -1,4 +1,5 @@
 Examples
 ========
 
-1. Adding 
+1. AluminoSilicates using Nequip
+--------------------------------
