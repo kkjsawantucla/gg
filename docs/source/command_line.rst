@@ -1,7 +1,7 @@
 Command Line Tools
 ==================
 
-We have created simple command line tools as a wrapper to the Add modifier to use it independently.
+We have created simple command line tools as a wrapper to the :ref:`Add Monodentate` modifier to use it independently.
 
 Add Mono
 --------
