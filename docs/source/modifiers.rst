@@ -13,6 +13,7 @@ The modifier can add a monodentate adsorbate, or moiety at specific sites on the
 
   from gg.modifiers import Add
   from gg.sites import FlexibleSites
+  from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
   adsorbate_OH = read("OH.POSCAR") #adsorbate to be added
@@ -35,6 +36,7 @@ The modifier can add a bidentate adsorbate, or moiety at specific sites on the p
 
   from gg.modifiers import AddBi
   from gg.sites import FlexibleSites
+  from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
   adsorbate_formate = read("OCHO.POSCAR") #adsorbate to be added (formate)
@@ -56,7 +58,9 @@ Remove an adsorbate from the surface
 .. code-block:: python
 
   from gg.modifiers import Remove
-  
+  from ase.io import read
+
+  FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface  
   adsorbate_OH = read("OH.POSCAR") #adsorbate to be removed
   remove_OH = Remove(FS, to_del=adsorbate_OH, print_movie=True)
 
@@ -77,6 +81,7 @@ Remove an adsorbate from the surface
 
   from gg.modifiers import Replace
   from gg.sites import FlexibleSites
+  from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
   adsorbate_OH = read("OH.POSCAR") #adsorbate to be removed
@@ -100,6 +105,7 @@ Swap two atoms on the surface
 
   from gg.modifiers import Swap
   from gg.sites import FlexibleSites
+  from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
   swap = Swap(FS, swap_sym=["Pt","Au"], print_movie=True)
