@@ -60,8 +60,8 @@ class ModifierAdder(ParentModifier):
 
     def __init__(
         self,
-        weight: float,
         modifier_instances: list,
+        weight: float = 1,
         max_bond_ratio: float = 1.2,
         max_bond: float = 0,
         print_movie: bool = False,
@@ -119,7 +119,7 @@ class ModifierAdder(ParentModifier):
 class Rattle(ParentModifier):
     """Modifier that rattles the atoms with some stdev"""
 
-    def __init__(self, weight: float, stdev: float = 0.001, contact_error: float = 0.2):
+    def __init__(self, weight: float = 1, stdev: float = 0.001, contact_error: float = 0.2):
         self.stdev = stdev
         self.contact_error = contact_error
         super().__init__(weight)

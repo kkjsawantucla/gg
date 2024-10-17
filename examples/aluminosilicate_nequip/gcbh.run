@@ -12,5 +12,3 @@ conda activate myenv
 module load cuda/10.2
 
 python run.py
-
-

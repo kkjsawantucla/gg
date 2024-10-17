@@ -64,6 +64,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="modifiers.html">Modifiers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="command_line.html">Command Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
 </ul>
 
@@ -96,6 +97,8 @@
 <p>The Sites class help make graphs for modifiers to work on and also determine the surface site for modifications.</p>
 <section id="flexiblesites">
 <h2>FlexibleSites<a class="headerlink" href="#flexiblesites" title="Link to this heading"></a></h2>
+<p>This is a simple sites class which returns either atoms which arent constrained as surface sites or you can specify specific index.
+Hardcoding of indexes isnt advisable as the atoms object changes during gcbh runs.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.sites</span> <span class="kn">import</span> <span class="n">FlexibleSites</span>
 
 <span class="n">FS</span> <span class="o">=</span> <span class="n">FlexibleSites</span><span class="p">(</span><span class="n">constraints</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">max_bond_ratio</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span> <span class="c1">#Define class to figure out surface</span>
@@ -131,6 +134,7 @@ Defaults to None.</p>
 </section>
 <section id="surfacesites">
 <h2>SurfaceSites<a class="headerlink" href="#surfacesites" title="Link to this heading"></a></h2>
+<p>This class uses co-ordination number to determine the surface sites. However, we need to specify the maximum co-ordination allowed for each atom.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.sites</span> <span class="kn">import</span> <span class="n">SurfaceSites</span>
 
 <span class="n">max_coord</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Pt&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>

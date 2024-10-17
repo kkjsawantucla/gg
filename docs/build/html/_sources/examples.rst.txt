@@ -33,8 +33,8 @@ Attach modifiers to the Gcbh Class
 
         #Define three modifiers for H adsorption, desoprtion and movement
         from gg.modifiers import Add,Remove,ModifierAdder
-        addH = Add(ss, adsH, surf_coord=[1,2,3], ads_id=["H"], surf_sym=["Pt"], print_movie=False, weight=1)
-        remH = Remove(ss, adsH, max_bond_ratio=1.2, print_movie=False, weight=1)
+        addH = Add(ss, adsH, surf_coord=[1,2,3], ads_id = ["H"], surf_sym = ["Pt"], print_movie=False, weight = 1.0)
+        remH = Remove(ss, adsH, max_bond_ratio = 1.2, print_movie = False, weight = 1.0)
         swapH = ModifierAdder([addH,remH],weight=1)
 
         #Attach the modifiers to the class

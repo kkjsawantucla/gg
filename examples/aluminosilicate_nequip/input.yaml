@@ -1,7 +1,6 @@
-temperature: 1500.0 #Temperature for gcbh
-
+#Dfine Temperature Information for gcbh
+temperature: 1500.0 #Temperature f
 maximum_temp: #Maximum Temperature for gcbh
-
 minimum_temp:  #Minimum Temperature for gcbh
 
 stop_steps: 400 #Max steps for gcbh

@@ -6,6 +6,9 @@ The Sites class help make graphs for modifiers to work on and also determine the
 FlexibleSites
 -------------
 
+This is a simple sites class which returns either atoms which arent constrained as surface sites or you can specify specific index.
+Hardcoding of indexes isnt advisable as the atoms object changes during gcbh runs.
+
 .. code-block:: python
 
     from gg.sites import FlexibleSites
@@ -22,6 +25,8 @@ FlexibleSites
 
 SurfaceSites
 ------------
+
+This class uses co-ordination number to determine the surface sites. However, we need to specify the maximum co-ordination allowed for each atom.
 
 .. code-block:: python
 
