@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-graph_gcbh documentation
-========================
+g(raph)-g(cbh) Documentation
+============================
 
 .. toctree::
    :maxdepth: 2
