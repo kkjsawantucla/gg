@@ -1,0 +1,180 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command Line Tools &mdash; graph_gcbh 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=7ab3649f" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=959672f5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Support" href="support.html" />
+    <link rel="prev" title="Modifiers" href="modifiers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            graph_gcbh
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GCBH.html">GCBH</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sites.html">Sites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modifiers.html">Modifiers</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Command Line Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#add-mono">Add Mono</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#add-bi">Add Bi</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">graph_gcbh</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Command Line Tools</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/kkjsawantucla/gg/blob/main/docs/source/command_line.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="command-line-tools">
+<h1>Command Line Tools<a class="headerlink" href="#command-line-tools" title="Link to this heading"></a></h1>
+<p>We have created simple command line tools as a wrapper to the Add <a class="reference internal" href="modifiers.html#modifiers"><span class="std std-ref">Modifiers</span></a> to use it independently.</p>
+<section id="add-mono">
+<h2>Add Mono<a class="headerlink" href="#add-mono" title="Link to this heading"></a></h2>
+<p>Base: <a class="reference internal" href="modifiers.html#add-monodentate"><span class="std std-ref">Add Monodentate</span></a></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>add_mono<span class="w"> </span>-s<span class="w"> </span>&lt;path_to_surface&gt;<span class="w"> </span>-a<span class="w"> </span>&lt;path_to_adsorbate&gt;<span class="w"> </span>-sc<span class="w"> </span>&lt;surface<span class="w"> </span>coordination&gt;<span class="w"> </span>-aa<span class="w"> </span>&lt;adsorbate<span class="w"> </span>identity&gt;
+
+<span class="c1">#Example</span>
+add_mono<span class="w"> </span>-s<span class="w"> </span>POSCAR_Pt<span class="w"> </span>-a<span class="w"> </span>OH.POSCAR<span class="w"> </span>-sc<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">3</span><span class="w"> </span>-aa<span class="w"> </span>O
+</pre></div>
+</div>
+</section>
+<section id="add-bi">
+<h2>Add Bi<a class="headerlink" href="#add-bi" title="Link to this heading"></a></h2>
+<p>Base: <a class="reference internal" href="modifiers.html#add-bidentate"><span class="std std-ref">Add Bidentate</span></a></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>add_bi<span class="w"> </span>-s<span class="w"> </span>&lt;path_to_surface&gt;<span class="w"> </span>-a<span class="w"> </span>&lt;path_to_adsorbate&gt;<span class="w"> </span>-sc<span class="w"> </span>&lt;surface<span class="w"> </span>coordination&gt;<span class="w"> </span>-aa<span class="w"> </span>&lt;adsorbate<span class="w"> </span>identity&gt;
+
+<span class="c1">#Example</span>
+add_bi<span class="w"> </span>-s<span class="w"> </span>POSCAR_Pt<span class="w"> </span>-a<span class="w"> </span>OCHO.POSCAR<span class="w"> </span>-sc<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">3</span><span class="w"> </span>-aa<span class="w"> </span>O
+</pre></div>
+</div>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Args for add_bi and add_mono</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 10.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>-surface / -s</p></td>
+<td><p>str</p></td>
+<td><p>Path to surface atoms objects to adsorb</p></td>
+</tr>
+<tr class="row-even"><td><p>-adsorbate / -a</p></td>
+<td><p>str</p></td>
+<td><p>Path to adsorbate atoms objects to process</p></td>
+</tr>
+<tr class="row-odd"><td><p>-ads_atom / -aa</p></td>
+<td><p>str</p></td>
+<td><p>Atom through which the adsorbate attaches to the surface</p></td>
+</tr>
+<tr class="row-even"><td><p>-surf_coord / -sc</p></td>
+<td><p>int</p></td>
+<td><p>Coordination of surface atoms: e.g., 1-top, 2-bridge, ...</p></td>
+</tr>
+<tr class="row-odd"><td><p>-surf_sym / -ss</p></td>
+<td><p>str</p></td>
+<td><p>Symbols of atoms that can adsorb</p></td>
+</tr>
+<tr class="row-even"><td><p>-unique / -u</p></td>
+<td><p>str</p></td>
+<td><p>Whether to check if the structures are repeated</p></td>
+</tr>
+<tr class="row-odd"><td><p>-max_bond_ratio / -mbr</p></td>
+<td><p>float</p></td>
+<td><p>Allowable tolerance between bonds</p></td>
+</tr>
+<tr class="row-even"><td><p>-max_bond / -mb</p></td>
+<td><p>float</p></td>
+<td><p>Fixed allowable bond distance</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modifiers.html" class="btn btn-neutral float-left" title="Modifiers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="support.html" class="btn btn-neutral float-right" title="Support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Kaustubh Sawant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

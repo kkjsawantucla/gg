@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Support" href="support.html" />
+    <link rel="next" title="Command Line Tools" href="command_line.html" />
     <link rel="prev" title="Sites" href="sites.html" /> 
 </head>
 
@@ -43,7 +43,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="GCBH.html">GCBH</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sites.html">Sites</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Modifiers</a><ul>
@@ -84,6 +84,7 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="command_line.html">Command Line Tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
 </ul>
 
@@ -125,7 +126,7 @@ The code provides basic modifiers as building blocks for more complex modifiers.
 <span class="n">adsorbate_OH</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;OH.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be added</span>
 <span class="n">add_OH</span> <span class="o">=</span> <span class="n">Add</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">ads</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">surf_coord</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="n">ads_id</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;O&quot;</span><span class="p">],</span> <span class="n">surf_sym</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Pt&quot;</span><span class="p">],</span><span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">)</span> <span class="c1">#The surface that will adsorb</span>
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">)</span> <span class="c1">#The atoms object that will adsorb</span>
 <span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">add_OH</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
 </pre></div>
 </div>
@@ -170,11 +171,13 @@ list[ase.Atoms] if print_movie = False</p>
 <h2>Add Bidentate<a class="headerlink" href="#add-bidentate" title="Link to this heading"></a></h2>
 <p>The modifier can add a bidentate adsorbate, or moiety at specific sites on the parent atoms object.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.modifiers</span> <span class="kn">import</span> <span class="n">AddBi</span>
+<span class="kn">from</span> <span class="nn">gg.sites</span> <span class="kn">import</span> <span class="n">FlexibleSites</span>
 
+<span class="n">FS</span> <span class="o">=</span> <span class="n">FlexibleSites</span><span class="p">(</span><span class="n">constraints</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">max_bond_ratio</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span> <span class="c1">#Define class to figure out surface</span>
 <span class="n">adsorbate_formate</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;OCHO.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be added (formate)</span>
 <span class="n">add_formate</span> <span class="o">=</span> <span class="n">AddBi</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">ads</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">surf_coord</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="n">ads_id</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;O&quot;</span><span class="p">],</span> <span class="n">surf_sym</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Pt&quot;</span><span class="p">],</span> <span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">)</span> <span class="c1">#The surface that will adsorb</span>
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">)</span> <span class="c1">#The atoms object that will adsorb</span>
 <span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">add_formate</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
 </pre></div>
 </div>
@@ -225,7 +228,7 @@ list[ase.Atoms] if print_movie = False</p>
 <span class="n">adsorbate_OH</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;OH.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be removed</span>
 <span class="n">remove_OH</span> <span class="o">=</span> <span class="n">Remove</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">to_del</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR_with_OH&#39;</span><span class="p">)</span> <span class="c1">#The surface that has OHs to be removed</span>
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR_with_OH&#39;</span><span class="p">)</span> <span class="c1">#The atoms object that has OHs to be removed</span>
 <span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">remove_OH</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
 </pre></div>
 </div>
@@ -267,12 +270,14 @@ list[ase.Atoms] if print_movie = False</p>
 <h2>Replace Atoms/Molecules<a class="headerlink" href="#replace-atoms-molecules" title="Link to this heading"></a></h2>
 <p>Remove an adsorbate from the surface</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.modifiers</span> <span class="kn">import</span> <span class="n">Replace</span>
+<span class="kn">from</span> <span class="nn">gg.sites</span> <span class="kn">import</span> <span class="n">FlexibleSites</span>
 
+<span class="n">FS</span> <span class="o">=</span> <span class="n">FlexibleSites</span><span class="p">(</span><span class="n">constraints</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">max_bond_ratio</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span> <span class="c1">#Define class to figure out surface</span>
 <span class="n">adsorbate_OH</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;OH.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be removed</span>
 <span class="n">adsorbate_NO</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">&quot;NO.POSCAR&quot;</span><span class="p">)</span> <span class="c1">#adsorbate to be replaced with</span>
 <span class="n">remove_OH</span> <span class="o">=</span> <span class="n">Replace</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">to_del</span><span class="o">=</span><span class="n">adsorbate_OH</span><span class="p">,</span> <span class="n">with_replace</span><span class="o">=</span> <span class="n">adsorbate_NO</span><span class="p">,</span> <span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR_with_OH&#39;</span><span class="p">)</span> <span class="c1">#The surface that has OHs to be removed</span>
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR_with_OH&#39;</span><span class="p">)</span> <span class="c1">#The atoms object that has OHs to be removed</span>
 <span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">remove_OH</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
 </pre></div>
 </div>
@@ -316,10 +321,12 @@ list[ase.Atoms] if print_movie = False</p>
 <h2>Swap Atoms<a class="headerlink" href="#swap-atoms" title="Link to this heading"></a></h2>
 <p>Swap two atoms on the surface</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">gg.modifiers</span> <span class="kn">import</span> <span class="n">Swap</span>
+<span class="kn">from</span> <span class="nn">gg.sites</span> <span class="kn">import</span> <span class="n">FlexibleSites</span>
 
+<span class="n">FS</span> <span class="o">=</span> <span class="n">FlexibleSites</span><span class="p">(</span><span class="n">constraints</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">max_bond_ratio</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span> <span class="c1">#Define class to figure out surface</span>
 <span class="n">swap</span> <span class="o">=</span> <span class="n">Swap</span><span class="p">(</span><span class="n">FS</span><span class="p">,</span> <span class="n">swap_sym</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Pt&quot;</span><span class="p">,</span><span class="s2">&quot;Au&quot;</span><span class="p">],</span> <span class="n">print_movie</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR_PtAu&#39;</span><span class="p">)</span> <span class="c1">#The surface that has OHs to be removed</span>
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;POSCAR_PtAu&#39;</span><span class="p">)</span> <span class="c1">#The atoms object with Pt and Au that can be swapped</span>
 <span class="n">modified_atoms</span> <span class="o">=</span> <span class="n">swap</span><span class="o">.</span><span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="c1">#Atoms with the adsorbate</span>
 </pre></div>
 </div>
@@ -362,7 +369,7 @@ list[ase.Atoms] if print_movie = False</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="sites.html" class="btn btn-neutral float-left" title="Sites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="support.html" class="btn btn-neutral float-right" title="Support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="command_line.html" class="btn btn-neutral float-right" title="Command Line Tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
