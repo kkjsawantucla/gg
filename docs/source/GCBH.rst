@@ -8,6 +8,8 @@ Calculator
 ----------
 The Gcbh calculator is an ase Dynamics Child on unhealthy steriods. It runs the grand canonical basin hopping, however certain functionalities are hard coded.
 
+You can find an example for input.yaml in `gg/examples/ <https://github.com/kkjsawantucla/gg/blob/main/examples/aluminosilicate_nequip/input.yaml>` folder
+
 .. code-block:: python
 
     from gg.gcbh import Gcbh
