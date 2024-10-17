@@ -48,6 +48,7 @@ Finally run the code
         G.run(steps = 25)
 
 This should generate the following files and folders:
+
 - **local_minima.traj** : Trajectory file of accepted structures.
 - **gcbh.log** : Log of the run.
 - **gcbh.traj** : Trajectory file of all structures.
