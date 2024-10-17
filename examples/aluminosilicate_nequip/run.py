@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 """Example File to use nequip calculator"""
 
-import sys
-sys.path.insert(0, "/u/home/s/sawantk/custom_apps/gg")
 from gg.modifiers import Add,Remove,Swap,ModifierAdder
 from gg.gcbh import Gcbh
 from gg.sites import SurfaceSites
@@ -24,14 +22,14 @@ max_coord = {"Al": 6, "Si": 5, "O": 4, "H": 2}
 ss = SurfaceSites(max_coord, max_bond_ratio=1.2)
 
 #Build AddH2O
-addH = Add(1.0, ss, adsH, 1, ad_dist=1.0, surf_sym = ["O"], print_movie=False)
-addOH = Add(1.0, ss, adsOH, 1, ad_dist=1.8, surf_sym = ["Al","Si"],print_movie=False)
+addH = Add(ss, adsH, 1, ads_dist=1.0, surf_sym = ["O"], print_movie=False, weight = 1.0)
+addOH = Add(ss, adsOH, 1, ads_dist=1.8, surf_sym = ["Al","Si"],print_movie=False, weight = 1.0)
 addH2O = ModifierAdder(1.0,[addH,addOH])
 
 #Remove AddH2O
-remH = Remove(1.0, ss, adsH, max_bond = 2)
-remOH = Remove(1.0, ss, adsOH, max_bond = 2)
-remH2O = ModifierAdder(1.0,[remH,remOH])
+remH = Remove(ss, adsH, max_bond = 2, weight = 1.0)
+remOH = Remove( ss, adsOH, max_bond = 2, weight = 1.0)
+remH2O = ModifierAdder([remH,remOH])
 
 #Swap Al,Si
 swap_al_si = Swap(1.0,ss,["Al","Si"])
@@ -40,9 +38,9 @@ swap_al_si = Swap(1.0,ss,["Al","Si"])
 swap_H2O = ModifierAdder(1.0,[addH2O,remH2O])
 
 G = Gcbh(atoms,config_file='input.yaml')
-#G.add_modifier(addH2O,'Add_H2O')
-#G.add_modifier(remH2O,'Remove_H2O')
 
+G.add_modifier(addH2O,'Add_H2O')
+G.add_modifier(remH2O,'Remove_H2O')
 G.add_modifier(swap_al_si,'Swap_Al_Si')
 G.add_modifier(swap_H2O,'Swap_H2O')
 
