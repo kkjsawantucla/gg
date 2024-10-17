@@ -16,8 +16,8 @@ The modifier can add a monodentate adsorbate, or moiety at specific sites on the
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
-  adsorbate_OH = read("OH.POSCAR") #adsorbate to be added
-  add_OH = Add(FS, ads=adsorbate_OH, surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"],print_movie=True)
+  ads_OH = read("OH.POSCAR") #adsorbate to be added
+  add_OH = Add(FS, ads=ads_OH, surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"],print_movie=True)
 
   atoms = read('POSCAR') #The atoms object that will adsorb
   modified_atoms = add_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
@@ -39,8 +39,8 @@ The modifier can add a bidentate adsorbate, or moiety at specific sites on the p
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
-  adsorbate_formate = read("OCHO.POSCAR") #adsorbate to be added (formate)
-  add_formate = AddBi(FS, ads=adsorbate_OH, surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"], print_movie=True)
+  ads_formate = read("OCHO.POSCAR") #adsorbate to be added (formate)
+  add_formate = AddBi(FS, ads=ads_formate, surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"], print_movie=True)
 
   atoms = read('POSCAR') #The atoms object that will adsorb
   modified_atoms = add_formate.get_modified_atoms(atoms) #Atoms with the adsorbate
@@ -62,8 +62,8 @@ Remove an adsorbate from the surface
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface  
-  adsorbate_OH = read("OH.POSCAR") #adsorbate to be removed
-  remove_OH = Remove(FS, to_del=adsorbate_OH, print_movie=True)
+  ads_OH = read("OH.POSCAR") #adsorbate to be removed
+  remove_OH = Remove(FS, to_del=ads_OH, print_movie=True)
 
   atoms = read('POSCAR_with_OH') #The atoms object that has OHs to be removed
   modified_atoms = remove_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
