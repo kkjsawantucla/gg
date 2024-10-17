@@ -14,6 +14,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosectionlabel',
 ]
 
 todo_include_todos = True
