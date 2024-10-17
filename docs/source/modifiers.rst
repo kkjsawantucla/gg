@@ -58,6 +58,7 @@ Remove an adsorbate from the surface
 .. code-block:: python
 
   from gg.modifiers import Remove
+  from gg.sites import FlexibleSites
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface  
