@@ -1,7 +1,7 @@
 Command Line Tools
 ==================
 
-We have created simple command line tools as a wrapper to the Add :ref:`Modifiers` to use it independently.
+We have created simple command line tools as a wrapper to the Add :ref:`Modifiers` so they can be used independently.
 
 Add Mono
 --------
@@ -10,23 +10,22 @@ Base: :ref:`Add Monodentate`
 .. code-block:: bash
 
    add_mono -s <path_to_surface> -a <path_to_adsorbate> -sc <surface coordination> -aa <adsorbate identity>
-
-   #Example
+   
+   # Example
    add_mono -s POSCAR_Pt -a OH.POSCAR -sc 1 2 3 -aa O
 
 Add Bi
---------
+------
 Base: :ref:`Add Bidentate`
 
 .. code-block:: bash
 
    add_bi -s <path_to_surface> -a <path_to_adsorbate> -sc <surface coordination> -aa <adsorbate identity>
-
-   #Example
+   
+   # Example
    add_bi -s POSCAR_Pt -a OCHO.POSCAR -sc 1 2 3 -aa O
 
 .. list-table:: Args for add_bi and add_mono
-
    :widths: 20 10 70
    :header-rows: 0
 
