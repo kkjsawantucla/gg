@@ -1,15 +1,17 @@
-temperature: 1500.0
+temperature: 1500.0 #Temperature for gcbh
 
-maximum_temp: 
+maximum_temp: #Maximum Temperature for gcbh
 
-minimum_temp: 
+minimum_temp:  #Minimum Temperature for gcbh
 
-stop_steps: 400
+stop_steps: 400 #Max steps for gcbh
 
+#Provide chemical potential for each species
 chemical_potential :
   SiO2: -23.96
   H2O: -15.93
   Al32O48: -593.41 
 
+# Information for making graphs
 max_bond: 0
 max_bond_ratio: 1.2
