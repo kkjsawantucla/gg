@@ -13,4 +13,5 @@ graph_gcbh documentation
    GCBH
    sites
    modifiers
+   command_line
    support
