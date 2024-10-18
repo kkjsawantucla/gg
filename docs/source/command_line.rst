@@ -25,7 +25,7 @@ Base: :ref:`Add Bidentate`
    # Example
    add_bi -s POSCAR_Pt -a OCHO.POSCAR -sc 1 2 3 -aa O
 
-.. list-table:: Args for add_bi and add_mono
+.. list-table:: Args for add_bi
    :widths: 20 10 70
    :header-rows: 0
 
@@ -53,3 +53,6 @@ Base: :ref:`Add Bidentate`
    * - -max_bond / -mb
      - float
      - Fixed allowable bond distance
+   * - ---add_ads_error / -ads_err
+     - float
+     - Allowable distance between two sites for adsorption
