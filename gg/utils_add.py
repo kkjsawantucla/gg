@@ -224,9 +224,9 @@ def generate_add_bi(
             )
         else:
             target_pos = offset_1
-
+        new_norm = normal_1 + normal_2
         ads_copy = rotate_atoms_bi_along_vector(
-            ads_copy, ads_index, target_vector, target_pos
+            ads_copy, ads_index, target_vector, target_pos, new_norm
         )
         atoms_copy = add_ads(atoms, ads_copy, offset=[0, 0, 0])
         # Make a final check if atoms are too close to each other
@@ -327,16 +327,18 @@ def rotate_atoms_bi_along_vector(
     index: list,
     target_vector: np.array,
     target_pos: np.array,
+    new_norm: np.array,
 ) -> Atoms:
     """
     Args:
-        atoms (Atoms):
-        index (list):
-        target_vector (np.array):
-        target_pos (np.array):
+        atoms (Atoms): Input adsorbate to rotate
+        index (list): Index of the atoms in adosrbate that form bond
+        target_vector (np.array): Target vector along which rotated
+        target_pos (np.array): Move to the new x,y,x position
+        new_norm (np.array): Nprmal of atoms
 
     Returns:
-        ase.Atoms:
+        ase.Atoms: rotated atoms
     """
 
     # Get the positions of the two atoms to be aligned
@@ -346,48 +348,50 @@ def rotate_atoms_bi_along_vector(
     current_vector = pos2 - pos1
     current_vector = current_vector / norm(current_vector)
     target_vector = target_vector / norm(target_vector)
+    if norm(new_norm) > 0.001:
+        new_norm = new_norm / norm(new_norm)
 
     # Calculate the rotation angle along z axis
-    rotation_angle = np.degrees(
-        safe_arccos(np.dot(current_vector, [target_vector[0], target_vector[1], 0]))
-    )
-    if target_vector[1] < 0:
-        rotation_angle = -rotation_angle
+    if abs(target_vector[0]) > 0.001 or abs(target_vector[1]) > 0.001:
+        rotation_angle = angle_between(
+            current_vector, [target_vector[0], target_vector[1], 0]
+        )
+        if target_vector[1] < 0:
+            rotation_angle = -rotation_angle
 
-    if abs(rotation_angle) > 0.001:
-        atoms.rotate(rotation_angle, "z")
+        if abs(rotation_angle) > 0.001:
+            atoms.rotate(rotation_angle, "z")
 
     # Calculate the rotation angle along xy plane
-    rotation_angle = np.degrees(
-        safe_arccos(np.dot([target_vector[0], target_vector[1], 0], target_vector))
-    )
-    if target_vector[2] < 0:
-        rotation_angle = -rotation_angle
+    if abs(target_vector[2]) > 0.001:
+        rotation_angle = angle_between(
+            [target_vector[0], target_vector[1], 0], target_vector
+        )
+        if target_vector[2] < 0:
+            rotation_angle = -rotation_angle
+        if abs(target_vector[0]) < 0.001 and abs(target_vector[1]) < 0.001:
+            rotation_vector = [0, 1, 0]
+        else:
+            rotation_vector = [-target_vector[1], target_vector[0], 0]
+        if abs(rotation_angle) > 0.001:
+            atoms.rotate(-rotation_angle, rotation_vector)
 
-    rotation_vector = [-target_vector[1], target_vector[0], 0]
-    if abs(rotation_angle) > 0.001 and norm(rotation_vector) > 0.001:
-        atoms.rotate(-rotation_angle, rotation_vector)
+    if norm(new_norm) > 0.001:
+        positions = [0,0,1]
+        # Rotate along the target vector
+        rotation_angle = angle_between(positions, new_norm)
+        cross_product = np.cross(positions, new_norm)
+        if norm(cross_product) < 0:
+            rotation_angle = 360 - rotation_angle
+        atoms.rotate(rotation_angle, target_vector)
 
     # Move the atom to the target position
     first_atom_position = atoms.positions[index[0]]
     new_positions = atoms.positions + target_pos - first_atom_position
     atoms.set_positions(new_positions)
 
+    print(positions,new_norm)
     return atoms
-
-
-def safe_arccos(x: float):
-    """
-    Compute the arccosine of x if x is within the range [-1, 1].
-    If x is greater than or equal to 1, return 0.
-    If x is less than or equal to -1, return pi.
-    """
-    if x >= 1:
-        return 0
-    elif x <= -1:
-        return np.pi
-    elif -1 < x < 1:
-        return np.arccos(x)
 
 
 def rotate_mono(atoms: Atoms, index: int) -> Atoms:
@@ -420,6 +424,14 @@ def rotate_mono(atoms: Atoms, index: int) -> Atoms:
 
 
 def angle_between(v1, v2):
+    """_summary_
+    Args:
+        v1 (array): _description_
+        v2 (array): _description_
+
+    Returns:
+        _type_: angle in degrees
+    """
     # Compute dot product and magnitudes
     dot_product = np.dot(v1, v2)
     magnitude_v1 = np.linalg.norm(v1)
