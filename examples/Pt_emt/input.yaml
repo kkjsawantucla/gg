@@ -2,6 +2,8 @@ temperature: 300.0
 
 chemical_potential:
   Pt: 0.0
-  H2: 0.0
+  H2: -0.1
+
+check_graph: True
 
 max_bond_ratio: 1.2

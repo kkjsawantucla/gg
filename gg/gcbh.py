@@ -87,6 +87,7 @@ class Gcbh(Dynamics):
             "max_history": 25,
             "max_bond": 2,
             "max_bond_ratio": 0,
+            "check_graphs": True,
         }
         self.optimizer = optimizer
         if config_file:
@@ -384,11 +385,8 @@ class Gcbh(Dynamics):
                 except (
                     NoReasonableStructureFound
                 ) as emsg:  # emsg stands for error message
-                    if not isinstance(emsg, str):
-                        print(emsg, type(emsg))
-                        emsg = "Unknown"
                     self.logtxt(
-                        f"{modifier_name} did not find a good structure because of {emsg}"
+                        f"{modifier_name} did not find a good structure because of {emsg} {type(emsg)}"
                     )
                 else:
                     if self.append_graph(newatoms):
@@ -415,6 +413,7 @@ class Gcbh(Dynamics):
                         self.logtxt("Atoms object visited previously")
                         continue
             else:
+                self.logtxt(f"Program does not find a good structure after {trials+1} tests")
                 raise RuntimeError(
                     f"Program does not find a good structure after {trials+1} tests"
                 )
@@ -507,23 +506,26 @@ class Gcbh(Dynamics):
         Args:
             atoms (_type_): _description_
         """
-        nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
-        nl.update(atoms)
-        new_g = atoms_to_graph(
-            atoms,
-            nl,
-            max_bond=self.c["max_bond"],
-            max_bond_ratio=self.c["max_bond_ratio"],
-        )
-        if self.c["graphs"]:
-            if is_unique_graph(new_g, self.c["graphs"]):
-                self.logtxt(
-                    f"Add graph at step:{self.c['nsteps']} and graph loc:{len(self.c['graphs'])}"
-                )
-                self.c["graphs"].append(new_g)
-                return True
+        if self.c["check_graph"]:
+            nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
+            nl.update(atoms)
+            new_g = atoms_to_graph(
+                atoms,
+                nl,
+                max_bond=self.c["max_bond"],
+                max_bond_ratio=self.c["max_bond_ratio"],
+            )
+            if self.c["graphs"]:
+                if is_unique_graph(new_g, self.c["graphs"]):
+                    self.logtxt(
+                        f"Add graph at step:{self.c['nsteps']} and graph loc:{len(self.c['graphs'])}"
+                    )
+                    self.c["graphs"].append(new_g)
+                    return True
+                else:
+                    return False
             else:
-                return False
+                self.c["graphs"].append(new_g)
+                self.logtxt("Appending first graph")
         else:
-            self.c["graphs"].append(new_g)
-            self.logtxt("Appending first graph")
+            return True

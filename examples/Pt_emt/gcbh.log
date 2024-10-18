@@ -1,0 +1,394 @@
+##############################################
+#                                            #
+#    ggggggggggggggggg    ggggggggggggggggg  #
+#   g::::::::::::::::g   g::::::::::::::::g  #
+#  g:::::::::::::::::g  g:::::::::::::::::g  #
+#  g::::::ggggg::::::g  g::::::ggggg::::::g  #
+#  g::::gg     gg::::g  g::::gg     gg::::g  #
+#  g::::gg     gg::::g  g::::gg     gg::::g  #
+#  g::::gg     gg::::g  g::::gg     gg::::g  #
+#  g:::::gg    gg::::g  g:::::gg    gg::::g  #
+#  g::::::gggggg:::::g  g::::::gggggg:::::g  #
+#   g::::::::::::::::g   g::::::::::::::::g  #
+#    gg::::::::::::::g    gg::::::::::::::g  #
+#      gggggggg::::::g      gggggggg::::::g  #
+#              g:::::g              g:::::g  #
+#  gggggg      g:::::g  gggggg      g:::::g  #
+#  g:::::gg   gg:::::g  g:::::gg   gg:::::g  #
+#   g::::::ggg:::::::g   g::::::ggg:::::::g  #
+#    gg:::::::::::::g     gg:::::::::::::g   #
+#      ggg::::::ggg         ggg::::::ggg     #
+#         gggggg               gggggg        #
+#                                            #
+# (c) Kaustubh Sawant                        #
+#############################################
+Chemical potential of Pt is 0.0 
+Chemical potential of H2 is -0.1 
+18-Oct-2024 10:50:21: Begin structure optimization routine at step 0 
+18-Oct-2024 10:50:21: Structure optimization completed for 0 
+Pt36 = +36.00 Pt  +0.00 H2 
+Appending first graph 
+Atoms: Pt36 E(initial): 5.58 F(initial) 5.58 
+Intitial Weights: 
+Add_H weight = 1.00 
+Remove_H weight = 1.00 
+Swap_H weight = 1.00 
+0------------------------------------------------------- 
+18-Oct-2024 10:50:21:  Starting Basin-Hopping Step 1 
+Modifier 'Add_H' formula Pt36 
+Add graph at step:1 and graph loc:1 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:22: Begin structure optimization routine at step 1 
+18-Oct-2024 10:50:22: Structure optimization completed for 1 
+Add graph at step:1 and graph loc:2 
+Optimization Done with E = 5.60 
+HPt36 = +36.00 Pt  +0.50 H2 
+Add_H weight = 0.95 
+Remove_H weight = 1.00 
+Swap_H weight = 1.00 
+Rejected, F(old)=5.58 F(new)=5.65 at step 1 
+------------------------------------------------------- 
+1------------------------------------------------------- 
+18-Oct-2024 10:50:22:  Starting Basin-Hopping Step 2 
+Modifier 'Add_H' formula Pt36 
+Add graph at step:2 and graph loc:3 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:23: Begin structure optimization routine at step 2 
+18-Oct-2024 10:50:23: Structure optimization completed for 2 
+Optimization Done with E = 5.61 
+HPt36 = +36.00 Pt  +0.50 H2 
+Add_H weight = 0.91 
+Remove_H weight = 1.00 
+Swap_H weight = 1.00 
+Rejected, F(old)=5.58 F(new)=5.66 at step 2 
+------------------------------------------------------- 
+2------------------------------------------------------- 
+18-Oct-2024 10:50:23:  Starting Basin-Hopping Step 3 
+Modifier 'Remove_H' formula Pt36 
+Remove_H did not find a good structure because of No adsorbate in the atoms to remove in Remove Modifier <class 'gg.utils.NoReasonableStructureFound'> 
+Modifier 'Swap_H' formula Pt36 
+Swap_H did not find a good structure because of Index of the atoms to be removed isnt in Site Class <class 'gg.utils.NoReasonableStructureFound'> 
+Modifier 'Add_H' formula Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula Pt36 
+Swap_H did not find a good structure because of Index of the atoms to be removed isnt in Site Class <class 'gg.utils.NoReasonableStructureFound'> 
+Modifier 'Remove_H' formula Pt36 
+Remove_H did not find a good structure because of No adsorbate in the atoms to remove in Remove Modifier <class 'gg.utils.NoReasonableStructureFound'> 
+Modifier 'Add_H' formula Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula Pt36 
+Swap_H did not find a good structure because of Index of the atoms to be removed isnt in Site Class <class 'gg.utils.NoReasonableStructureFound'> 
+Modifier 'Swap_H' formula Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula Pt36 
+Add graph at step:3 and graph loc:4 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:29: Begin structure optimization routine at step 3 
+18-Oct-2024 10:50:29: Structure optimization completed for 3 
+Optimization Done with E = 5.64 
+HPt36 = +36.00 Pt  +0.50 H2 
+Add_H weight = 0.86 
+Remove_H weight = 1.00 
+Swap_H weight = 1.00 
+Rejected, F(old)=5.58 F(new)=5.69 at step 3 
+------------------------------------------------------- 
+3------------------------------------------------------- 
+18-Oct-2024 10:50:30:  Starting Basin-Hopping Step 4 
+Modifier 'Remove_H' formula Pt36 
+Remove_H did not find a good structure because of No adsorbate in the atoms to remove in Remove Modifier <class 'gg.utils.NoReasonableStructureFound'> 
+Modifier 'Remove_H' formula Pt36 
+Remove_H did not find a good structure because of No adsorbate in the atoms to remove in Remove Modifier <class 'gg.utils.NoReasonableStructureFound'> 
+Modifier 'Add_H' formula Pt36 
+Add graph at step:4 and graph loc:5 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:30: Begin structure optimization routine at step 4 
+18-Oct-2024 10:50:31: Structure optimization completed for 4 
+Optimization Done with E = 5.60 
+HPt36 = +36.00 Pt  +0.50 H2 
+Add_H weight = 0.82 
+Remove_H weight = 1.00 
+Swap_H weight = 1.00 
+Accepted, F(old)=5.58 F(new)=5.65 at step 4 
+------------------------------------------------------- 
+4------------------------------------------------------- 
+18-Oct-2024 10:50:31:  Starting Basin-Hopping Step 5 
+Modifier 'Swap_H' formula HPt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula HPt36 
+Add graph at step:5 and graph loc:6 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:32: Begin structure optimization routine at step 5 
+18-Oct-2024 10:50:33: Structure optimization completed for 5 
+Add graph at step:5 and graph loc:7 
+Optimization Done with E = 5.61 
+H2Pt36 = +36.00 Pt  +1.00 H2 
+Add_H weight = 0.78 
+Remove_H weight = 1.00 
+Swap_H weight = 1.00 
+Accepted, F(old)=5.65 F(new)=5.71 at step 5 
+------------------------------------------------------- 
+5------------------------------------------------------- 
+18-Oct-2024 10:50:33:  Starting Basin-Hopping Step 6 
+Modifier 'Add_H' formula H2Pt36 
+Add graph at step:6 and graph loc:8 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:33: Begin structure optimization routine at step 6 
+18-Oct-2024 10:50:34: Structure optimization completed for 6 
+Add graph at step:6 and graph loc:9 
+Optimization Done with E = 5.65 
+H3Pt36 = +36.00 Pt  +1.50 H2 
+Add_H weight = 0.75 
+Remove_H weight = 1.00 
+Swap_H weight = 1.00 
+Rejected, F(old)=5.71 F(new)=5.80 at step 6 
+------------------------------------------------------- 
+6------------------------------------------------------- 
+18-Oct-2024 10:50:34:  Starting Basin-Hopping Step 7 
+Modifier 'Remove_H' formula H2Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H2Pt36 
+Add graph at step:7 and graph loc:10 
+One structure found with modifier Swap_H 
+18-Oct-2024 10:50:34: Begin structure optimization routine at step 7 
+18-Oct-2024 10:50:35: Structure optimization completed for 7 
+Optimization Done with E = 5.62 
+H2Pt36 = +36.00 Pt  +1.00 H2 
+Add_H weight = 0.75 
+Remove_H weight = 1.00 
+Swap_H weight = 0.95 
+Accepted, F(old)=5.71 F(new)=5.72 at step 7 
+------------------------------------------------------- 
+7------------------------------------------------------- 
+18-Oct-2024 10:50:35:  Starting Basin-Hopping Step 8 
+Modifier 'Remove_H' formula H2Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H2Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H2Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H2Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H2Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H2Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H2Pt36 
+Add graph at step:8 and graph loc:11 
+One structure found with modifier Swap_H 
+18-Oct-2024 10:50:37: Begin structure optimization routine at step 8 
+18-Oct-2024 10:50:37: Structure optimization completed for 8 
+Optimization Done with E = 5.61 
+H2Pt36 = +36.00 Pt  +1.00 H2 
+Add_H weight = 0.75 
+Remove_H weight = 1.00 
+Swap_H weight = 1.00 
+Accepted, F(old)=5.72 F(new)=5.71 at step 8 
+------------------------------------------------------- 
+8------------------------------------------------------- 
+18-Oct-2024 10:50:37:  Starting Basin-Hopping Step 9 
+Modifier 'Add_H' formula H2Pt36 
+Add graph at step:9 and graph loc:12 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:38: Begin structure optimization routine at step 9 
+18-Oct-2024 10:50:38: Structure optimization completed for 9 
+Optimization Done with E = 5.63 
+H3Pt36 = +36.00 Pt  +1.50 H2 
+Add_H weight = 0.71 
+Remove_H weight = 1.00 
+Swap_H weight = 1.00 
+Accepted, F(old)=5.71 F(new)=5.78 at step 9 
+------------------------------------------------------- 
+9------------------------------------------------------- 
+18-Oct-2024 10:50:38:  Starting Basin-Hopping Step 10 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Add graph at step:10 and graph loc:13 
+One structure found with modifier Swap_H 
+18-Oct-2024 10:50:39: Begin structure optimization routine at step 10 
+18-Oct-2024 10:50:40: Structure optimization completed for 10 
+Optimization Done with E = 5.62 
+H3Pt36 = +36.00 Pt  +1.50 H2 
+Add_H weight = 0.71 
+Remove_H weight = 1.00 
+Swap_H weight = 1.05 
+Accepted, F(old)=5.78 F(new)=5.77 at step 10 
+------------------------------------------------------- 
+10------------------------------------------------------- 
+18-Oct-2024 10:50:40:  Starting Basin-Hopping Step 11 
+Modifier 'Add_H' formula H3Pt36 
+Add graph at step:11 and graph loc:14 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:40: Begin structure optimization routine at step 11 
+18-Oct-2024 10:50:41: Structure optimization completed for 11 
+Add graph at step:11 and graph loc:15 
+Optimization Done with E = 5.62 
+H4Pt36 = +36.00 Pt  +2.00 H2 
+Add_H weight = 0.68 
+Remove_H weight = 1.00 
+Swap_H weight = 1.05 
+Rejected, F(old)=5.77 F(new)=5.82 at step 11 
+------------------------------------------------------- 
+11------------------------------------------------------- 
+18-Oct-2024 10:50:41:  Starting Basin-Hopping Step 12 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Add graph at step:12 and graph loc:16 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:42: Begin structure optimization routine at step 12 
+18-Oct-2024 10:50:42: Structure optimization completed for 12 
+Optimization Done with E = 5.63 
+H4Pt36 = +36.00 Pt  +2.00 H2 
+Add_H weight = 0.64 
+Remove_H weight = 1.00 
+Swap_H weight = 1.05 
+Rejected, F(old)=5.77 F(new)=5.83 at step 12 
+------------------------------------------------------- 
+12------------------------------------------------------- 
+18-Oct-2024 10:50:42:  Starting Basin-Hopping Step 13 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Add graph at step:13 and graph loc:17 
+One structure found with modifier Swap_H 
+18-Oct-2024 10:50:43: Begin structure optimization routine at step 13 
+18-Oct-2024 10:50:44: Structure optimization completed for 13 
+Optimization Done with E = 5.60 
+H3Pt36 = +36.00 Pt  +1.50 H2 
+Add_H weight = 0.64 
+Remove_H weight = 1.00 
+Swap_H weight = 1.10 
+Accepted, F(old)=5.77 F(new)=5.75 at step 13 
+------------------------------------------------------- 
+13------------------------------------------------------- 
+18-Oct-2024 10:50:44:  Starting Basin-Hopping Step 14 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Add graph at step:14 and graph loc:18 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:46: Begin structure optimization routine at step 14 
+18-Oct-2024 10:50:47: Structure optimization completed for 14 
+Optimization Done with E = 5.60 
+H4Pt36 = +36.00 Pt  +2.00 H2 
+Add_H weight = 0.61 
+Remove_H weight = 1.00 
+Swap_H weight = 1.10 
+Rejected, F(old)=5.75 F(new)=5.80 at step 14 
+------------------------------------------------------- 
+14------------------------------------------------------- 
+18-Oct-2024 10:50:47:  Starting Basin-Hopping Step 15 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Add graph at step:15 and graph loc:19 
+One structure found with modifier Add_H 
+18-Oct-2024 10:50:51: Begin structure optimization routine at step 15 
+18-Oct-2024 10:50:51: Structure optimization completed for 15 
+Optimization Done with E = 5.60 
+H4Pt36 = +36.00 Pt  +2.00 H2 
+Add_H weight = 0.58 
+Remove_H weight = 1.00 
+Swap_H weight = 1.10 
+Rejected, F(old)=5.75 F(new)=5.80 at step 15 
+------------------------------------------------------- 
+15------------------------------------------------------- 
+18-Oct-2024 10:50:51:  Starting Basin-Hopping Step 16 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Swap_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Add_H' formula H3Pt36 
+Atoms object visited previously 
+Modifier 'Remove_H' formula H3Pt36 
+Atoms object visited previously 
+Program does not find a good structure after 30 tests 
