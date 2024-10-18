@@ -72,6 +72,15 @@ parser.add_argument(
     help="Fixed allowable bond distance",
 )
 
+parser.add_argument(
+    "--add_ads_error",
+    "-add_ads_error",
+    "-ads_err",
+    type=float,
+    default=0.25,
+    help="Allowable distance between two sites for adsorption",
+)
+
 args = parser.parse_args()
 print("--------------------------------------------")
 print("Surface Atoms found :", args.surface)
@@ -113,7 +122,7 @@ if args.surface and args.adsorbate:
                 print_movie=True,
                 unique=args.unique,
                 ads_rotate=True,
-                add_ads_error = 0.2,
+                add_ads_error = args.add_ads_error,
             )
 
             filename = f"{adsorbate.get_chemical_formula()}_{surface.get_chemical_formula()}.traj"
