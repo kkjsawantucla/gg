@@ -157,7 +157,7 @@ class AddBi(Add):
         print_movie: bool = False,
         unique: bool = True,
         ads_rotate: bool = True,
-        add_ads_error: float = 0.2,
+        add_ads_error: float = 0.25,
         weight: float = 1,
     ):
         """
@@ -191,15 +191,15 @@ class AddBi(Add):
             Defaults to 1.
         """
         super().__init__(
-            weight,
-            surface_sites,
-            ads,
-            surf_coord,
-            surf_sym,
+            surface_sites=surface_sites,
+            ads=ads,
+            surf_coord=surf_coord,
+            surf_sym=surf_sym,
             ads_dist=ads_dist,
             print_movie = print_movie,
             unique=unique,
             ads_rotate=ads_rotate,
+            weight=weight
         )
 
         self.ads_id_list = ads_id
@@ -216,18 +216,6 @@ class AddBi(Add):
                 ]
             if self.ads_rotate:
                 self.ads = rotate_bi(self.ads, self.ads_id_list)
-                if (
-                    self.ads.get_positions()[self.ads_id_list[0]][0]
-                    > self.ads.get_positions()[self.ads_id_list[1]][0]
-                ):
-                    self.ads_id_list[0], self.ads_id_list[1] = (
-                        self.ads_id_list[1],
-                        self.ads_id_list[0],
-                    )
-                    self.ad_dist[0], self.ad_dist[1] = (
-                        self.ad_dist[1],
-                        self.ad_dist[0],
-                    )
             self.ads_id_list = [self.ads_id_list]
             self.ads = [self.ads]
             self.ads_dist_list = [self.ad_dist]
@@ -256,14 +244,6 @@ class AddBi(Add):
                 and atoms[ind_2].symbol in chem_symbol_list
             ):
                 ads = rotate_bi(atoms.copy(), ads_id)
-                if (
-                    ads.get_positions()[ads_id[0]][0]
-                    > ads.get_positions()[ads_id[1]][0]
-                ):
-                    ads_id[0], ads_id[1] = (
-                        ads_id[1],
-                        ads_id[0],
-                    )
 
                 list_ads.append(ads_id)
                 ads_list.append(ads)

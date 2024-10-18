@@ -16,7 +16,7 @@ from gg.utils import (
 )
 from gg.utils_graph import node_symbol
 from gg.utils_graph import is_cycle, are_points_collinear_with_tolerance
-
+from ase.visualize import view
 
 __author__ = "Kaustubh Sawant"
 
@@ -220,11 +220,10 @@ def generate_add_bi(
         if diff > ads_bi_dist:
             target_pos = (
                 offset_1
-                + target_vector / norm(target_vector)
-                + (diff - ads_bi_dist) / 2
+                + target_vector / norm(target_vector) * (diff - ads_bi_dist) / 2
             )
         else:
-            target_pos = offset_2
+            target_pos = offset_1
 
         ads_copy = rotate_atoms_bi_along_vector(
             ads_copy, ads_index, target_vector, target_pos
@@ -275,25 +274,28 @@ def rotate_bi(atoms: Atoms, index: list) -> Atoms:
     atoms.set_positions(new_positions)
 
     # Calculate the vector from the first to the second atom
-    second_atom_position = atoms.positions[index[1]]
-    vector = second_atom_position - first_atom_position
+    vector = atoms.positions[index[1]] - atoms.positions[index[0]]
 
     # Calculate the angle to rotate around the z-axis
-    angle_z = np.degrees(np.arctan2(vector[1], vector[0]))
-    atoms.rotate(-angle_z, "z")
+    angle_z = angle_between([vector[0], vector[1]], [1, 0])
+    if vector[1] > 0:
+        atoms.rotate(-angle_z, "z")
+    else:
+        atoms.rotate(angle_z, "z")
 
+    vector = atoms.positions[index[1]] - atoms.positions[index[0]]
     # Calculate the angle to rotate around the y-axis
-    angle_y = np.degrees(np.arctan2(vector[2], vector[0]))
-    atoms.rotate(-angle_y, "y")
+    angle_y = angle_between([vector[0], vector[2]], [1, 0])
+    if vector[2] > 0:
+        atoms.rotate(angle_y, "y")
+    else:
+        atoms.rotate(-angle_y, "y")
 
     # Calculate the angle to rotate around the x-axis
     y_positions = atoms.positions[:, 1]
     z_positions = atoms.positions[:, 2]
     angle_x = np.degrees(np.arctan2(np.mean(z_positions), np.mean(y_positions)))
     atoms.rotate(-angle_x + 90, "x")
-
-    if atoms[index[1]].position[0] < 0:
-        atoms.translate((-atoms[index[1]].position[0], 0, 0))
 
     return atoms
 
@@ -352,7 +354,7 @@ def rotate_atoms_bi_along_vector(
     if target_vector[1] < 0:
         rotation_angle = -rotation_angle
 
-    if rotation_angle > 0.001:
+    if abs(rotation_angle) > 0.001:
         atoms.rotate(rotation_angle, "z")
 
     # Calculate the rotation angle along xy plane
@@ -363,7 +365,7 @@ def rotate_atoms_bi_along_vector(
         rotation_angle = -rotation_angle
 
     rotation_vector = [-target_vector[1], target_vector[0], 0]
-    if rotation_angle > 0.001 and norm(rotation_vector) > 0.001:
+    if abs(rotation_angle) > 0.001 and norm(rotation_vector) > 0.001:
         atoms.rotate(-rotation_angle, rotation_vector)
 
     # Move the atom to the target position
@@ -415,3 +417,22 @@ def rotate_mono(atoms: Atoms, index: int) -> Atoms:
     atoms.rotate(-90 + angle_x, "y")
 
     return atoms
+
+
+def angle_between(v1, v2):
+    # Compute dot product and magnitudes
+    dot_product = np.dot(v1, v2)
+    magnitude_v1 = np.linalg.norm(v1)
+    magnitude_v2 = np.linalg.norm(v2)
+
+    # Compute cosine of the angle
+    cos_angle = dot_product / (magnitude_v1 * magnitude_v2)
+
+    # Ensure the cosine value is in range [-1, 1] to avoid numerical errors
+    cos_angle = np.clip(cos_angle, -1.0, 1.0)
+
+    # Compute angle in radians and then convert to degrees
+    angle_radians = np.arccos(cos_angle)
+    angle_degrees = np.degrees(angle_radians)
+
+    return angle_degrees
