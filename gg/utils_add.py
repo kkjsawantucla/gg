@@ -390,7 +390,6 @@ def rotate_atoms_bi_along_vector(
     new_positions = atoms.positions + target_pos - first_atom_position
     atoms.set_positions(new_positions)
 
-    print(positions,new_norm)
     return atoms
 
 
