@@ -171,7 +171,7 @@ class AddBi(Add):
         ads_rotate: bool = True,
         add_ads_error: float = 0.25,
         weight: float = 1,
-        normal_method: str = "svd",
+        normal_method: str = "mean",
     ):
         """
         Args:

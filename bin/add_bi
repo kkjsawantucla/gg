@@ -81,6 +81,15 @@ parser.add_argument(
     help="Allowable distance between two sites for adsorption",
 )
 
+parser.add_argument(
+    "--norm_meth",
+    "-norm_meth",
+    "-norm_meth",
+    type=str,
+    default="mean",
+    help="Method to calculate normals",
+)
+
 args = parser.parse_args()
 print("--------------------------------------------")
 print("Surface Atoms found :", args.surface)
@@ -123,6 +132,7 @@ if args.surface and args.adsorbate:
                 unique=args.unique,
                 ads_rotate=True,
                 add_ads_error = args.add_ads_error,
+                normal_method=args.norm_meth
             )
 
             filename = f"{adsorbate.get_chemical_formula()}_{surface.get_chemical_formula()}.traj"
