@@ -148,13 +148,13 @@ class SurfaceSites(Sites):
             Only atoms with coordination less than this value will be considered.
             
             max_bond_ratio (float): Tolerance in the sum of covallent radii between two atoms to be considered a bond.
-            Defaults to 1.2
+            Defaults to 1.2 (equivalent to 20% tolerance)
             
             max_bond (float): Maximum distance of a bond allowed, ignored if equal to zero.
             Defaults to 0
             
             Contact Error (float): To ensure atoms arent too close to each other, the fraction of tolerance allowed.
-            Defaults to 0.2
+            Defaults to 0.2 (equivalent to 20% tolerance)
 
             com (Optional[bool], optional): If true atoms below the center of mass are ignored
             Defaults to True.

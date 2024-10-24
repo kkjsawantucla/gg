@@ -162,7 +162,7 @@ def generate_add_bi(
         index (list):
         surf_coord (list,int):
         ad_dist (float or str):  Defaults to 1.7.
-        contact_error (float): _ Defaults to 0.2.
+        contact_error (float): Defaults to 0.2.
 
     Returns:
        ase.Atoms:

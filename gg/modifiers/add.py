@@ -169,9 +169,9 @@ class AddBi(Add):
         print_movie: bool = False,
         unique: bool = True,
         ads_rotate: bool = True,
-        add_ads_error: float = 0.25,
-        weight: float = 1,
+        add_ads_error: float = 0.5,
         normal_method: str = "mean",
+        weight: float = 1,
     ):
         """
         Args:
@@ -200,8 +200,11 @@ class AddBi(Add):
             ads_rotate (bool,optional): Rotate atoms such that they point in +z direction.
             Defaults to True.
             
+            add_ads_error (float): The error in distance between bidentate adsorbate sites.
+            Defaults to 0.5 (equivalent to 50%)
+            
             normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
-            Defaults to "svd"
+            Defaults to "mean"
             
             weight (float): weight for gcbh.
             Defaults to 1.
