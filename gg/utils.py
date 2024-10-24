@@ -80,13 +80,14 @@ def get_normals(
     ads_pos[0] = np.array([0, 0, 0])
     for i, j in enumerate(index[1:]):
         atom = atoms[j]
-        edge_data = g.get_edge_data(node_symbol(atoms[initial]), node_symbol(atom))
-        vector = edge_data["weight2"]
-        start = edge_data["start"]
-        if start == initial:
-            ads_pos[i + 1] = vector
-        else:
-            ads_pos[i + 1] = -vector
+        if g.has_edge(node_symbol(atoms[initial]), node_symbol(atom)):
+            edge_data = g.get_edge_data(node_symbol(atoms[initial]), node_symbol(atom))
+            vector = edge_data["weight2"]
+            start = edge_data["start"]
+            if start == initial:
+                ads_pos[i + 1] = vector
+            else:
+                ads_pos[i + 1] = -vector
 
     ads_pos_sum = np.sum(-ads_pos, axis=0) / len(index)
 

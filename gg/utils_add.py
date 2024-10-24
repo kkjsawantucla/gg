@@ -193,7 +193,7 @@ def generate_add_bi(
         # Get the site information like the normal direction
         normal_1, offset_1 = get_normals(cycle_1, atoms, graph,method = method)
         normal_2, offset_2 = get_normals(cycle_2, atoms, graph,method = method)
-        normal_t, _ = get_normals(cycle_2+cycle_1, atoms, graph,method = method)
+        normal_t, _ = get_normals(list(set(cycle_2+cycle_1)), atoms, graph,method = method)
         unit_normal_1 = normal_1 / norm(normal_1)
         unit_normal_2 = normal_2 / norm(normal_2)
 
