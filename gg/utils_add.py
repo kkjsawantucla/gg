@@ -70,7 +70,6 @@ def generate_surf_sites(
                     ):
                         valid.append(list(cycle))
         total_valid = total_valid + valid
-
     return total_valid
 
 
@@ -82,6 +81,7 @@ def generate_add_mono(
     surf_coord: Union[list, int],
     ad_dist: Union[float, str] = 1.7,
     contact_error: float = 0.2,
+    method: str = "svd",
 ) -> list:
     """
     Args:
@@ -90,8 +90,9 @@ def generate_add_mono(
         graph (nx.Graph):
         index (list):
         surf_coord (list,int):
-        ad_dist (float or str):  Defaults to 1.7.
-        contact_error (float): _ Defaults to 0.2.
+        ad_dist (float or str): Defaults to 1.7.
+        contact_error (float): Defaults to 0.2.
+        method (str): Defaults to "svd".
 
     Returns:
        ase.Atoms:
@@ -100,7 +101,7 @@ def generate_add_mono(
     movie = []
     # This for loops find the best position to add and generate atoms
     for cycle in valid:
-        normal, ref_pos = get_normals(cycle, atoms, graph)
+        normal, ref_pos = get_normals(cycle, atoms, graph, method=method)
         offset = ref_pos
         unit_normal = normal / norm(normal)
 
@@ -151,6 +152,7 @@ def generate_add_bi(
     ad_dist: Union[float, str] = 1.7,
     ads_add_error: float = 0.2,
     contact_error: float = 0.2,
+    method: str = "svd"
 ):
     """
     Args:
@@ -169,6 +171,7 @@ def generate_add_bi(
     # Get all possible sites
     valid_sites = generate_surf_sites(atoms, graph, surf_index, surf_coord)
     ads_bi_dist = norm(ads[ads_index[0]].position - ads[ads_index[1]].position)
+    cell = atoms.cell[:]
 
     # Of all the sites , consider of pair of sites which can adsorb bidentate ligand/ads
     valid_bi_sites = []
@@ -178,7 +181,7 @@ def generate_add_bi(
     for sites in possible:
         ref1 = get_ref_pos_index(sites[0], atoms, graph)
         ref2 = get_ref_pos_index(sites[1], atoms, graph)
-        diff = norm(ref1 - ref2)
+        diff = minimum_image_distance(ref1,ref2,cell)
         if is_within_tolerance(diff, ads_bi_dist, ads_bi_dist * ads_add_error):
             valid_bi_sites.append(sites)
 
@@ -188,17 +191,20 @@ def generate_add_bi(
         cycle_1, cycle_2 = sites
 
         # Get the site information like the normal direction
-        normal_1, offset_1 = get_normals(cycle_1, atoms, graph)
-        normal_2, offset_2 = get_normals(cycle_2, atoms, graph)
+        normal_1, offset_1 = get_normals(cycle_1, atoms, graph,method = method)
+        normal_2, offset_2 = get_normals(cycle_2, atoms, graph,method = method)
+        normal_t, _ = get_normals(cycle_2+cycle_1, atoms, graph,method = method)
         unit_normal_1 = normal_1 / norm(normal_1)
         unit_normal_2 = normal_2 / norm(normal_2)
 
-        diff = norm(offset_1 - offset_2)
+        diff = minimum_image_distance(offset_1,offset_2,cell)
+        diff_og = norm(offset_2-offset_1)
 
         if isinstance(ad_dist[0], str):
             offset_1 = get_offset(
                 offset_1, ad_dist[0], cycle_1, unit_normal_1, atoms, ads_copy
             )
+
         elif isinstance(ad_dist[0], float):
             if ad_dist < np.average([covalent_radii[atoms[i].number] for i in cycle_1]):
                 print("Issue in distance of adsorbate and substrate")
@@ -216,7 +222,10 @@ def generate_add_bi(
                 continue
             else:
                 offset_2 += ad_dist[1] * unit_normal_1
-        target_vector = offset_2 - offset_1
+        if abs(diff-diff_og)>0.001:
+            target_vector = minimum_image_distance(offset_1,offset_2,cell,get_norm=False)
+        else:
+            target_vector = offset_2 - offset_1
         if diff > ads_bi_dist:
             target_pos = (
                 offset_1
@@ -224,9 +233,8 @@ def generate_add_bi(
             )
         else:
             target_pos = offset_1
-        new_norm = normal_1 + normal_2
         ads_copy = rotate_atoms_bi_along_vector(
-            ads_copy, ads_index, target_vector, target_pos, new_norm
+            ads_copy, ads_index, target_vector, target_pos, normal_t
         )
         atoms_copy = add_ads(atoms, ads_copy, offset=[0, 0, 0])
         # Make a final check if atoms are too close to each other
@@ -433,8 +441,8 @@ def angle_between(v1, v2):
     """
     # Compute dot product and magnitudes
     dot_product = np.dot(v1, v2)
-    magnitude_v1 = np.linalg.norm(v1)
-    magnitude_v2 = np.linalg.norm(v2)
+    magnitude_v1 = norm(v1)
+    magnitude_v2 = norm(v2)
 
     # Compute cosine of the angle
     cos_angle = dot_product / (magnitude_v1 * magnitude_v2)
@@ -447,3 +455,25 @@ def angle_between(v1, v2):
     angle_degrees = np.degrees(angle_radians)
 
     return angle_degrees
+
+def minimum_image_distance(coord1, coord2, cell,get_norm=True):
+    """
+    Calculate the minimum image distance between two 3D coordinates in a periodic cell.
+
+    Parameters:
+    coord1 (tuple): A tuple representing the first coordinate (x1, y1, z1).
+    coord2 (tuple): A tuple representing the second coordinate (x2, y2, z2).
+    cell (array-like): A 3x3 array representing the periodic cell vectors.
+
+    Returns:
+    float: The minimum image distance between the two coordinates.
+    """
+    coord1 = np.array(coord1, dtype=np.float64)
+    coord2 = np.array(coord2, dtype=np.float64)
+    cell = np.array(cell, dtype=np.float64)
+    delta = coord2 - coord1
+    delta -= np.round(delta @ np.linalg.inv(cell)) @ cell
+    if get_norm:
+        return norm(delta)
+    else:
+        return delta

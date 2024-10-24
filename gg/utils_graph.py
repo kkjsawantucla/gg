@@ -36,7 +36,6 @@ def relative_position(atoms: Atoms, neighbor: int, offset: np.array) -> np.array
     """
     return atoms[neighbor].position + np.dot(offset, atoms.get_cell())
 
-
 def node_match(n1: str, n2: str) -> bool:
     """
     Args:

@@ -28,6 +28,7 @@ class Add(ParentModifier):
         unique: bool = True,
         ads_rotate: bool = True,
         weight: float = 1,
+        normal_method: str = "svd",
     ):
         """
         Args:
@@ -52,6 +53,9 @@ class Add(ParentModifier):
             unique (bool, optional): return only unique sites.
             Defaults to True.
             
+            normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
+            Defaults to "svd"
+            
             weight (float): weight for gcbh.
             Defaults to 1.
         """
@@ -75,6 +79,7 @@ class Add(ParentModifier):
         self.print_movie = print_movie
         self.unique = unique
         self.ads_rotate = ads_rotate
+        self.method = normal_method
 
         #Check multiple possibilities of adsorbate
         if isinstance(self.ad_dist, list):
@@ -114,6 +119,12 @@ class Add(ParentModifier):
         df_ind = self.ss.get_sites(self.atoms)
         g = self.ss.get_graph(self.atoms)
         index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
+
+        if not index:
+            raise NoReasonableStructureFound(
+                "No surface sites found, check your Sites Class"
+            )
+
         movie = []
         for i, ads in enumerate(self.ads_list):
             # Read gg.utils_add to understand the working
@@ -125,6 +136,7 @@ class Add(ParentModifier):
                 self.surf_coord,
                 ad_dist=self.ad_dist_list[i],
                 contact_error=self.ss.contact_error,
+                method = self.method
             )
         if not movie:
             raise NoReasonableStructureFound(
@@ -159,6 +171,7 @@ class AddBi(Add):
         ads_rotate: bool = True,
         add_ads_error: float = 0.25,
         weight: float = 1,
+        normal_method: str = "svd",
     ):
         """
         Args:
@@ -187,6 +200,9 @@ class AddBi(Add):
             ads_rotate (bool,optional): Rotate atoms such that they point in +z direction.
             Defaults to True.
             
+            normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
+            Defaults to "svd"
+            
             weight (float): weight for gcbh.
             Defaults to 1.
         """
@@ -199,7 +215,8 @@ class AddBi(Add):
             print_movie = print_movie,
             unique=unique,
             ads_rotate=ads_rotate,
-            weight=weight
+            weight=weight,
+            normal_method=normal_method,
         )
 
         self.ads_id_list = ads_id
@@ -263,6 +280,11 @@ class AddBi(Add):
         df_ind = self.ss.get_sites(self.atoms)
         g = self.ss.get_graph(self.atoms)
         index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
+
+        if not index:
+            raise NoReasonableStructureFound(
+                "No surface sites found, check your Sites Class"
+            )
         movie = []
 
         for i, ads_id in enumerate(self.ads_id_list):
@@ -277,6 +299,7 @@ class AddBi(Add):
                 ads_index=ads_id,
                 contact_error=self.ss.contact_error,
                 ads_add_error=self.ads_add_error,
+                method = self.method
             )
         if not movie:
             raise NoReasonableStructureFound(

@@ -61,13 +61,15 @@ def add_ads(atoms: Atoms, ads: Atoms, offset: float) -> Atoms:
     return sub
 
 
-def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.array]:
+def get_normals(
+    index: list, atoms: Atoms, g: nx.Graph, method="svd"
+) -> Tuple[np.array, np.array]:
     """
     Args:
         index (_type_):
         atoms (ase.Atoms):
         G (nx.Graph):
-
+        method:
     Returns:
         normal vector, reference position:
     """
@@ -103,12 +105,17 @@ def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.ar
                 else:
                     normal = -vector
                 normal = normal + ads_pos_sum + ads_pos[i]
-                normals.append(normal / norm(normal))
-    v = np.array(normals)
+                normals.append(normal)
 
+    v = np.array(normals)
     # Find the direction that best represents the empty space around the adsorption cluster
-    _, _, vt = np.linalg.svd(v)
-    vt = vt[-1]
+    _, s, vt = np.linalg.svd(v, full_matrices=False)
+    rank = np.sum(s > 1e-8)
+
+    if rank < 3 or method == "svd":
+        vt = vt[-1]
+    elif method == "mean":
+        vt = np.mean(v, axis=0)
 
     # The best normal could be +Vt or -Vt
     matrix1 = np.array([vt, -vt])
@@ -116,7 +123,6 @@ def get_normals(index: list, atoms: Atoms, g: nx.Graph) -> Tuple[np.array, np.ar
     sums_per_vector = np.sum(dot_products, axis=1)
     max_index = np.argmax(sums_per_vector)
     vector_with_smallest_sum = matrix1[max_index]
-
     # Return the vector direction and position from where to start
     ref_pos = ads_pos_sum + atoms[initial].position
     return vector_with_smallest_sum, ref_pos
@@ -231,7 +237,7 @@ def replace(atoms: Atoms, replace_with: Union[str, Atoms], offset: np.array) -> 
 def is_within_tolerance(value: float, target: float, tolerance: float) -> bool:
     """
     Check if a value is within a specified tolerance of a target value.
-    
+
     Parameters:
     value (float): The number to check.
     target (float): The target number.
@@ -242,12 +248,13 @@ def is_within_tolerance(value: float, target: float, tolerance: float) -> bool:
     """
     return abs(value - target) <= tolerance
 
+
 def get_ref_pos_index(index: list, atoms: Atoms, g: nx.Graph) -> np.array:
     """
     Args:
-        index (list): 
-        atoms (Atoms): 
-        g (nx.Graph): 
+        index (list):
+        atoms (Atoms):
+        g (nx.Graph):
 
     Returns:
         np.array:

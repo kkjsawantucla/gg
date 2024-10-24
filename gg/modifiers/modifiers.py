@@ -363,7 +363,7 @@ class Swap(
                 del atoms
         if not movie:
             raise NoReasonableStructureFound(
-                "Movie was empty, most likely due to issues with atoms touching in Add Modifier"
+                "Movie was empty"
             )
         if self.print_movie:
             if self.unique:
