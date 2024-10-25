@@ -56,3 +56,6 @@ Base: :ref:`Add Bidentate`
    * - ---add_ads_error / -ads_err
      - float
      - Allowable distance between two sites for adsorption
+   * - ---norm_method / -norm_method
+     - str
+     - Method to calculate normals

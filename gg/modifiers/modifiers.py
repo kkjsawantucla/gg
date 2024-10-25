@@ -107,19 +107,22 @@ class ModifierAdder(ParentModifier):
             else:
                 return movie
         else:
+            atoms = self.atoms
             for instance in self.modifier_instances:
-                self.atoms = instance.get_modified_atoms(self.atoms)
-                if isinstance(self.atoms, list):
+                atoms = instance.get_modified_atoms(atoms)
+                if isinstance(atoms, list):
                     raise NoReasonableStructureFound(
-                        f"Switch Print Movie for instance {instance}"
+                        f"Switch off Print Movie for instance {instance}"
                     )
-            return self.atoms
+            return atoms
 
 
 class Rattle(ParentModifier):
     """Modifier that rattles the atoms with some stdev"""
 
-    def __init__(self, weight: float = 1, stdev: float = 0.001, contact_error: float = 0.2):
+    def __init__(
+        self, weight: float = 1, stdev: float = 0.001, contact_error: float = 0.2
+    ):
         self.stdev = stdev
         self.contact_error = contact_error
         super().__init__(weight)
@@ -277,18 +280,18 @@ class Swap(
         """
         Args:
             surface_sites (gg.Sites): Class which figures out surface sites
-            
+
             swap_sym (list): List of atom symbols that are allowed to swap
-            
-            swap_ind (list): List of indices to swap. 
+
+            swap_ind (list): List of indices to swap.
             Default to None.
-            
+
             print_movie (bool, optional): Return a movie of all sites or one random site.
             Defaults to False.
-            
+
             unique (bool, optional): Return only unique sites.
             Defaults to True
-            
+
             weight (float): weight for gcbh.
             Defaults to 1.
         """
@@ -362,9 +365,7 @@ class Swap(
                 movie.append(atoms)
                 del atoms
         if not movie:
-            raise NoReasonableStructureFound(
-                "Movie was empty"
-            )
+            raise NoReasonableStructureFound("Movie was empty")
         if self.print_movie:
             if self.unique:
                 return get_unique_atoms(
