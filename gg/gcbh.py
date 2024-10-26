@@ -506,7 +506,7 @@ class Gcbh(Dynamics):
         Args:
             atoms (_type_): _description_
         """
-        if self.c["check_graph"]:
+        if self.c["check_graphs"]:
             nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
             nl.update(atoms)
             new_g = atoms_to_graph(
