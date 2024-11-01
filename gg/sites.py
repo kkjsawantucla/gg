@@ -87,6 +87,7 @@ class FlexibleSites(Sites):
         index: list = None,
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
+        com: Optional[bool] = True,
         contact_error: Optional[float] = 0.2,
     ):
         """
@@ -105,6 +106,8 @@ class FlexibleSites(Sites):
         else:
             raise RuntimeError("Specify either index or constraints")
 
+        self.com = com
+
     def get_sites(self, atoms: Atoms) -> list:
         """
         Args:
@@ -115,9 +118,12 @@ class FlexibleSites(Sites):
         """
         if self.index:
             index = self.index
-
         else:
             index = range(len(atoms))
+
+        if self.com:
+            com = atoms.get_center_of_mass()[2]
+            index = [i for i in index if atoms[i].position[2] > com]
 
         if self.constraints:
             constrained_indices = set()
@@ -146,13 +152,13 @@ class SurfaceSites(Sites):
         Args:
             max_coord (dict): Dictionary of the maximum coordination of each element used.
             Only atoms with coordination less than this value will be considered.
-            
+
             max_bond_ratio (float): Tolerance in the sum of covallent radii between two atoms to be considered a bond.
             Defaults to 1.2 (equivalent to 20% tolerance)
-            
+
             max_bond (float): Maximum distance of a bond allowed, ignored if equal to zero.
             Defaults to 0
-            
+
             Contact Error (float): To ensure atoms arent too close to each other, the fraction of tolerance allowed.
             Defaults to 0.2 (equivalent to 20% tolerance)
 
@@ -170,10 +176,10 @@ class SurfaceSites(Sites):
         """
         Args:
             atoms (ase.Atoms): Atoms object to determine sites.
-            
+
             self_interaction (bool): Input of ase.neighborlist.
             Defaults to True.
-            
+
             bothways (bool): Input of ase.neighborlist.
             Defaults to False.
 
