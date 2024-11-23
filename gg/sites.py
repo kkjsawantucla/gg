@@ -85,6 +85,7 @@ class FlexibleSites(Sites):
         self,
         constraints: bool = False,
         index: list = None,
+        tag: bool = False,
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
         com: Optional[bool] = True,
@@ -97,12 +98,15 @@ class FlexibleSites(Sites):
 
             index (list, optional): If list if indices is give, it will be used as it is.
             Defaults to None.
+
+            tag (bool, optional): If true, only atoms which have tag == -1 are considered
         """
         super().__init__(max_bond_ratio, max_bond, contact_error)
 
-        if index is not None or constraints is True:
+        if index is not None or constraints is True or tag is True:
             self.index = index
             self.constraints = constraints
+            self.tag = tag
         else:
             raise RuntimeError("Specify either index or constraints")
 
@@ -124,6 +128,9 @@ class FlexibleSites(Sites):
         if self.com:
             com = atoms.get_center_of_mass()[2]
             index = [i for i in index if atoms[i].position[2] > com]
+
+        if self.tag:
+            index = [i for i in index if atoms[i].tag == -1]
 
         if self.constraints:
             constrained_indices = set()

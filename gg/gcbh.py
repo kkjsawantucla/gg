@@ -52,16 +52,16 @@ class Gcbh(Dynamics):
 
         Args:
             atoms (ase.Atoms): The Atoms object to operate on.
-            
+
             logfile (str, optional): If *logfile* is a string, a file will be opened.
             Defaults to "gcbh.log".
-            
+
             trajectory (str, optional): Pickle file used to store the trajectory of atomic movement.
             Defaults to "gcbh.traj".
-            
+
             config_file (str[.yaml file], optional): Input file to gcbh. Defaults to None.
             restart (bool, optional):
-            
+
             optimizer: ase optimizer for geometric relaxation.
             Defaults to ase.optimize.BFGS
         """
@@ -82,7 +82,9 @@ class Gcbh(Dynamics):
             "temp": 1500,
             "max_temp": None,
             "min_temp": None,
-            "stop_steps": 400,
+            "stop_steps": 40,
+            "stop_opt": 500,
+            "vasp_opt": False,
             "chemical_potential": None,
             "max_history": 25,
             "max_bond": 2,
@@ -334,9 +336,9 @@ class Gcbh(Dynamics):
     def initialize(self):
         """Initialize Atoms"""
         self.c["opt_on"] = 0
-        self.atoms = self.optimize(self.atoms)
+        self.atoms, en = self.optimize(self.atoms)
         self.dump(self.status_file)
-        self.c["energy"] = self.atoms.get_potential_energy()
+        self.c["energy"] = en
         ref = self.get_ref_potential(self.atoms)
         self.c["fe"] = self.c["energy"] - ref
         self.c["fe_min"] = self.c["fe"]
@@ -356,7 +358,7 @@ class Gcbh(Dynamics):
         Args:
             steps (int): Number of steps to run
             Defaults to 4000
-            
+
             maximum_trial (int): Number of failed modification steps before terminating.
             Defaults to 30
         """
@@ -395,16 +397,17 @@ class Gcbh(Dynamics):
                             f"One structure found with modifier {modifier_name}"
                         )
                         self.dump(self.status_file)
-                        converged_atoms = self.optimize(newatoms)
+                        converged_atoms, en = self.optimize(newatoms)
                         self.traj.write(converged_atoms)
                         self.append_graph(converged_atoms)
-                        en = converged_atoms.get_potential_energy()
                         if self.c["opt_on"] == -1 or en < -100000:
                             self.c["opt_on"] = -1
                             self.c["nsteps"] += 1
                             continue
                         self.logtxt(f"Optimization Done with E = {en:.2f}")
-                        self.accepting_new_structures(converged_atoms, modifier_name)
+                        self.accepting_new_structures(
+                            converged_atoms, modifier_name, en
+                        )
                         self.c["opt_on"] = -1  # switch off the optimization status
                         self.dump(self.status_file)
                         self.c["nsteps"] += 1
@@ -413,17 +416,18 @@ class Gcbh(Dynamics):
                         self.logtxt("Atoms object visited previously")
                         continue
             else:
-                self.logtxt(f"Program does not find a good structure after {trials+1} tests")
+                self.logtxt(
+                    f"Program does not find a good structure after {trials+1} tests"
+                )
                 raise RuntimeError(
                     f"Program does not find a good structure after {trials+1} tests"
                 )
 
-    def accepting_new_structures(self, newatoms: Atoms, modifier_name: str):
+    def accepting_new_structures(self, newatoms: Atoms, modifier_name: str, en):
         """This function takes care of all the accepting algorithms. I.E metropolis algorithms
         newatoms is the newly optimized structure
         """
-        assert newatoms is not None
-        en = newatoms.get_potential_energy()  # Energy_new
+        assert newatoms is not None  # Energy_new
         fn = en - self.get_ref_potential(newatoms)  # Free_energy_new
 
         if fn < self.c["fe"]:
@@ -470,7 +474,7 @@ class Gcbh(Dynamics):
         self.dump(self.status_file)
         self.logtxt("-------------------------------------------------------")
 
-    def optimize(self, atoms: Atoms, fmax: float = 0.05, steps: int = 500):
+    def optimize(self, atoms: Atoms, fmax: float = 0.05):
         """Optimize atoms"""
         optimizer = self.optimizer
         if atoms.get_calculator() is None:
@@ -485,21 +489,25 @@ class Gcbh(Dynamics):
         if not os.path.isdir(subdir):
             os.makedirs(subdir)
         os.chdir(subdir)
-        atoms.write("POSCAR", format="vasp")
-        dyn = optimizer(atoms, trajectory="opt.traj", logfile="opt.log")
-        dyn.run(fmax=fmax, steps=steps)
-        if dyn.nsteps == steps:
-            self.logtxt(
-                f'Optimization is incomplete in {steps} steps, ignore gcbh {self.c["nsteps"]} step'
-            )
-            self.c["opt_on"] = -1
+        if self.c["vasp_opt"]:
+            en = atoms.get_potential_energy()
         else:
-            atoms.write("CONTCAR", format="vasp")
-            self.logtxt(
-                f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
-            )
+            atoms.write("POSCAR", format="vasp")
+            dyn = optimizer(atoms, trajectory="opt.traj", logfile="opt.log")
+            dyn.run(fmax=fmax, steps=self.c["stop_opt"])
+            if dyn.nsteps == self.c["stop_opt"]:
+                self.logtxt(
+                    f'Optimization is incomplete in {self.c["stop_opt"]} steps, ignore gcbh {self.c["nsteps"]} step'
+                )
+                self.c["opt_on"] = -1
+            else:
+                atoms.write("CONTCAR", format="vasp")
+                self.logtxt(
+                    f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
+                )
+            en = atoms.get_potential_energy()
         os.chdir(topdir)
-        return atoms
+        return atoms, en
 
     def append_graph(self, atoms):
         """Append the graph to list if its unique
@@ -507,7 +515,9 @@ class Gcbh(Dynamics):
             atoms (_type_): _description_
         """
         if self.c["check_graphs"]:
-            nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
+            nl = NeighborList(
+                natural_cutoffs(atoms), self_interaction=False, bothways=True
+            )
             nl.update(atoms)
             new_g = atoms_to_graph(
                 atoms,

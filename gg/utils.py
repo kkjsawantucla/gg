@@ -35,7 +35,7 @@ def custom_copy(atoms: Atoms) -> Atoms:
 
 
 # Function to ad adsorbate to atoms object
-def add_ads(atoms: Atoms, ads: Atoms, offset: float) -> Atoms:
+def add_ads(atoms: Atoms, ads: Atoms, offset: float, tag: bool = False) -> Atoms:
     """Add adsorbate on a substrate with a particular offset
     Args:
         atoms (Atoms Object): Substrate
@@ -52,6 +52,10 @@ def add_ads(atoms: Atoms, ads: Atoms, offset: float) -> Atoms:
         _ads = ads.copy()
     else:
         print("Please provide proper adsorbate file")
+
+    if tag:
+        for atom in _ads:
+            atom.tag = -1
     for atom in _ads:
         atom.position[0] = atom.position[0] + offset[0]
         atom.position[1] = atom.position[1] + offset[1]

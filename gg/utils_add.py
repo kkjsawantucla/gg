@@ -82,6 +82,7 @@ def generate_add_mono(
     ad_dist: Union[float, str] = 1.7,
     contact_error: float = 0.2,
     method: str = "svd",
+    tag: bool = True,
 ) -> list:
     """
     Args:
@@ -132,7 +133,7 @@ def generate_add_mono(
                 offset += ad_dist * unit_normal
         ads_copy = ads.copy()
         ads_copy.rotate([0, 0, 1], normal, center=[0, 0, 0])
-        atoms_copy = add_ads(atoms, ads_copy, offset=offset)
+        atoms_copy = add_ads(atoms, ads_copy, offset=offset, tag=tag)
 
         # Make a final check if atoms are too close to each other
         if check_contact(atoms_copy, error=contact_error):
@@ -152,7 +153,8 @@ def generate_add_bi(
     ad_dist: Union[float, str] = 1.7,
     ads_add_error: float = 0.2,
     contact_error: float = 0.2,
-    method: str = "svd"
+    method: str = "svd",
+    tag: bool = True,
 ):
     """
     Args:
@@ -181,7 +183,7 @@ def generate_add_bi(
     for sites in possible:
         ref1 = get_ref_pos_index(sites[0], atoms, graph)
         ref2 = get_ref_pos_index(sites[1], atoms, graph)
-        diff = minimum_image_distance(ref1,ref2,cell)
+        diff = minimum_image_distance(ref1, ref2, cell)
         if is_within_tolerance(diff, ads_bi_dist, ads_bi_dist * ads_add_error):
             valid_bi_sites.append(sites)
 
@@ -191,14 +193,16 @@ def generate_add_bi(
         cycle_1, cycle_2 = sites
 
         # Get the site information like the normal direction
-        normal_1, offset_1 = get_normals(cycle_1, atoms, graph,method = method)
-        normal_2, offset_2 = get_normals(cycle_2, atoms, graph,method = method)
-        normal_t, _ = get_normals(list(set(cycle_2+cycle_1)), atoms, graph,method = method)
+        normal_1, offset_1 = get_normals(cycle_1, atoms, graph, method=method)
+        normal_2, offset_2 = get_normals(cycle_2, atoms, graph, method=method)
+        normal_t, _ = get_normals(
+            list(set(cycle_2 + cycle_1)), atoms, graph, method=method
+        )
         unit_normal_1 = normal_1 / norm(normal_1)
         unit_normal_2 = normal_2 / norm(normal_2)
 
-        diff = minimum_image_distance(offset_1,offset_2,cell)
-        diff_og = norm(offset_2-offset_1)
+        diff = minimum_image_distance(offset_1, offset_2, cell)
+        diff_og = norm(offset_2 - offset_1)
 
         if isinstance(ad_dist[0], str):
             offset_1 = get_offset(
@@ -222,8 +226,10 @@ def generate_add_bi(
                 continue
             else:
                 offset_2 += ad_dist[1] * unit_normal_1
-        if abs(diff-diff_og)>0.001:
-            target_vector = minimum_image_distance(offset_1,offset_2,cell,get_norm=False)
+        if abs(diff - diff_og) > 0.001:
+            target_vector = minimum_image_distance(
+                offset_1, offset_2, cell, get_norm=False
+            )
         else:
             target_vector = offset_2 - offset_1
         if diff > ads_bi_dist:
@@ -236,7 +242,7 @@ def generate_add_bi(
         ads_copy = rotate_atoms_bi_along_vector(
             ads_copy, ads_index, target_vector, target_pos, normal_t
         )
-        atoms_copy = add_ads(atoms, ads_copy, offset=[0, 0, 0])
+        atoms_copy = add_ads(atoms, ads_copy, offset=[0, 0, 0], tag=tag)
         # Make a final check if atoms are too close to each other
         if check_contact(atoms_copy, error=contact_error):
             continue
@@ -385,7 +391,7 @@ def rotate_atoms_bi_along_vector(
             atoms.rotate(-rotation_angle, rotation_vector)
 
     if norm(new_norm) > 0.001:
-        positions = [0,0,1]
+        positions = [0, 0, 1]
         # Rotate along the target vector
         rotation_angle = angle_between(positions, new_norm)
         cross_product = np.cross(positions, new_norm)
@@ -456,7 +462,8 @@ def angle_between(v1, v2):
 
     return angle_degrees
 
-def minimum_image_distance(coord1, coord2, cell,get_norm=True):
+
+def minimum_image_distance(coord1, coord2, cell, get_norm=True):
     """
     Calculate the minimum image distance between two 3D coordinates in a periodic cell.
 

@@ -29,6 +29,7 @@ class Add(ParentModifier):
         ads_rotate: bool = True,
         weight: float = 1,
         normal_method: str = "svd",
+        tag: bool = True,
     ):
         """
         Args:
@@ -39,11 +40,11 @@ class Add(ParentModifier):
             surf_coord (list[int]): How many bonds the adsorbate will make with the surface
 
             surf_sym (list[str]): Surface elements where adsorbate can add
-            
+
             ads_id (list[float]): Strings denoting chemical symbol of adsorbate atom
             Defaults to None
 
-            ads_dist (str, optional): Distance of adsorbate from surface site, 
+            ads_dist (str, optional): Distance of adsorbate from surface site,
             if ads_id is mentioned, this variable is ignored.
             Defaults to 1.8.
 
@@ -52,10 +53,10 @@ class Add(ParentModifier):
 
             unique (bool, optional): return only unique sites.
             Defaults to True.
-            
+
             normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
             Defaults to "svd"
-            
+
             weight (float): weight for gcbh.
             Defaults to 1.
         """
@@ -80,15 +81,17 @@ class Add(ParentModifier):
         self.unique = unique
         self.ads_rotate = ads_rotate
         self.method = normal_method
+        self.tag = tag
 
-        #Check multiple possibilities of adsorbate
+        # Check multiple possibilities of adsorbate
         if isinstance(self.ad_dist, list):
             if all(isinstance(item, str) for item in self.ad_dist):
-                self.ads_list, self.ad_dist_list = self.get_all_adsorbates(self.ads, self.ad_dist)
+                self.ads_list, self.ad_dist_list = self.get_all_adsorbates(
+                    self.ads, self.ad_dist
+                )
         else:
             self.ads_list = [self.ads]
             self.ad_dist_list = [self.ad_dist]
-
 
     def get_all_adsorbates(self, atoms: Atoms, chem_symbol_list) -> list:
         """
@@ -136,7 +139,8 @@ class Add(ParentModifier):
                 self.surf_coord,
                 ad_dist=self.ad_dist_list[i],
                 contact_error=self.ss.contact_error,
-                method = self.method
+                method=self.method,
+                tag=self.tag,
             )
         if not movie:
             raise NoReasonableStructureFound(
@@ -171,6 +175,7 @@ class AddBi(Add):
         ads_rotate: bool = True,
         add_ads_error: float = 0.5,
         normal_method: str = "mean",
+        tag: bool = True,
         weight: float = 1,
     ):
         """
@@ -196,16 +201,16 @@ class AddBi(Add):
 
             unique (bool, optional): Return only unique sites.
             Defaults to True.
-            
+
             ads_rotate (bool,optional): Rotate atoms such that they point in +z direction.
             Defaults to True.
-            
+
             add_ads_error (float): The error in distance between bidentate adsorbate sites.
             Defaults to 0.5 (equivalent to 50%)
-            
+
             normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
             Defaults to "mean"
-            
+
             weight (float): weight for gcbh.
             Defaults to 1.
         """
@@ -215,11 +220,12 @@ class AddBi(Add):
             surf_coord=surf_coord,
             surf_sym=surf_sym,
             ads_dist=ads_dist,
-            print_movie = print_movie,
+            print_movie=print_movie,
             unique=unique,
             ads_rotate=ads_rotate,
             weight=weight,
             normal_method=normal_method,
+            tag=tag,
         )
 
         self.ads_id_list = ads_id
@@ -276,7 +282,7 @@ class AddBi(Add):
         Args:
             atoms (ase.Atoms): The atoms object on which the adsorbate will be added
         Returns:
-            ase.Atoms if print_movie = True, 
+            ase.Atoms if print_movie = True,
             list[ase.Atoms] if print_movie = False
         """
         self.atoms = atoms
@@ -302,7 +308,8 @@ class AddBi(Add):
                 ads_index=ads_id,
                 contact_error=self.ss.contact_error,
                 ads_add_error=self.ads_add_error,
-                method = self.method
+                method=self.method,
+                tag=self.tag,
             )
         if not movie:
             raise NoReasonableStructureFound(

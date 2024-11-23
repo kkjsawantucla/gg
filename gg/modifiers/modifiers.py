@@ -140,6 +140,56 @@ class Rattle(ParentModifier):
             return self.atoms
 
 
+class Translate(ParentModifier):
+    """Modifier that adds an monodentate adsorbate"""
+
+    def __init__(
+        self,
+        surface_sites: SurfaceSites,
+        translate: tuple = (True, True, True),
+        max_translate: tuple = (0.2, 0.2, 0.2),
+        surf_sym: list = None,
+        pick_random: bool = False,
+        contact_error: float = 0.2,
+        weight: float = 1,
+    ):
+        """
+        Args:
+
+        """
+        super().__init__(weight)
+        self.ss = surface_sites
+        self.translate = translate
+        self.max_translate = max_translate
+        self.surf_sym = surf_sym
+        self.ran = pick_random
+        self.contact_error = contact_error
+
+    def get_modified_atoms(self, atoms: Atoms) -> Atoms:
+        self.atoms = atoms
+        df_ind = self.ss.get_sites(self.atoms)
+        if self.surf_sym:
+            index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
+        else:
+            index = df_ind
+
+        if self.ran:
+            index = [np.random.choice]
+
+        disp = [
+            np.random.uniform(-max_val, max_val) if truth else 0
+            for truth, max_val in zip(self.translate, self.max_translate)
+        ]
+
+        for i in index:
+            self.atoms[i].position += disp
+
+        if check_contact(self.atoms, error=self.contact_error):
+            raise NoReasonableStructureFound("Atoms Touching")
+        else:
+            return self.atoms
+
+
 class Remove(
     ParentModifier,
 ):

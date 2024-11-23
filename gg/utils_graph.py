@@ -36,6 +36,7 @@ def relative_position(atoms: Atoms, neighbor: int, offset: np.array) -> np.array
     """
     return atoms[neighbor].position + np.dot(offset, atoms.get_cell())
 
+
 def node_match(n1: str, n2: str) -> bool:
     """
     Args:
@@ -265,3 +266,27 @@ def draw_graph(graph: nx.Graph, graph_type: str = "none", **kwargs) -> plt.figur
         nx.draw(graph, pos=layout, node_color=color, edgecolors=edgecolors, **kwargs)
     plt.draw()
     plt.show()
+
+def get_connecting_nodes(graph: nx.Graph, cluster_ind: list, atoms: Atoms) -> list:
+    """
+    Find nodes that connect the cluster to the rest of the graph and return their 'index' attribute.
+
+    Parameters:
+    graph (nx.Graph): The input graph.
+    cluster_nodes (list): The list of nodes in the cluster.
+
+    Returns:
+    list: A list of 'index' are part of the connecting edges to the cluster.
+    """
+    cluster_nodes = [node_symbol(atoms[i]) for i in cluster_ind]
+    cluster = set(cluster_nodes)
+    connecting_nodes = set()
+
+    for node in cluster:
+        for neighbor in graph.neighbors(node):
+            if neighbor not in cluster:
+                connecting_nodes.add(neighbor)
+
+    # Get the 'index' attribute of each connecting node
+    connecting_indices = [graph.nodes[node]["index"] for node in connecting_nodes]
+    return connecting_indices
