@@ -118,3 +118,51 @@ Swap two atoms on the surface
   :members: get_modified_atoms
   :undoc-members:
   :show-inheritance:
+
+Cluster Rotate
+-----------------------
+
+Rotate a cluster of atoms on the surface
+
+.. code-block:: python
+
+  from gg.modifiers import ClusterRotate
+  from gg.sites import FlexibleSites
+  from ase.io import read
+
+  atoms = read("POSCAR_Pt_TiO2")
+  for a in atoms:
+    if a.symbol=='Pt':
+      a.tag=-1
+  FS = FlexibleSites(tag=True)
+  rotate = ClusterRotate(FS,contact_error=0.2,rotate_vector=(0,0,1))
+  modified_atoms = rotate.get_modified_atoms(atoms)
+
+.. autoclass:: gg.modifiers.cluster.ClusterRotate
+  :members: get_modified_atoms
+  :undoc-members:
+  :show-inheritance:
+
+Cluster Translate
+-----------------------
+
+Translate a cluster of atoms on the surface
+
+.. code-block:: python
+
+  from gg.modifiers import ClusterTranslate
+  from gg.sites import FlexibleSites
+  from ase.io import read
+
+  atoms = read("POSCAR_Pt_TiO2")
+  for a in atoms:
+    if a.symbol=='Pt':
+      a.tag=-1
+  FS = FlexibleSites(tag=True)
+  trans = ClusterTranslate(FS,contact_error=0.2)
+  modified_atoms = trans.get_modified_atoms(atoms)
+
+.. autoclass:: gg.modifiers.cluster.ClusterTranslate
+  :members: get_modified_atoms
+  :undoc-members:
+  :show-inheritance:
