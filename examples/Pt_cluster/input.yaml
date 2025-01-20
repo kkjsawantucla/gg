@@ -1,0 +1,11 @@
+temperature: 300.0
+stop_steps: 40
+stop_opt: 500
+vasp_opt: False
+chemical_potential:
+  Pt: 0.0
+  Ti: 0.0
+  O: 0.0
+
+check_graph: False
+max_bond_ratio: 1.2
