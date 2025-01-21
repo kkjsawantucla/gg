@@ -546,7 +546,10 @@ class Gcbh(Dynamics):
 
 
 class GcbhFlexOpt(Gcbh):
-    """ """
+    """
+    optimizer_file (str): Path to file that will run in opt_n folder
+    copied_files (str): Files to move into opt_n folder to help in optimization 
+    """
 
     def __init__(
         self,
@@ -555,8 +558,8 @@ class GcbhFlexOpt(Gcbh):
         trajectory: str = "gcbh.traj",
         config_file: str = None,
         restart: bool = False,
-        optimizer_file: str = "opt.py",
-        copied_files: list = ["optimize.sh"],
+        optimizer_file: str = "optimize.sh",
+        copied_files: list = ["opt.py"],
     ):
         """
 
