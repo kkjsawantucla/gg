@@ -95,7 +95,6 @@ class ClusterTranslate(ParentModifier):
             value if flag else 0
             for value, flag in zip(random_values, self.allowed_direction)
         )
-        print(displace_vector)
         self.atoms = translate_and_adjust(self.atoms, df_ind, displace_vector, tolerance=0.2)
         if check_contact(self.atoms, error=self.contact_error):
             raise NoReasonableStructureFound("Atoms Touching")

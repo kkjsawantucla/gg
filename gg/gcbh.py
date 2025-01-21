@@ -556,7 +556,7 @@ class GcbhFlexOpt(Gcbh):
         config_file: str = None,
         restart: bool = False,
         optimizer_file: str = "opt.py",
-        copied_files: str = "optimize.sh",
+        copied_files: list = ["optimize.sh"],
     ):
         """
 
@@ -574,10 +574,10 @@ class GcbhFlexOpt(Gcbh):
 
             optimizer (str):
         """
-        super().__init__(atoms, logfile, trajectory, config_file, restart)
 
         self.opt_file = optimizer_file
         self.copied_files = copied_files
+        super().__init__(atoms, logfile, trajectory, config_file, restart)
 
     def optimize(self, atoms: Atoms):
         """Optimize atoms"""
