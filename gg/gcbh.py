@@ -546,8 +546,8 @@ class Gcbh(Dynamics):
 
 
 class GcbhFlexOpt(Gcbh):
-    """ 
-    """
+    """ """
+
     def __init__(
         self,
         atoms: Atoms,
@@ -579,45 +579,45 @@ class GcbhFlexOpt(Gcbh):
         self.opt_file = optimizer_file
         self.copied_files = copied_files
 
-        def optimize(atoms):
-            """Optimize atoms"""
+    def optimize(self, atoms: Atoms):
+        """Optimize atoms"""
 
-            self.logtxt(
-                f'{get_current_time()}: Begin structure optimization routine at step {self.c["nsteps"]}'
-            )
-            script = self.opt_file
-            copied_files = self.copied_files
-            opt_dir = self.opt_folder
-            topdir = os.getcwd()
-            subdir = os.path.join(topdir, opt_dir, f'opt_{self.c["nsteps"]}')
-            if not os.path.isdir(subdir):
-                os.makedirs(subdir)
+        self.logtxt(
+            f'{get_current_time()}: Begin structure optimization routine at step {self.c["nsteps"]}'
+        )
+        script = self.opt_file
+        copied_files = self.copied_files
+        opt_dir = self.opt_folder
+        topdir = os.getcwd()
+        subdir = os.path.join(topdir, opt_dir, f'opt_{self.c["nsteps"]}')
+        if not os.path.isdir(subdir):
+            os.makedirs(subdir)
 
-            if script not in copied_files:
-                copied_files.append(script)
-            for file in copied_files:
-                assert os.path.isfile(file)
-                shutil.copy(os.path.join(topdir, file), os.path.join(subdir, file))
-            atoms.write(os.path.join(subdir, "input.traj"))
+        if script not in copied_files:
+            copied_files.append(script)
+        for file in copied_files:
+            assert os.path.isfile(file)
+            shutil.copy(os.path.join(topdir, file), os.path.join(subdir, file))
+        atoms.write(os.path.join(subdir, "input.traj"))
 
-            try:
-                os.chdir(subdir)
-                opt_job = subprocess.Popen(["bash", script], cwd=subdir)
-                opt_job.wait()
-                if opt_job.returncode < 0:
-                    sys.stderr.write(
-                        f"optimization does not terminate properly at {subdir}"
-                    )
-                    sys.exit(1)
-            except Exception as esc:
-                raise RuntimeError(
-                    f"some error encountered at folder {subdir} during optimizations" 
-                ) from esc
-            else:
-                fn = os.path.join(subdir, "opt.traj")
-                assert os.path.isfile(fn)
-                atoms = read(fn)
-            finally:
-                os.chdir(topdir)
-            en = atoms.get_potential_energy()
-            return atoms, en
+        try:
+            os.chdir(subdir)
+            opt_job = subprocess.Popen(["bash", script], cwd=subdir)
+            opt_job.wait()
+            if opt_job.returncode < 0:
+                sys.stderr.write(
+                    f"optimization does not terminate properly at {subdir}"
+                )
+                sys.exit(1)
+        except Exception as esc:
+            raise RuntimeError(
+                f"some error encountered at folder {subdir} during optimizations"
+            ) from esc
+        else:
+            fn = os.path.join(subdir, "opt.traj")
+            assert os.path.isfile(fn)
+            atoms = read(fn)
+        finally:
+            os.chdir(topdir)
+        en = atoms.get_potential_energy()
+        return atoms, en
