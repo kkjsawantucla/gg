@@ -100,6 +100,18 @@ class FlexibleSites(Sites):
             Defaults to None.
 
             tag (bool, optional): If true, only atoms which have tag == -1 are considered
+            
+            max_bond_ratio (float, optional): While making bonds how much error is allowed.
+            Defaults to 1.2.
+
+            max_bond (float, optional): Fixed bond distance to use, any distance above is ignored.
+            Defaults to 0. If 0 , it is ignored
+            
+            com (bool,optional): If true, dont consider atoms below the center of mass
+            Defaults to True
+
+            contact_error (float, optional): Error allowed if atoms are too close to each other.
+            Defaults to 0.2.
         """
         super().__init__(max_bond_ratio, max_bond, contact_error)
 
