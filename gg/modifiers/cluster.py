@@ -20,7 +20,7 @@ __author__ = "Kaustubh Sawant"
 
 
 class ClusterRotate(ParentModifier):
-    """Modifier that adds an monodentate adsorbate"""
+    """Modifier that rotates a cluster of atoms"""
 
     def __init__(
         self,
@@ -32,7 +32,20 @@ class ClusterRotate(ParentModifier):
     ):
         """
         Args:
+            surface_sites (gg.Sites): Class that figures out surface sites.
 
+            max_angle (float): Maximum rotation angle allowed (degrees).
+            Defaults to 180.
+            
+            rotate_vector (list/tuple): The vector along which the atoms are rotated.
+            If None, the vector normal to the surface is selected.
+            Defaults to None.
+            
+            contact_error: Allowable tolerance in atoms touching
+            Defaults to 0.2.
+
+            weight (float): weight for gcbh.
+            Defaults to 1.
         """
         super().__init__(weight)
         self.ss = surface_sites
@@ -63,7 +76,7 @@ class ClusterRotate(ParentModifier):
 
 
 class ClusterTranslate(ParentModifier):
-    """Modifier that adds an monodentate adsorbate"""
+    """Modifier to translate a cluster of atoms in the unit cell"""
 
     def __init__(
         self,
@@ -75,6 +88,19 @@ class ClusterTranslate(ParentModifier):
     ):
         """
         Args:
+            surface_sites (gg.Sites): Class that figures out surface sites.
+
+            max_displace (float): Maximum displacement allowed (angstrom).
+            Defaults to 5.
+            
+            allowed_direction (tuple(bool)): To allow displacement in x,y,x direction
+            Defaults to (True, True, False), surface movement
+            
+            contact_error: Allowable tolerance in atoms touching
+            Defaults to 0.2.
+
+            weight (float): weight for gcbh.
+            Defaults to 1.
 
         """
         super().__init__(weight)

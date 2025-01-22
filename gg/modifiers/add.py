@@ -56,6 +56,9 @@ class Add(ParentModifier):
 
             normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
             Defaults to "svd"
+            
+            tag (bool): add to tag=-1 to the adsorbate (imp for clusters)
+            Defaults to 1.
 
             weight (float): weight for gcbh.
             Defaults to 1.
@@ -210,6 +213,9 @@ class AddBi(Add):
 
             normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
             Defaults to "mean"
+            
+            tag (bool): add to tag=-1 to the adsorbate (imp for clusters)
+            Defaults to 1.
 
             weight (float): weight for gcbh.
             Defaults to 1.

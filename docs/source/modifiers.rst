@@ -122,7 +122,9 @@ Swap two atoms on the surface
 Cluster Rotate
 -----------------------
 
-Rotate a cluster of atoms on the surface
+Rotate a cluster of atoms
+
+Make sure to tag the cluster atoms using atom.tag = -1
 
 .. code-block:: python
 
@@ -146,7 +148,9 @@ Rotate a cluster of atoms on the surface
 Cluster Translate
 -----------------------
 
-Translate a cluster of atoms on the surface
+Translate a cluster of atoms
+
+Make sure to tag the cluster atoms using atom.tag = -1
 
 .. code-block:: python
 
