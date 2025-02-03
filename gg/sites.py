@@ -1,6 +1,7 @@
 """ Recognizing sites to apply modifier on """
 
 from typing import Optional
+import numpy as np
 from pandas import DataFrame
 from ase import Atoms
 from ase.constraints import FixAtoms
@@ -100,13 +101,13 @@ class FlexibleSites(Sites):
             Defaults to None.
 
             tag (bool, optional): If true, only atoms which have tag == -1 are considered
-            
+
             max_bond_ratio (float, optional): While making bonds how much error is allowed.
             Defaults to 1.2.
 
             max_bond (float, optional): Fixed bond distance to use, any distance above is ignored.
             Defaults to 0. If 0 , it is ignored
-            
+
             com (bool,optional): If true, dont consider atoms below the center of mass
             Defaults to True
 
@@ -165,7 +166,7 @@ class SurfaceSites(Sites):
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
         contact_error: Optional[float] = 0.2,
-        com: Optional[bool] = True,
+        com: Optional[bool] = 0.1,
     ):
         """
         Args:
@@ -228,8 +229,18 @@ class SurfaceSites(Sites):
 
         df = DataFrame(sites)
 
-        if self.com:
-            df = df[df.z_coord > atoms.get_center_of_mass()[2]]
+        # Extract z-coordinates
+        z_values = atoms.get_positions()[:, 2]
+
+        # Get maximum and minimum z-values
+        z_max = np.max(z_values)
+        z_min = np.min(z_values)
+        diff = z_max - z_min
+
+        if self.com > 0:
+            df = df[df.z_coord > z_max - self.com * (diff)]
+        else:
+            df = df[df.z_coord < z_min + self.com * (diff)]
 
         df = df[df.diff_cord > 0]
         df = df.sort_values(by=["cord", "z_coord"])

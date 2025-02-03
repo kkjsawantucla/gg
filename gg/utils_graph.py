@@ -114,7 +114,6 @@ def atoms_to_graph(
         if not g.has_node(node_symbol(atom)):
             g.add_node(node_symbol(atom), index=atom.index, symbol=atom.symbol)
         for neighbor, offset in zip(*nl.get_neighbors(index)):
-            index_n.append(neighbor)
             atom2 = atoms[neighbor]
             vector = atom.position - relative_position(atoms, neighbor, offset)
             distance = np.linalg.norm(vector)
@@ -122,6 +121,7 @@ def atoms_to_graph(
             check = max(max_bond, eqm_radii * max_bond_ratio)
             if distance > check:
                 continue
+            index_n.append(neighbor)
             if not g.has_node(node_symbol(atom2)):
                 g.add_node(node_symbol(atom2), index=atom2.index, symbol=atom2.symbol)
             if not g.has_edge(node_symbol(atom), node_symbol(atom2)):
