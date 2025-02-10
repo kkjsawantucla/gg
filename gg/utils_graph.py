@@ -107,7 +107,6 @@ def atoms_to_graph(
     """
     if max_bond == 0 and max_bond_ratio == 0:
         raise RuntimeError("Please Specify bond information")
-
     g = nx.Graph()
     for index, atom in enumerate(atoms):
         index_n = []

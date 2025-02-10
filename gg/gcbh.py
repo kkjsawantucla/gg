@@ -111,19 +111,19 @@ class Gcbh(Dynamics):
             self.c["min_temp"] = min([self.c["min_temp"], self.c["temp"]])
 
         # Some file names and folders are hardcoded
-        self.current_atoms_name = "CONTCAR"
         self.status_file = "current_status.pkl"
         self.opt_folder = "opt_folder"
 
-        if os.path.exists("local_minima.traj"):
-            self.lm_trajectory = Trajectory("local_minima.traj", "a", atoms)
-        else:
-            self.lm_trajectory = Trajectory("local_minima.traj", "w", atoms)
+        if not restart:
+            if os.path.exists("local_minima.traj"):
+                self.lm_trajectory = Trajectory("local_minima.traj", "a", atoms)
+            else:
+                self.lm_trajectory = Trajectory("local_minima.traj", "w", atoms)
 
-        if os.path.exists(trajectory):
-            self.traj = Trajectory(trajectory, "a", atoms)
-        else:
-            self.traj = Trajectory(trajectory, "w", atoms)
+            if os.path.exists(trajectory):
+                self.traj = Trajectory(trajectory, "a", atoms)
+            else:
+                self.traj = Trajectory(trajectory, "w", atoms)
 
         self.structure_modifiers = {}  # Setup empty class to add structure modifiers
         self.c["acc_hist"] = []
@@ -168,6 +168,7 @@ class Gcbh(Dynamics):
                         print(f'Restarting from {self.c["opt_on"]}')
             else:
                 self.initialize()
+            self.atoms = read("local_minima.traj")
 
         else:
             self.initialize()
@@ -353,6 +354,7 @@ class Gcbh(Dynamics):
         en = self.c["energy"]
         self.append_graph(self.atoms)
         self.traj.write(self.atoms, energy=en)
+        self.lm_trajectory.write(self.atoms, energy=en, accept=1)
         self.logtxt(
             f'Atoms: {formula} E(initial): {en:.2f} F(initial) {self.c["fe"]:.2f}'
         )
