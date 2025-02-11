@@ -10,9 +10,10 @@ import numpy as np
 import yaml
 from ase import Atoms
 from ase import units
-from ase.io import read, write
-from ase.optimize.optimize import Dynamics
+from ase.io import read
 from ase.io.trajectory import Trajectory
+from ase.io.formats import UnknownFileTypeError
+from ase.optimize.optimize import Dynamics
 from ase.optimize import BFGS
 from ase.neighborlist import NeighborList, natural_cutoffs
 from gg.reference import get_ref_coeff
@@ -167,8 +168,10 @@ class Gcbh(Dynamics):
                         print(f'Restarting from {self.c["opt_on"]}')
             else:
                 self.initialize()
-            self.atoms = read("local_minima.traj")
-
+            try:
+                self.atoms = read("local_minima.traj")
+            except UnknownFileTypeError as e:
+                print(f"Cannot read local_minima.traj due to {e}")
         else:
             self.initialize()
 
@@ -549,7 +552,7 @@ class Gcbh(Dynamics):
 class GcbhFlexOpt(Gcbh):
     """
     optimizer_file (str): Path to file that will run in opt_n folder
-    copied_files (str): Files to move into opt_n folder to help in optimization 
+    copied_files (str): Files to move into opt_n folder to help in optimization
     """
 
     def __init__(
