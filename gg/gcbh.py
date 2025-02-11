@@ -114,16 +114,15 @@ class Gcbh(Dynamics):
         self.status_file = "current_status.pkl"
         self.opt_folder = "opt_folder"
 
-        if not restart:
-            if os.path.exists("local_minima.traj"):
-                self.lm_trajectory = Trajectory("local_minima.traj", "a", atoms)
-            else:
-                self.lm_trajectory = Trajectory("local_minima.traj", "w", atoms)
+        if os.path.exists("local_minima.traj"):
+            self.lm_trajectory = Trajectory("local_minima.traj", "a", atoms)
+        else:
+            self.lm_trajectory = Trajectory("local_minima.traj", "w", atoms)
 
-            if os.path.exists(trajectory):
-                self.traj = Trajectory(trajectory, "a", atoms)
-            else:
-                self.traj = Trajectory(trajectory, "w", atoms)
+        if os.path.exists(trajectory):
+            self.traj = Trajectory(trajectory, "a", atoms)
+        else:
+            self.traj = Trajectory(trajectory, "w", atoms)
 
         self.structure_modifiers = {}  # Setup empty class to add structure modifiers
         self.c["acc_hist"] = []
