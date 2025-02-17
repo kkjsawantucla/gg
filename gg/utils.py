@@ -29,7 +29,7 @@ def custom_copy(atoms: Atoms) -> Atoms:
         ase.Atoms
     """
     atoms_copy = atoms.copy()
-    if atoms.get_calculator():
+    if atoms.calc:
         atoms_copy.calc = atoms.calc
     return atoms_copy
 

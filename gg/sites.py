@@ -87,6 +87,7 @@ class FlexibleSites(Sites):
         constraints: bool = False,
         index: list = None,
         tag: bool = False,
+        opp_tag: bool = False,
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
         com: Optional[bool] = True,
@@ -120,8 +121,12 @@ class FlexibleSites(Sites):
             self.index = index
             self.constraints = constraints
             self.tag = tag
+            self.opp_tag = opp_tag
         else:
             raise RuntimeError("Specify either index or constraints")
+
+        if opp_tag and not tag:
+            print("Set tag = True if you want opposite of tag result")
 
         self.com = com
 
@@ -143,7 +148,10 @@ class FlexibleSites(Sites):
             index = [i for i in index if atoms[i].position[2] > com]
 
         if self.tag:
-            index = [i for i in index if atoms[i].tag == -1]
+            if self.opp_tag:
+                index = [i for i in index if atoms[i].tag != -1]
+            else:
+                index = [i for i in index if atoms[i].tag == -1]
 
         if self.constraints:
             constrained_indices = set()

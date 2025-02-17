@@ -2,6 +2,7 @@
 
 from typing import Union
 import networkx as nx
+from networkx.algorithms import weisfeiler_lehman_graph_hash
 import numpy as np
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
@@ -139,22 +140,46 @@ def atoms_to_graph(
 
 
 def get_graph_hash(graph: nx.Graph) -> hash:
-    """
-    Args:
-        graph (nx.Graph): Graph to be hashed
+    """Generate a hash for the graph using node degrees and chemical symbols."""
+    degrees = sorted(dict(graph.degree()).values())  # Degree sequence
+    elements = sorted([data["symbol"] for _, data in graph.nodes(data=True)])
+    return hash((tuple(degrees), tuple(elements)))
 
-    Returns:
-        hash : get hashed representation of the graph
-    """
-    # Create a sorted tuple of node attributes and edges to generate a unique hash
-    node_attrs = tuple(
-        sorted((node, data["symbol"]) for node, data in graph.nodes(data=True))
-    )
-    edges = tuple(sorted(graph.edges()))
-    return hash((node_attrs, edges))
-
+def get_wl_hash(graph: nx.Graph) -> hash:
+    """Get weisfeiler_lehman_graph_hash"""
+    return weisfeiler_lehman_graph_hash(graph, node_attr="symbol", iterations=3)
 
 def get_unique_graph_indexes(graph_list: list) -> list:
+    """
+    Args:
+        graph_list (list): list[nx.Graph]
+
+    Returns:
+        list: get list of unique graph indexes
+    """
+    unique_graphs = []
+    seen_hashes = set()
+    unique_indexes = []
+    for index, graph in enumerate(graph_list):
+        graph_hash = get_graph_hash(graph)
+        if graph_hash not in seen_hashes:
+            seen_hashes.add(graph_hash)
+            unique_graphs.append(graph)
+            unique_indexes.append(index)
+        else:
+            # Perform a full isomorphism check to confirm the uniqueness
+            if not any(
+                nx.algorithms.isomorphism.GraphMatcher(
+                    graph, unique_graph, node_match=node_match
+                ).is_isomorphic()
+                for unique_graph in unique_graphs
+            ):
+                unique_graphs.append(graph)
+                unique_indexes.append(index)
+    return unique_indexes
+
+
+def get_unique_graph_indexes_2(graph_list: list) -> list:
     """
     Args:
         graph_list (list): list[nx.Graph]
@@ -265,6 +290,7 @@ def draw_graph(graph: nx.Graph, graph_type: str = "none", **kwargs) -> plt.figur
         nx.draw(graph, pos=layout, node_color=color, edgecolors=edgecolors, **kwargs)
     plt.draw()
     plt.show()
+
 
 def get_connecting_nodes(graph: nx.Graph, cluster_ind: list, atoms: Atoms) -> list:
     """
