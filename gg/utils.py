@@ -6,11 +6,11 @@ import networkx as nx
 from numpy.linalg import norm
 from ase import Atoms
 from ase.neighborlist import NeighborList, natural_cutoffs
-from ase.io import read as read_atoms
 from ase.data import covalent_radii
 from ase.build import molecule
 from ase.collections import g2
 from gg.utils_graph import node_symbol, relative_position, atoms_to_graph
+from gg.data import adsorbates
 
 
 __author__ = "Kaustubh Sawant"
@@ -47,11 +47,18 @@ def add_ads(atoms: Atoms, ads: Atoms, offset: float, tag: bool = False) -> Atoms
     """
 
     if isinstance(ads, str):
-        _ads = read_atoms(ads)
+        if ads in g2.names:
+            _ads = molecule(ads)
+        elif ads in adsorbates:
+            _ads = adsorbates[ads]
+        elif len(ads) == 1:
+            _ads = Atoms(ads, positions=[(0, 0, 0)])
+        else:
+            raise RuntimeError(f"Cannot convert string to Formula {ads}")
     elif isinstance(ads, Atoms):
         _ads = ads.copy()
     else:
-        print("Please provide proper adsorbate file")
+        raise RuntimeError(f"Please provide proper file {ads}")
 
     if tag:
         for atom in _ads:
@@ -163,8 +170,12 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0) -> nx.Graph:
     if isinstance(formula, str):
         if formula in g2.names:
             atoms = molecule(formula)
-        else:
+        elif formula in adsorbates:
+            atoms = adsorbates[formula]
+        elif len(formula) == 1:
             atoms = Atoms(formula, positions=[(0, 0, 0)])
+        else:
+            raise RuntimeError(f"Cannot convert string to Formula {formula}")
     elif isinstance(formula, Atoms):
         atoms = formula
     else:
@@ -229,13 +240,19 @@ def replace(atoms: Atoms, replace_with: Union[str, Atoms], offset: np.array) -> 
     if isinstance(replace_with, str):
         if replace_with in g2.names:
             rep_atoms = molecule(replace_with)
-        else:
+        elif replace_with in adsorbates:
+            rep_atoms = adsorbates[replace_with]
+        elif len(replace_with) == 1:
             rep_atoms = Atoms(replace_with, positions=[(0, 0, 0)])
+        else:
+            raise RuntimeError(f"Cannot convert string to Formula {replace_with}")
+        atoms = add_ads(atoms, rep_atoms.center(), offset)
+
     elif isinstance(replace_with, Atoms):
         rep_atoms = replace_with
-    rep_atoms_copy = rep_atoms.copy()
-    rep_atoms_copy.center()
-    atoms = add_ads(atoms, rep_atoms_copy, offset)
+        rep_atoms_copy = rep_atoms.copy()
+        atoms = add_ads(atoms, rep_atoms_copy.center(), offset)
+
     return atoms
 
 
@@ -281,3 +298,12 @@ def get_ref_pos_index(index: list, atoms: Atoms, g: nx.Graph) -> np.array:
 
     ads_pos_sum = np.sum(-ads_pos, axis=0) / len(index)
     return ads_pos_sum + atoms[initial].position
+
+
+def get_area(atoms: Atoms) -> float:
+    """Return xy area of ase.Atoms"""
+    a = np.array(
+        [[atoms.cell[0][0], atoms.cell[0][1]], [atoms.cell[1][0], atoms.cell[1][1]]]
+    )
+    area = abs(np.linalg.det(a))
+    return area

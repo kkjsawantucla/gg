@@ -145,9 +145,13 @@ def get_graph_hash(graph: nx.Graph) -> hash:
     elements = sorted([data["symbol"] for _, data in graph.nodes(data=True)])
     return hash((tuple(degrees), tuple(elements)))
 
-def get_wl_hash(graph: nx.Graph) -> hash:
+
+def get_wl_hash(graph: nx.Graph, iterations: int = 3) -> hash:
     """Get weisfeiler_lehman_graph_hash"""
-    return weisfeiler_lehman_graph_hash(graph, node_attr="symbol", iterations=3)
+    return weisfeiler_lehman_graph_hash(
+        graph, node_attr="symbol", iterations=iterations
+    )
+
 
 def get_unique_graph_indexes(graph_list: list) -> list:
     """
@@ -167,33 +171,6 @@ def get_unique_graph_indexes(graph_list: list) -> list:
             unique_graphs.append(graph)
             unique_indexes.append(index)
         else:
-            # Perform a full isomorphism check to confirm the uniqueness
-            if not any(
-                nx.algorithms.isomorphism.GraphMatcher(
-                    graph, unique_graph, node_match=node_match
-                ).is_isomorphic()
-                for unique_graph in unique_graphs
-            ):
-                unique_graphs.append(graph)
-                unique_indexes.append(index)
-    return unique_indexes
-
-
-def get_unique_graph_indexes_2(graph_list: list) -> list:
-    """
-    Args:
-        graph_list (list): list[nx.Graph]
-
-    Returns:
-        list: get list of unique graph indexes
-    """
-    unique_graphs = []
-    seen_hashes = set()
-    unique_indexes = []
-    for index, graph in enumerate(graph_list):
-        graph_hash = get_graph_hash(graph)
-        if graph_hash not in seen_hashes:
-            seen_hashes.add(graph_hash)
             # Perform a full isomorphism check to confirm the uniqueness
             if not any(
                 nx.algorithms.isomorphism.GraphMatcher(
@@ -257,11 +234,16 @@ def is_unique_graph(graph: nx.Graph, graph_list: list) -> bool:
     Returns:
     bool: True if the graph is unique, False otherwise.
     """
+    graph_hash = get_graph_hash(graph)
     for unique_graph in graph_list:
-        if nx.algorithms.isomorphism.GraphMatcher(
+        unique_graph_hashes = get_graph_hash(unique_graph)
+        if graph_hash != unique_graph_hashes:
+            continue
+        else:
+            if nx.algorithms.isomorphism.GraphMatcher(
             graph, unique_graph, node_match=node_match
         ).is_isomorphic():
-            return False
+                return False
     return True
 
 

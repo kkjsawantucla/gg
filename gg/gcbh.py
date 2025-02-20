@@ -17,7 +17,7 @@ from ase.optimize.optimize import Dynamics
 from ase.optimize import BFGS
 from ase.neighborlist import NeighborList, natural_cutoffs
 from gg.reference import get_ref_coeff
-from gg.utils import NoReasonableStructureFound
+from gg.utils import NoReasonableStructureFound, get_area
 from gg.utils_graph import atoms_to_graph, is_unique_graph
 from gg.logo import logo
 
@@ -95,6 +95,8 @@ class Gcbh(Dynamics):
             "max_bond": 2,
             "max_bond_ratio": 0,
             "check_graphs": True,
+            "area": False,
+            "fmax": 0.05,
         }
         self.optimizer = optimizer
         if config_file:
@@ -357,6 +359,9 @@ class Gcbh(Dynamics):
         self.append_graph(self.atoms)
         self.traj.write(self.atoms, energy=en)
         self.lm_trajectory.write(self.atoms, energy=en, accept=1)
+        if self.c["area"]:
+            en = en / get_area(self.atoms)
+            self.c["fe"] = self.c["fe"] / get_area(self.atoms)
         self.logtxt(
             f'Atoms: {formula} E(initial): {en:.2f} F(initial) {self.c["fe"]:.2f}'
         )
@@ -396,7 +401,7 @@ class Gcbh(Dynamics):
                     NoReasonableStructureFound
                 ) as emsg:  # emsg stands for error message
                     self.logtxt(
-                        f"{modifier_name} did not find a good structure because of {emsg} {type(emsg)}"
+                        f"{modifier_name} did not find a good structure because {emsg} {type(emsg)}"
                     )
                 else:
                     if self.append_graph(newatoms):
@@ -482,7 +487,7 @@ class Gcbh(Dynamics):
         self.dump(self.status_file)
         self.logtxt("-------------------------------------------------------")
 
-    def optimize(self, atoms: Atoms, fmax: float = 0.05):
+    def optimize(self, atoms: Atoms):
         """Optimize atoms"""
         optimizer = self.optimizer
         if atoms.get_calculator() is None:
@@ -502,10 +507,10 @@ class Gcbh(Dynamics):
         else:
             atoms.write("POSCAR", format="vasp")
             dyn = optimizer(atoms, trajectory="opt.traj", logfile="opt.log")
-            dyn.run(fmax=fmax, steps=self.c["stop_opt"])
+            dyn.run(fmax=self.c["fmax"], steps=self.c["stop_opt"])
             if dyn.nsteps == self.c["stop_opt"]:
                 self.logtxt(
-                    f'Optimization is incomplete in {self.c["stop_opt"]} steps, ignore gcbh {self.c["nsteps"]} step'
+                    f'Opt is incomplete in {self.c["stop_opt"]} steps, ignore gcbh {self.c["nsteps"]} step'
                 )
                 self.c["opt_on"] = -1
             else:
@@ -536,7 +541,7 @@ class Gcbh(Dynamics):
             if self.c["graphs"]:
                 if is_unique_graph(new_g, self.c["graphs"]):
                     self.logtxt(
-                        f"Add graph at step:{self.c['nsteps']} and graph loc:{len(self.c['graphs'])}"
+                        f"Add graph step:{self.c['nsteps']} and graph loc:{len(self.c['graphs'])}"
                     )
                     self.c["graphs"].append(new_g)
                     return True
@@ -563,7 +568,7 @@ class GcbhFlexOpt(Gcbh):
         config_file: str = None,
         restart: bool = False,
         optimizer_file: str = "optimize.sh",
-        copied_files: list = ["opt.py"],
+        copied_files: list = ("opt.py"),
     ):
         """
 

@@ -1,7 +1,8 @@
 import random
 from typing import Union
 from itertools import combinations
-from ase.io import read as read_atoms
+from ase.collections import g2
+from ase.build import molecule
 from ase import Atoms
 from gg.utils import (
     custom_copy,
@@ -11,6 +12,8 @@ from gg.utils_add import generate_add_mono, rotate_mono, rotate_bi, generate_add
 from gg.utils_graph import get_unique_atoms
 from gg.sites import SurfaceSites
 from gg.modifiers.modifiers import ParentModifier
+
+from gg.data import adsorbates
 
 
 class Add(ParentModifier):
@@ -56,7 +59,7 @@ class Add(ParentModifier):
 
             normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
             Defaults to "svd"
-            
+
             tag (bool): add to tag=-1 to the adsorbate (imp for clusters)
             Defaults to 1.
 
@@ -66,7 +69,14 @@ class Add(ParentModifier):
         super().__init__(weight)
         self.ss = surface_sites
         if isinstance(ads, str):
-            self.ads = read_atoms(ads)
+            if ads in g2.names:
+                self.ads = molecule(ads)
+            elif ads in adsorbates:
+                self.ads = adsorbates[ads]
+            elif len(ads) == 1:
+                self.ads = Atoms(ads, positions=[(0, 0, 0)])
+            else:
+                raise RuntimeError(f"Cannot convert string to Formula {ads}")
         elif isinstance(ads, Atoms):
             self.ads = custom_copy(ads)
         self.surf_sym = surf_sym
@@ -213,7 +223,7 @@ class AddBi(Add):
 
             normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
             Defaults to "mean"
-            
+
             tag (bool): add to tag=-1 to the adsorbate (imp for clusters)
             Defaults to 1.
 

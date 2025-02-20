@@ -102,6 +102,10 @@ class FlexibleSites(Sites):
             Defaults to None.
 
             tag (bool, optional): If true, only atoms which have tag == -1 are considered
+            Defaults to False
+            
+            oppp_tag (bool, optional): If true, only atoms which have dont tag == -1 are considered
+            Defaults to False
 
             max_bond_ratio (float, optional): While making bonds how much error is allowed.
             Defaults to 1.2.
