@@ -26,7 +26,7 @@ class Add(ParentModifier):
         surf_coord: int,
         surf_sym: list,
         ads_id: Union[str] = None,
-        ads_dist: Union[float] = 1.8,
+        ads_dist: Union[float] = None,
         print_movie: bool = False,
         unique: bool = True,
         ads_rotate: bool = True,
@@ -47,8 +47,7 @@ class Add(ParentModifier):
             ads_id (list[float]): Strings denoting chemical symbol of adsorbate atom
             Defaults to None
 
-            ads_dist (str, optional): Distance of adsorbate from surface site,
-            if ads_id is mentioned, this variable is ignored.
+            ads_dist (str, optional): if ads_id is mentioned, this variable is ignored.
             Defaults to 1.8.
 
             print_movie (bool, optional): return a movie of all sites or one random site.
