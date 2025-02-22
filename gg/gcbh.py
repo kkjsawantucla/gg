@@ -73,8 +73,10 @@ class Gcbh(Dynamics):
         if not isinstance(atoms, Atoms):
             raise RuntimeError("The input atoms is not as Atoms object")
 
-        if atoms.get_calculator() is None:
+        if atoms.calc is None:
             raise RuntimeError("The atoms instance has no calculator")
+        else:
+            calc = atoms.calc
 
         # Intitalize by setting up the parent Dynamics Class
         super().__init__(atoms=atoms, logfile=logfile, trajectory=None)
@@ -172,6 +174,7 @@ class Gcbh(Dynamics):
                 self.initialize()
             try:
                 self.atoms = read("local_minima.traj")
+                self.atoms.calc = calc
             except UnknownFileTypeError as e:
                 print(f"Cannot read local_minima.traj due to {e}")
         else:
@@ -490,7 +493,7 @@ class Gcbh(Dynamics):
     def optimize(self, atoms: Atoms):
         """Optimize atoms"""
         optimizer = self.optimizer
-        if atoms.get_calculator() is None:
+        if atoms.calc is None:
             raise RuntimeError("The atoms object has no calculator")
 
         self.logtxt(
