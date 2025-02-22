@@ -16,7 +16,6 @@ from gg.utils import (
 )
 from gg.utils_graph import node_symbol
 from gg.utils_graph import is_cycle, are_points_collinear_with_tolerance
-from ase.visualize import view
 
 __author__ = "Kaustubh Sawant"
 

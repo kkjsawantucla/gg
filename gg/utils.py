@@ -47,10 +47,10 @@ def add_ads(atoms: Atoms, ads: Atoms, offset: float, tag: bool = False) -> Atoms
     """
 
     if isinstance(ads, str):
-        if ads in g2.names:
-            _ads = molecule(ads)
-        elif ads in adsorbates:
+        if ads in adsorbates:
             _ads = adsorbates[ads]
+        elif ads in g2.names:
+            _ads = molecule(ads)
         elif len(ads) == 1:
             _ads = Atoms(ads, positions=[(0, 0, 0)])
         else:
@@ -168,10 +168,10 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0) -> nx.Graph:
         _type_: _description_
     """
     if isinstance(formula, str):
-        if formula in g2.names:
-            atoms = molecule(formula)
-        elif formula in adsorbates:
+        if formula in adsorbates:
             atoms = adsorbates[formula]
+        elif formula in g2.names:
+            atoms = molecule(formula)
         elif len(formula) == 1:
             atoms = Atoms(formula, positions=[(0, 0, 0)])
         else:
@@ -238,10 +238,10 @@ def replace(atoms: Atoms, replace_with: Union[str, Atoms], offset: np.array) -> 
         Atoms:
     """
     if isinstance(replace_with, str):
-        if replace_with in g2.names:
-            rep_atoms = molecule(replace_with)
-        elif replace_with in adsorbates:
+        if replace_with in adsorbates:
             rep_atoms = adsorbates[replace_with]
+        elif replace_with in g2.names:
+            rep_atoms = molecule(replace_with)
         elif len(replace_with) == 1:
             rep_atoms = Atoms(replace_with, positions=[(0, 0, 0)])
         else:

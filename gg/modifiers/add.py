@@ -68,10 +68,10 @@ class Add(ParentModifier):
         super().__init__(weight)
         self.ss = surface_sites
         if isinstance(ads, str):
-            if ads in g2.names:
-                self.ads = molecule(ads)
-            elif ads in adsorbates:
+            if ads in adsorbates:
                 self.ads = adsorbates[ads]
+            elif ads in g2.names:
+                self.ads = molecule(ads)
             elif len(ads) == 1:
                 self.ads = Atoms(ads, positions=[(0, 0, 0)])
             else:
