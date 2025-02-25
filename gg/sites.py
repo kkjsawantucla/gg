@@ -256,11 +256,11 @@ def get_surface_sites_by_voronoi_pbc(atoms: Atoms) -> List[int]:
     offset_combinations = product(*offsets)
 
     # Replicate atoms in neighboring cells based on PBC
-    for nx, ny, nz in offset_combinations:
-        shift = nx * cell[0] + ny * cell[1] + nz * cell[2]
+    for n_x, ny, nz in offset_combinations:
+        shift = n_x * cell[0] + ny * cell[1] + nz * cell[2]
         for i, pos in enumerate(positions):
             extended_positions.append(pos + shift)
-            tags.append((nx, ny, nz))
+            tags.append((n_x, ny, nz))
             original_indices.append(i)  # Track original atom index
 
     # Compute Voronoi tessellation
@@ -278,5 +278,3 @@ def get_surface_sites_by_voronoi_pbc(atoms: Atoms) -> List[int]:
                 surface_indices.add(original_indices[i])
 
     return sorted(surface_indices)
-
-
