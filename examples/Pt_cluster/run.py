@@ -10,7 +10,7 @@ atoms.calc = EMT() #Add a calculator to the atoms object for geometric optimizat
 from gg.gcbh import Gcbh
 G = Gcbh(atoms,config_file='input.yaml')
 
-from gg.sites import FlexibleSites
+from gg.predefined_sites import FlexibleSites
 FS = FlexibleSites(tag=True)
 
 from gg.modifiers import ClusterRotate, ClusterTranslate, Add

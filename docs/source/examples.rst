@@ -27,7 +27,7 @@ Attach modifiers to the Gcbh Class
     .. code-block:: python
 
         #Define surface site class
-        from gg.sites import SurfaceSites
+        from gg.predefined_sites import SurfaceSites
         max_coord = {"Pt": 12, "H": 2}
         ss = SurfaceSites(max_coord, max_bond_ratio=1.2)
 

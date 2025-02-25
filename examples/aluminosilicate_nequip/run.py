@@ -5,7 +5,7 @@ from ase.io import read
 from ase import Atoms
 from gg.modifiers import Add,Remove,Swap,ModifierAdder
 from gg.gcbh import Gcbh
-from gg.sites import SurfaceSites
+from gg.predefined_sites import SurfaceSites
 from nequip.ase import NequIPCalculator
 
 #Read Input POSCAR

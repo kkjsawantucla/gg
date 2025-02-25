@@ -11,14 +11,14 @@ Hardcoding of indexes isnt advisable as the atoms object changes during gcbh run
 
 .. code-block:: python
 
-    from gg.sites import FlexibleSites
+    from gg.predefined_sites import FlexibleSites
 
     FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
 
     atoms = read('POSCAR')
     list_sites = FS.get_sites(atoms)
 
-.. autoclass:: gg.sites.FlexibleSites
+.. autoclass:: gg.predefined_sites.FlexibleSites
     :members: 
     :undoc-members:
     :show-inheritance:
@@ -30,7 +30,7 @@ This class uses co-ordination number to determine the surface sites. However, we
 
 .. code-block:: python
 
-    from gg.sites import SurfaceSites
+    from gg.predefined_sites import SurfaceSites
 
     max_coord = {'Pt': 12, 'O': 4, 'H': 2}
     SS = SurfaceSites(max_coord=max_coord,max_bond_ratio=1.2) #Define class to figure out surface
@@ -38,7 +38,7 @@ This class uses co-ordination number to determine the surface sites. However, we
     atoms = read('POSCAR')
     list_sites = FS.get_sites(atoms)
 
-.. autoclass:: gg.sites.SurfaceSites
+.. autoclass:: gg.predefined_sites.SurfaceSites
     :members: 
     :undoc-members:
     :show-inheritance:
