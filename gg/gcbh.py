@@ -610,7 +610,7 @@ class GcbhFlexOpt(Gcbh):
         config_file: str = None,
         restart: bool = False,
         optimizer_file: str = "optimize.sh",
-        copied_files: list = ("opt.py"),
+        copied_files: list = None,
     ):
         """
 
@@ -630,7 +630,7 @@ class GcbhFlexOpt(Gcbh):
         """
 
         self.opt_file = optimizer_file
-        self.copied_files = copied_files
+        self.copied_files = copied_files if copied_files is not None else ["opt.py"]
         super().__init__(atoms, logfile, trajectory, config_file, restart)
 
     def optimize(self, atoms: Atoms):
@@ -648,7 +648,7 @@ class GcbhFlexOpt(Gcbh):
             os.makedirs(subdir)
 
         if script not in copied_files:
-            copied_files = (*copied_files,script)
+            copied_files.append(script)
         for file in copied_files:
             assert os.path.isfile(file)
             shutil.copy(os.path.join(topdir, file), os.path.join(subdir, file))
