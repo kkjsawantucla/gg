@@ -3,7 +3,7 @@
 """Add monodentate adsorbate/ligand"""
 import argparse
 from gg.modifiers import AddBi
-from gg.sites import FlexibleSites
+from gg.predefined_sites import FlexibleSites
 from ase.io import read, write
 
 parser = argparse.ArgumentParser(description="Command line utilities")

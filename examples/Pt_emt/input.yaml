@@ -1,4 +1,4 @@
-temperature: 300.0
+temp: 300.0
 stop_steps: 40
 stop_opt: 500
 vasp_opt: False

@@ -12,7 +12,7 @@ The modifier can add a monodentate adsorbate, or moiety at specific sites on the
 .. code-block:: python
 
   from gg.modifiers import Add
-  from gg.sites import FlexibleSites
+  from gg.predefined_sites import FlexibleSites
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
@@ -35,7 +35,7 @@ The modifier can add a bidentate adsorbate, or moiety at specific sites on the p
 .. code-block:: python
 
   from gg.modifiers import AddBi
-  from gg.sites import FlexibleSites
+  from gg.predefined_sites import FlexibleSites
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
@@ -58,7 +58,7 @@ Remove an adsorbate from the surface
 .. code-block:: python
 
   from gg.modifiers import Remove
-  from gg.sites import FlexibleSites
+  from gg.predefined_sites import FlexibleSites
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface  
@@ -81,7 +81,7 @@ Remove an adsorbate from the surface
 .. code-block:: python
 
   from gg.modifiers import Replace
-  from gg.sites import FlexibleSites
+  from gg.predefined_sites import FlexibleSites
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
@@ -105,7 +105,7 @@ Swap two atoms on the surface
 .. code-block:: python
 
   from gg.modifiers import Swap
-  from gg.sites import FlexibleSites
+  from gg.predefined_sites import FlexibleSites
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
@@ -129,14 +129,14 @@ Make sure to tag the cluster atoms using atom.tag = -1
 .. code-block:: python
 
   from gg.modifiers import ClusterRotate
-  from gg.sites import FlexibleSites
+  from gg.predefined_sites import FlexibleSites
   from ase.io import read
 
   atoms = read("POSCAR_Pt_TiO2")
   for a in atoms:
     if a.symbol=='Pt':
       a.tag=-1
-  FS = FlexibleSites(tag=True)
+  FS = FlexibleSites(tag=-1)
   rotate = ClusterRotate(FS,contact_error=0.2,rotate_vector=(0,0,1))
   modified_atoms = rotate.get_modified_atoms(atoms)
 
@@ -155,14 +155,14 @@ Make sure to tag the cluster atoms using atom.tag = -1
 .. code-block:: python
 
   from gg.modifiers import ClusterTranslate
-  from gg.sites import FlexibleSites
+  from gg.predefined_sites import FlexibleSites
   from ase.io import read
 
   atoms = read("POSCAR_Pt_TiO2")
   for a in atoms:
     if a.symbol=='Pt':
       a.tag=-1
-  FS = FlexibleSites(tag=True)
+  FS = FlexibleSites(tag=-1)
   trans = ClusterTranslate(FS,contact_error=0.2)
   modified_atoms = trans.get_modified_atoms(atoms)
 

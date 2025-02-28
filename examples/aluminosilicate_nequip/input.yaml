@@ -1,5 +1,5 @@
-#Dfine Temperature Information for gcbh
-temperature: 1500.0 #Temperature f
+#Define Temperature Information for gcbh
+temp: 1500.0 #Temperature f
 maximum_temp: #Maximum Temperature for gcbh
 minimum_temp:  #Minimum Temperature for gcbh
 
