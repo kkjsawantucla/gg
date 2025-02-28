@@ -2,10 +2,16 @@
 
 from typing import Optional
 from ase import Atoms
-from gg.sites import RuleSites, Sites
-from gg.sites import get_above_com_sites, get_surface_sites_by_coordination,get_tagged_sites,get_unconstrained_sites
+from gg.sites import Sites
+from gg.sites import (
+    get_above_com_sites,
+    get_surface_sites_by_coordination,
+    get_tagged_sites,
+    get_unconstrained_sites,
+)
 
-class FlexibleSites(RuleSites):
+
+class FlexibleSites(Sites):
     """A class that identifies sites based on constraints, tags, or explicit indices."""
 
     def __init__(

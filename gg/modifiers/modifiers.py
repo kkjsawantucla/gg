@@ -17,7 +17,7 @@ from gg.utils import (
     NoReasonableStructureFound,
 )
 from gg.utils_graph import get_unique_atoms
-from gg.sites import SurfaceSites
+from gg.sites import Sites
 
 __author__ = "Kaustubh Sawant"
 
@@ -46,6 +46,8 @@ class ParentModifier:
             self._atoms = read_atoms(atoms)
         elif isinstance(atoms, Atoms):
             self._atoms = custom_copy(atoms)
+        else:
+            raise RuntimeError("Cannot Set Atoms")
 
     def get_modified_atoms(self, atoms) -> Atoms:
         """
@@ -145,7 +147,7 @@ class Translate(ParentModifier):
 
     def __init__(
         self,
-        surface_sites: SurfaceSites,
+        surface_sites: Sites,
         translate: tuple = (True, True, True),
         max_translate: tuple = (0.2, 0.2, 0.2),
         surf_sym: list = None,
@@ -197,7 +199,7 @@ class Remove(
 
     def __init__(
         self,
-        surface_sites: SurfaceSites,
+        surface_sites: Sites,
         to_del: Union[Atoms, str],
         max_bond_ratio: float = 1.2,
         max_bond: float = 0,
@@ -312,6 +314,17 @@ class Remove(
             del self.atoms[random_remove]
             return self.atoms
 
+    def get_n(self, atoms: Atoms) -> int:
+        """
+        Args:
+            atoms (Atoms):
+
+        Returns:
+            int: Instances a particular subgraph is seen
+        """
+        ind_to_remove_list = self.get_ind_to_remove_list(atoms)
+        return len(ind_to_remove_list)
+
 
 class Swap(
     ParentModifier,
@@ -320,7 +333,7 @@ class Swap(
 
     def __init__(
         self,
-        surface_sites: SurfaceSites,
+        surface_sites: Sites,
         swap_sym: list,
         swap_ind: list = None,
         print_movie: bool = False,
@@ -436,7 +449,7 @@ class Replace(
 
     def __init__(
         self,
-        surface_sites: SurfaceSites,
+        surface_sites: Sites,
         to_del: Union[Atoms, str],
         with_replace: Union[Atoms, str],
         max_bond_ratio: float = 1.2,

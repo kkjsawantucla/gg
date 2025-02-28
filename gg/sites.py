@@ -1,6 +1,6 @@
 """ Recognizing sites to apply modifier on """
 
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, Union
 from itertools import product
 from pandas import DataFrame
 import numpy as np
@@ -13,9 +13,9 @@ from gg.utils_graph import atoms_to_graph
 try:
     from scipy.spatial import Voronoi
 
-    scipy_installed = True
+    SCIPY_INST = True
 except ImportError:
-    scipy_installed = False
+    SCIPY_INST = False
 
 
 class Sites:
@@ -88,25 +88,70 @@ class Sites:
 
 
 class RuleSites(Sites):
-    """_summary_"""
+    """A subclass of Sites that uses multiple rules to identify sites in an atomic structure."""
 
     def __init__(
         self,
-        index_parser: Optional[Callable[[Atoms], list]] = None,
+        index_parsers: Optional[
+            Union[Callable[[Atoms], list], List[Callable[[Atoms], list]]]
+        ] = None,
+        combine_rules: str = "union",
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
         contact_error: Optional[float] = 0.2,
     ):
+        """
+        Args:
+            index_parsers (Union[Callable[[Atoms], list], List[Callable[[Atoms], list]]], optional):
+            A single rule or a list of rules (functions) that take an Atoms object
+            of indices representing the sites of interest. Defaults to a function that returns all indices.
+            combine_rules (str, optional):How to combine the results of multiple rules. Options are:
+                - "union": Combine results using set union (default).
+                - "intersection": Combine results using set intersection.
+                Defaults to "union".
+            max_bond_ratio (float, optional): While making bonds, how much error is allowed.
+                Defaults to 1.2.
+            max_bond (float, optional): Fixed bond distance to use, any distance above is ignored.
+                Defaults to 0. If 0, it is ignored.
+            contact_error (float, optional): Error allowed if atoms are too close to each other.
+                Defaults to 0.2.
+        """
         super().__init__(max_bond_ratio, max_bond, contact_error)
-        if index_parser is None:
-            raise RuntimeError("A valid index_parser function must be provided.")
-        self.index_parser = index_parser
+
+        # Default index_parser function that returns all indices
+        if index_parsers is None:
+            self.index_parsers = [lambda atoms: list(range(len(atoms)))]
+        else:
+            # Ensure index_parsers is always a list, even if a single function is provided
+            self.index_parsers = (
+                [index_parsers] if callable(index_parsers) else index_parsers
+            )
+
+        if combine_rules not in ["union", "intersection"]:
+            raise ValueError("combine_rules must be 'union' or 'intersection'.")
+        self.combine_rules = combine_rules
 
     def get_sites(self, atoms: Atoms) -> list:
-        return self.index_parser(atoms)
+        """
+        Args:
+            atoms (Atoms): The atomic structure to analyze.
+
+        Returns:
+            list: A list of indices representing the sites of interest.
+        """
+        # Apply each rule to the atoms object
+        results = [parser(atoms) for parser in self.index_parsers]
+
+        # Combine results based on the specified logic
+        if self.combine_rules == "union":
+            # Use set union to combine results
+            return list(set().union(*results))
+        elif self.combine_rules == "intersection":
+            # Use set intersection to combine results
+            return list(set(results[0]).intersection(*results[1:]))
 
 
-# Rule Defined
+# Rules Defined
 def get_unconstrained_sites(atoms: Atoms) -> list:
     """
     Returns a list of indices of atoms that are not constrained.
@@ -151,7 +196,7 @@ def get_above_com_sites(atoms: Atoms, perc: float = 1.0) -> list:
     z_max = np.max(z_values)
 
     # Determine the threshold z-coordinate
-    threshold_z = com_z + (1-perc) * (z_max - com_z)
+    threshold_z = com_z + (1 - perc) * (z_max - com_z)
 
     # Select atoms above the threshold z-coordinate
     above_threshold_indices = [i for i, z in enumerate(z_values) if z > threshold_z]
@@ -204,21 +249,18 @@ def get_surface_sites_by_coordination(
         index = graph.nodes[node]["index"]
         symbol = atoms[index].symbol
         diff_coord = max_coord[symbol] - coord
-        sites.append(
-            {
-                "ind": index,
-                "symbol": symbol,
-                "coord": coord,
-                "diff_coord": diff_coord,
-                "z_coord": atoms[index].position[2],
-            }
-        )
+        if diff_coord > 0:
+            sites.append(
+                {
+                    "ind": index,
+                    "coord": coord,
+                    "diff_coord": diff_coord,
+                    "z_coord": atoms[index].position[2],
+                }
+            )
 
     # Convert to DataFrame for easier filtering
     df = DataFrame(sites)
-
-    # Filter based on coordination number
-    df = df[df.diff_coord > 0]
 
     # Sort by coordination number and z-coordinate
     df = df.sort_values(by=["coord", "z_coord"])
@@ -237,6 +279,11 @@ def get_surface_sites_by_voronoi_pbc(atoms: Atoms) -> List[int]:
     Returns:
         List[int]: Indices of surface atoms.
     """
+
+    if not SCIPY_INST:
+        print("Scipy isnt installed; get_surface_sites_by_voronoi_pbc wont work")
+        return list(range(len(atoms)))
+
     cell = atoms.cell
     pbc = atoms.pbc
     positions = atoms.get_positions()
@@ -256,11 +303,11 @@ def get_surface_sites_by_voronoi_pbc(atoms: Atoms) -> List[int]:
     offset_combinations = product(*offsets)
 
     # Replicate atoms in neighboring cells based on PBC
-    for n_x, ny, nz in offset_combinations:
-        shift = n_x * cell[0] + ny * cell[1] + nz * cell[2]
+    for n_x, n_y, n_z in offset_combinations:
+        shift = n_x * cell[0] + n_y * cell[1] + n_z * cell[2]
         for i, pos in enumerate(positions):
             extended_positions.append(pos + shift)
-            tags.append((n_x, ny, nz))
+            tags.append((n_x, n_y, n_z))
             original_indices.append(i)  # Track original atom index
 
     # Compute Voronoi tessellation
@@ -278,3 +325,56 @@ def get_surface_sites_by_voronoi_pbc(atoms: Atoms) -> List[int]:
                 surface_indices.add(original_indices[i])
 
     return sorted(surface_indices)
+
+
+def get_surface_by_normals(
+    atoms: Atoms,
+    surface_normal: float = 0.5,
+    tolerance: float = 1e-5,
+    normalize_final: bool = True,
+    self_interaction: bool = False,
+    bothways: bool = True,
+) -> List:
+    """
+    Compute surface normals for an ASE Atoms object, considering periodic boundaries.
+
+    Args:
+        atoms (Atoms): ASE Atoms object.
+        surface_normal (float): Threshold for identifying surface atoms based on normal magnitude.
+        normalize_final (bool): Whether to normalize output normals.
+        adsorbate_atoms (list): Indices of adsorbate atoms to exclude.
+
+    Returns:
+        np.ndarray: Surface normals for each atom.
+        list: Indices of detected surface atoms.
+    """
+    atoms = atoms.copy()
+
+    # Create the graph
+    nl = NeighborList(
+        natural_cutoffs(atoms), self_interaction=self_interaction, bothways=bothways
+    )
+    nl.update(atoms)
+
+    normals = np.zeros((len(atoms), 3), dtype=float)
+    for index in range(len(atoms)):
+        normal = np.zeros(3, dtype=float)
+        atom_pos = atoms.positions[index]
+
+        for neighbor, offset in zip(*nl.get_neighbors(index)):
+            neighbor_pos = atoms.positions[neighbor] + np.dot(offset, atoms.cell)
+            normal += atom_pos - neighbor_pos  # Vector sum of neighbor directions
+
+        # Store normal vector if it's above threshold
+        if np.linalg.norm(normal) > surface_normal:
+            normals[index, :] = (
+                normal / np.linalg.norm(normal) if normalize_final else normal
+            )
+
+    # Identify surface atoms based on normal magnitude
+    surface = [
+        index
+        for index in range(len(atoms))
+        if np.linalg.norm(normals[index]) > tolerance
+    ]
+    return surface

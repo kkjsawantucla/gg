@@ -10,7 +10,7 @@ from gg.utils import (
 )
 from gg.utils_add import generate_add_mono, rotate_mono, rotate_bi, generate_add_bi
 from gg.utils_graph import get_unique_atoms
-from gg.sites import SurfaceSites
+from gg.sites import Sites
 from gg.modifiers.modifiers import ParentModifier
 
 from gg.data import adsorbates
@@ -21,7 +21,7 @@ class Add(ParentModifier):
 
     def __init__(
         self,
-        surface_sites: SurfaceSites,
+        surface_sites: Sites,
         ads: str,
         surf_coord: int,
         surf_sym: list,
@@ -176,7 +176,7 @@ class AddBi(Add):
 
     def __init__(
         self,
-        surface_sites: SurfaceSites,
+        surface_sites: Sites,
         ads: str,
         surf_coord: int,
         surf_sym: list,

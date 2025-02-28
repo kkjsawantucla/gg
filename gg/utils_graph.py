@@ -241,37 +241,69 @@ def is_unique_graph(graph: nx.Graph, graph_list: list) -> bool:
             continue
         else:
             if nx.algorithms.isomorphism.GraphMatcher(
-            graph, unique_graph, node_match=node_match
-        ).is_isomorphic():
+                graph, unique_graph, node_match=node_match
+            ).is_isomorphic():
                 return False
     return True
 
 
-def draw_graph(graph: nx.Graph, graph_type: str = "none", **kwargs) -> plt.figure:
-    """Draw atoms graph
+def draw_graph(
+    graph: nx.Graph, graph_type: str = "none", atoms: Atoms = None, **kwargs
+) -> plt.Figure:
+    """Draw an atomic graph with different layout options, displaying node degrees.
 
     Args:
-        graph (nx.Graph): Graph to draw
-        graph_type (str, optional): Defaults to "none".
+        graph (nx.Graph): Graph to draw.
+        graph_type (str, optional): Layout type ("none", "circular", "kamada_kawai"). Defaults to "none".
+        **kwargs: Additional keyword arguments for the NetworkX draw functions.
+
+    Returns:
+        plt.Figure: The created matplotlib figure.
     """
     color = []
     edgecolors = []
+
     for node in graph.nodes(data=True):
-        symbol = node[1]["symbol"]
+        symbol = node[1].get("symbol")  # Default to carbon if symbol is missing
         color.append(jmol_colors[chemical_symbols.index(symbol)])
         edgecolors.append("black")
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+
     if graph_type == "circular":
-        nx.draw_circular(graph, node_color=color, edgecolors=edgecolors, **kwargs)
-    if graph_type == "kamada_kawai":
-        nx.draw_kamada_kawai(graph, node_color=color, edgecolors=edgecolors, **kwargs)
+        pos = nx.circular_layout(graph)
+    elif graph_type == "kamada_kawai":
+        pos = nx.kamada_kawai_layout(graph)
+    elif graph_type == "atoms":
+        if isinstance(atoms, Atoms):
+            pos = {
+                i[0]: (
+                    atoms.positions[i[1]["index"]][0],
+                    atoms.positions[i[1]["index"]][2],
+                )
+                for i in graph.nodes(data=True)
+            }
+        else:
+            raise RuntimeError("Please provide ase.Atoms object")
     else:
-        layout = nx.spring_layout(graph, seed=4)
-        plt.figure(figsize=(10, 10))
-        # labels = nx.get_edge_attributes(graph, "weight")
-        # nx.draw_networkx_edge_labels(graph, pos = layout, edge_labels=labels)
-        nx.draw(graph, pos=layout, node_color=color, edgecolors=edgecolors, **kwargs)
-    plt.draw()
+        pos = nx.spring_layout(graph, seed=4)
+
+    nx.draw(graph, pos, node_color=color, edgecolors=edgecolors, ax=ax, **kwargs)
+
+    # Add node degrees as labels
+    node_degrees = dict(graph.degree())
+    for node, (x, y) in pos.items():
+        ax.text(
+            x,
+            y,
+            str(node_degrees[node]),
+            fontsize=12,
+            ha="center",
+            va="center",
+            color="black",
+        )
     plt.show()
+    return fig
 
 
 def get_connecting_nodes(graph: nx.Graph, cluster_ind: list, atoms: Atoms) -> list:

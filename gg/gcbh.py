@@ -99,21 +99,25 @@ class Gcbh(Dynamics):
             "check_graphs": True,
             "area": False,
             "fmax": 0.05,
+            "vib_correction": False,
         }
         self.optimizer = optimizer
         if config_file:
             self.set_config(config_file)
 
+        self.logtxt(f'Current Temp : {self.c["temp"]}')
         # Setup Temperature
         if self.c["max_temp"] is None:
             self.c["max_temp"] = 1.0 / ((1.0 / self.c["temp"]) / 1.5)
         else:
             self.c["max_temp"] = max([self.c["max_temp"], self.c["temp"]])
+        self.logtxt(f'Setting Max Temp to {self.c["max_temp"]}')
 
         if self.c["min_temp"] is None:
             self.c["min_temp"] = 1.0 / ((1.0 / self.c["temp"]) * 1.5)
         else:
             self.c["min_temp"] = min([self.c["min_temp"], self.c["temp"]])
+        self.logtxt(f'Setting Min Temp to {self.c["min_temp"]}')
 
         # Some file names and folders are hardcoded
         self.status_file = "current_status.pkl"
@@ -130,6 +134,7 @@ class Gcbh(Dynamics):
             self.traj = Trajectory(trajectory, "w", atoms)
 
         self.structure_modifiers = {}  # Setup empty class to add structure modifiers
+        self.vib_correction = {}  # Setup empty class to add specific corrections
         self.c["acc_hist"] = []
         # used for adjusting the temperature of Metropolis algorithm
         # a series of 0 and 1, 0 stands for not accepted, 1 stands for accepted
@@ -254,6 +259,17 @@ class Gcbh(Dynamics):
         modifier_weights = modifier_weights / modifier_weights.sum()
         return np.random.choice(modifier_names, p=modifier_weights)
 
+    def add_vib_correction(self, instance, name: str):
+        """
+        Args:
+            instance (Modifier): Instance of a ParentModifier or a child
+            name (str): Name for the instance/modifier
+        """
+        if name in self.vib_correction:
+            raise RuntimeError(f"Correction: {name} exists already!\n")
+        self.vib_correction[name] = instance
+        return
+
     def update_modifier_weights(self, name: str, action: str):
         """
         Args:
@@ -299,7 +315,7 @@ class Gcbh(Dynamics):
     def get_ref_potential(self, atoms: Atoms):
         """
         Args:
-            atoms (ase.Atoms): _description_
+            atoms (ase.Atoms):
         Returns:
             float: total ref value to substract
         """
@@ -313,6 +329,27 @@ class Gcbh(Dynamics):
                 to_print += f" {ref_coeff[key]:+.2f} {key} "
             self.logtxt(to_print)
             return ref_sum
+        else:
+            return 0
+
+    def get_vib_correction(self, atoms: Atoms):
+        """
+        Args:
+            atoms (ase.Atoms):
+        Returns:
+            float: total correction to add
+        """
+        if self.c["vib_correction"]:
+            if len(self.vib_correction) > 0:
+                corr_sum = 0
+                for key, value in self.vib_correction.items():
+                    n = value.get_n(atoms)
+                    corr_value = value.weight
+                    corr_sum += n * corr_value
+                    self.logtxt(f"Adding correction {key}:{n}*{corr_value}")
+                return corr_sum
+            else:
+                return 0
         else:
             return 0
 
@@ -335,6 +372,7 @@ class Gcbh(Dynamics):
             self.c["temp"] = self.c["min_temp"]
         elif self.c["temp"] > self.c["max_temp"]:
             self.c["temp"] = self.c["max_temp"]
+        self.logtxt(f'Current Temp: {self.c["temp"]}')
         return
 
     def move(self, name: str) -> Atoms:
@@ -445,6 +483,7 @@ class Gcbh(Dynamics):
         """
         assert newatoms is not None  # Energy_new
         fn = en - self.get_ref_potential(newatoms)  # Free_energy_new
+        fn += self.get_vib_correction(newatoms)
 
         if fn < self.c["fe"]:
             accept = True

@@ -14,7 +14,7 @@ from gg.utils_cluster import (
     translate_and_adjust,
 )
 from gg.modifiers.modifiers import ParentModifier
-from gg.sites import SurfaceSites
+from gg.sites import Sites
 
 __author__ = "Kaustubh Sawant"
 
@@ -24,7 +24,7 @@ class ClusterRotate(ParentModifier):
 
     def __init__(
         self,
-        surface_sites: SurfaceSites,
+        surface_sites: Sites,
         max_angle: int = 180,
         rotate_vector: tuple = None,
         contact_error: float = 0.2,
@@ -80,7 +80,7 @@ class ClusterTranslate(ParentModifier):
 
     def __init__(
         self,
-        surface_sites: SurfaceSites,
+        surface_sites: Sites,
         max_displace: float = 5,
         allowed_direction: tuple = (True, True, False),
         contact_error: float = 0.2,
