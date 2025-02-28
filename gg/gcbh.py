@@ -204,7 +204,7 @@ class Gcbh(Dynamics):
     def dump(self, filename: str):
         """dump dictionary of variables to store"""
         for key, value in self.structure_modifiers.items():
-            value.atoms = None
+            del value.atoms
             self.c["mod_weights"][key] = value.weight
         with open(filename, "wb") as file:
             pickle.dump(self.c, file, protocol=pickle.HIGHEST_PROTOCOL)

@@ -42,12 +42,18 @@ class ParentModifier:
 
     @atoms.setter
     def atoms(self, atoms: Atoms):
+        """Accept only string or ase.Atoms object"""
         if isinstance(atoms, str):
             self._atoms = read_atoms(atoms)
         elif isinstance(atoms, Atoms):
             self._atoms = custom_copy(atoms)
         else:
             raise RuntimeError("Cannot Set Atoms")
+
+    @atoms.deleter
+    def atoms(self):
+        """Deletes the atoms object and resets it to None."""
+        self._atoms = None
 
     def get_modified_atoms(self, atoms) -> Atoms:
         """
