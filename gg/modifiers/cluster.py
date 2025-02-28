@@ -58,6 +58,8 @@ class ClusterRotate(ParentModifier):
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         self.atoms = atoms
         df_ind = self.ss.get_sites(self.atoms)
+        if not df_ind:
+            raise NoReasonableStructureFound("No tagged sites found")
         atoms_g = self.ss.get_graph(self.atoms)
 
         angle = np.random.uniform(0, self.max_angle)
@@ -112,6 +114,8 @@ class ClusterTranslate(ParentModifier):
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         self.atoms = atoms
         df_ind = self.ss.get_sites(self.atoms)
+        if not df_ind:
+            raise NoReasonableStructureFound("No tagged sites found")
         random_values = (
             random.uniform(0, self.max_displace),
             random.uniform(0, self.max_displace),

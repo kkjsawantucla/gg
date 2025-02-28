@@ -61,7 +61,7 @@ class Add(ParentModifier):
             Defaults to "svd"
 
             tag (bool): add to tag=-1 to the adsorbate (imp for clusters)
-            Defaults to 1.
+            Defaults to True.
 
             weight (float): weight for gcbh.
             Defaults to 1.

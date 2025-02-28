@@ -11,7 +11,7 @@ from gg.gcbh import Gcbh
 G = Gcbh(atoms,config_file='input.yaml')
 
 from gg.predefined_sites import FlexibleSites
-FS = FlexibleSites(tag=True)
+FS = FlexibleSites(tag=-1)
 
 from gg.modifiers import ClusterRotate, ClusterTranslate, Add
 
