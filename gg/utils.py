@@ -6,7 +6,7 @@ import networkx as nx
 from numpy.linalg import norm
 from ase import Atoms
 from ase.neighborlist import NeighborList, natural_cutoffs
-from ase.data import covalent_radii
+from ase.data import covalent_radii, chemical_symbols
 from ase.build import molecule
 from ase.collections import g2
 from gg.utils_graph import node_symbol, relative_position, atoms_to_graph
@@ -51,7 +51,7 @@ def add_ads(atoms: Atoms, ads: Atoms, offset: float, tag: bool = False) -> Atoms
             _ads = adsorbates[ads]
         elif ads in g2.names:
             _ads = molecule(ads)
-        elif len(ads) == 1:
+        elif ads in chemical_symbols:
             _ads = Atoms(ads, positions=[(0, 0, 0)])
         else:
             raise RuntimeError(f"Cannot convert string to Formula {ads}")
@@ -172,7 +172,7 @@ def formula_to_graph(formula, max_bond_ratio=1.2, max_bond=0) -> nx.Graph:
             atoms = adsorbates[formula]
         elif formula in g2.names:
             atoms = molecule(formula)
-        elif len(formula) == 1:
+        elif formula in chemical_symbols:
             atoms = Atoms(formula, positions=[(0, 0, 0)])
         else:
             raise RuntimeError(f"Cannot convert string to Formula {formula}")
@@ -242,7 +242,7 @@ def replace(atoms: Atoms, replace_with: Union[str, Atoms], offset: np.array) -> 
             rep_atoms = adsorbates[replace_with]
         elif replace_with in g2.names:
             rep_atoms = molecule(replace_with)
-        elif len(replace_with) == 1:
+        elif replace_with in chemical_symbols:
             rep_atoms = Atoms(replace_with, positions=[(0, 0, 0)])
         else:
             raise RuntimeError(f"Cannot convert string to Formula {replace_with}")

@@ -4,6 +4,7 @@ from itertools import combinations
 from ase.collections import g2
 from ase.build import molecule
 from ase import Atoms
+from ase.data import chemical_symbols
 from gg.utils import (
     custom_copy,
     NoReasonableStructureFound,
@@ -72,7 +73,7 @@ class Add(ParentModifier):
                 self.ads = adsorbates[ads]
             elif ads in g2.names:
                 self.ads = molecule(ads)
-            elif len(ads) == 1:
+            elif ads in chemical_symbols:
                 self.ads = Atoms(ads, positions=[(0, 0, 0)])
             else:
                 raise RuntimeError(f"Cannot convert string to Formula {ads}")
