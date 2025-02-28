@@ -648,7 +648,7 @@ class GcbhFlexOpt(Gcbh):
             os.makedirs(subdir)
 
         if script not in copied_files:
-            copied_files.append(script)
+            copied_files = (*copied_files,script)
         for file in copied_files:
             assert os.path.isfile(file)
             shutil.copy(os.path.join(topdir, file), os.path.join(subdir, file))
