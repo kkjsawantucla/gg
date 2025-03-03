@@ -170,21 +170,28 @@ def get_tagged_sites(atoms: Atoms, tag: int = -1) -> list:
     return [i for i in range(len(atoms)) if atoms[i].tag == tag]
 
 
-def get_above_com_sites(atoms: Atoms, perc: float = 1.0) -> list:
+def get_com_sites(
+    atoms: Atoms, fraction: float = 1.0, direction: str = "above"
+) -> list:
     """
-    Returns a list of indices of atoms that are above the center of mass in the z-direction.
-    The `percentage` param determines the fraction of the z-dist above the COM that is considered.
 
     Args:
         atoms (Atoms): The ASE Atoms object.
-        percentage (float, optional): Fraction of the z-distance above the COM to consider.
-                    Must be between 0 and 1. Defaults to 1.0 (all sites above COM).
+        fraction (float, optional): Fraction of the z-distance from the COM to consider.
+                                    Must be between 0 and 1. Defaults to 1.0.
+        direction (str, optional): Whether to return atoms "above", "below", or "both".
+                                   Defaults to "above".
 
     Returns:
-        list: List of atom indices above the specified z-threshold.
+        list: A list of atom indices based on the specified direction.
     """
-    if not 0 <= perc <= 1:
-        raise ValueError("Percentage must be between 0 and 1.")
+    if not 0 <= fraction <= 1:
+        raise ValueError("Fraction must be between 0 and 1.")
+    if direction not in ["above", "below", "both"]:
+        raise ValueError("Direction must be 'above', 'below', or 'both'.")
+
+    if len(atoms) == 0:
+        return []
 
     # Get the center of mass (COM) z-coordinate
     com_z = atoms.get_center_of_mass()[2]
@@ -192,16 +199,23 @@ def get_above_com_sites(atoms: Atoms, perc: float = 1.0) -> list:
     # Get the z-coordinates of all atoms
     z_values = atoms.get_positions()[:, 2]
 
-    # Calculate the maximum z-coordinate
-    z_max = np.max(z_values)
+    # Compute max and min z-values
+    z_max = max(z_values)
+    z_min = min(z_values)
 
-    # Determine the threshold z-coordinate
-    threshold_z = com_z + (1 - perc) * (z_max - com_z)
+    # Calculate z-thresholds for above and below
+    threshold_z_above = com_z + (1 - fraction) * (z_max - com_z)
+    threshold_z_below = com_z - (1 - fraction) * (com_z - z_min)
 
-    # Select atoms above the threshold z-coordinate
-    above_threshold_indices = [i for i, z in enumerate(z_values) if z > threshold_z]
+    above_indices = {i for i, z in enumerate(z_values) if z > threshold_z_above}
+    below_indices = {i for i, z in enumerate(z_values) if z < threshold_z_below}
 
-    return above_threshold_indices
+    if direction == "above":
+        return list(above_indices)
+    elif direction == "below":
+        return list(below_indices)
+    else:
+        return list(above_indices | below_indices)
 
 
 def get_surface_sites_by_coordination(

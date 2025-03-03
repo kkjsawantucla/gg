@@ -161,7 +161,7 @@ class SurfaceSites(Sites):
         )
 
         # Apply COM filter
-        if self.com is not None:
+        if self.com:
             above_com_indices = set(get_above_com_sites(atoms, perc=self.com))
             indices = list(set(indices) & above_com_indices)
 

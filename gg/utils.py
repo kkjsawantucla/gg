@@ -245,13 +245,11 @@ def replace(atoms: Atoms, replace_with: Union[str, Atoms], offset: np.array) -> 
             rep_atoms = Atoms(replace_with, positions=[(0, 0, 0)])
         else:
             raise RuntimeError(f"Cannot convert string to Formula {replace_with}")
-        rep_atoms.center()
         atoms = add_ads(atoms, rep_atoms, offset)
 
     elif isinstance(replace_with, Atoms):
         rep_atoms = replace_with
         rep_atoms_copy = rep_atoms.copy()
-        rep_atoms_copy.center()
         atoms = add_ads(atoms, rep_atoms_copy, offset)
     return atoms
 
