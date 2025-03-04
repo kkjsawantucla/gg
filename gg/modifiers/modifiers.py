@@ -129,10 +129,15 @@ class Rattle(ParentModifier):
     """Modifier that rattles the atoms with some stdev"""
 
     def __init__(
-        self, weight: float = 1, stdev: float = 0.001, contact_error: float = 0.2
+        self,
+        surface_sites: Sites,
+        stdev: float = 0.01,
+        weight: float = 1,
+        seed: int = None,
     ):
+        self.ss = surface_sites
         self.stdev = stdev
-        self.contact_error = contact_error
+        self.seed = seed
         super().__init__(weight)
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
@@ -141,8 +146,15 @@ class Rattle(ParentModifier):
             ase.Atoms:
         """
         self.atoms = atoms
-        self.atoms.rattle(stdev=self.stdev)
-        if check_contact(self.atoms, error=self.contact_error):
+        df_ind = self.ss.get_sites(self.atoms)
+        if self.seed:
+            np.random.seed(self.seed)
+
+        for index in df_ind:
+            displacement = np.random.normal(0, self.stdev, 3)
+            self.atoms.positions[index] += displacement
+
+        if check_contact(self.atoms, error=self.ss.contact_error):
             raise NoReasonableStructureFound("Atoms Touching")
         else:
             return self.atoms
@@ -158,7 +170,7 @@ class Translate(ParentModifier):
         max_translate: tuple = (0.2, 0.2, 0.2),
         surf_sym: list = None,
         pick_random: bool = False,
-        contact_error: float = 0.2,
+        seed: int = None,
         weight: float = 1,
     ):
         """
@@ -171,7 +183,7 @@ class Translate(ParentModifier):
         self.max_translate = max_translate
         self.surf_sym = surf_sym
         self.ran = pick_random
-        self.contact_error = contact_error
+        self.seed = seed
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         self.atoms = atoms
@@ -180,7 +192,8 @@ class Translate(ParentModifier):
             index = [ind for ind in df_ind if self.atoms[ind].symbol in self.surf_sym]
         else:
             index = df_ind
-
+        if self.seed:
+            np.random.seed(self.seed)
         if self.ran:
             index = [np.random.choice]
 
@@ -192,7 +205,7 @@ class Translate(ParentModifier):
         for i in index:
             self.atoms[i].position += disp
 
-        if check_contact(self.atoms, error=self.contact_error):
+        if check_contact(self.atoms, error=self.ss.contact_error):
             raise NoReasonableStructureFound("Atoms Touching")
         else:
             return self.atoms

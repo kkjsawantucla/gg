@@ -4,7 +4,7 @@ from typing import Optional
 from ase import Atoms
 from gg.sites import Sites
 from gg.sites import (
-    get_above_com_sites,
+    get_com_sites,
     get_surface_sites_by_coordination,
     get_tagged_sites,
     get_unconstrained_sites,
@@ -96,7 +96,7 @@ class FlexibleSites(Sites):
 
         # Apply COM filter
         if self.com is not None:
-            above_com_indices = set(get_above_com_sites(atoms, perc=self.com))
+            above_com_indices = set(get_com_sites(atoms, fraction=self.com))
             indices = list(set(indices) & above_com_indices)
 
         return indices
@@ -162,7 +162,7 @@ class SurfaceSites(Sites):
 
         # Apply COM filter
         if self.com:
-            above_com_indices = set(get_above_com_sites(atoms, perc=self.com))
+            above_com_indices = set(get_com_sites(atoms, fraction=self.com))
             indices = list(set(indices) & above_com_indices)
 
         return indices
