@@ -1,0 +1,95 @@
+"""Site recognition for atomic structures using graph methods/Voronoi/coordination analysis."""
+
+# [Core Classes in gg.sites] ---------------------------------------------------------------
+class Sites:
+    """Base for site identification using neighborlist graphs."""
+    def __init__(self, max_bond_ratio=1.2, max_bond=0, contact_error=0.2):
+        self.graph = None  # Stores NetworkX graph of atomic bonds
+    
+    def get_graph(self, atoms: ase.Atoms) -> nx.Graph:
+        """Build graph using ASE neighborlist with bond tolerance parameters."""
+        # Uses atoms_to_graph() helper for conversion
+
+class RuleSites(Sites):
+    """Combine site selection rules (union/intersection). Accepts parser functions like:
+    - get_unconstrained_sites()
+    - get_com_sites()
+    - get_surface_sites_by_coordination()
+    - get_surface_sites_by_voronoi_pbc() 
+    - get_surface_by_normals()
+    """    
+    def __init__(self, index_parsers=None, combine_rules="union", **kwargs):
+        super().__init__(**kwargs)
+        self.index_parsers = index_parsers or [lambda atoms: all_indices]
+        # Rules can be: union ('u') or intersection ('i')
+
+# [Parser-Ready Functions available in gg.sites] -----------------------------------------------------
+def get_unconstrained_sites(atoms):-> list:
+    """Filter atoms not fixed by ASE constraints."""
+    return [i for i in range(len(atoms)) if not constrained]
+
+def get_com_sites(atoms, fraction: float=1.0, direction="above"):-> list:
+    """Select atoms above/below/both center-of-mass plane in z-direction."""
+    # Uses COM z-coordinate + fraction thresholding
+
+def get_surface_sites_by_coordination(atoms, max_coord):-> list:
+    """Find undercoordinated atoms using bond graph analysis."""
+    # Requires mx_coord hich is dict of {element: max_coordination} 
+    # Returns sorted indices by coordination deficit and height
+
+def get_surface_sites_by_voronoi_pbc(atoms, rem_symbols: list[str] = None) -> list:
+    """Identify surface atoms via Voronoi tessellation (requires Scipy).
+	Voronoi surface detection (excludes atoms with symbols in rem_symbols)"""
+    # Replicates atoms using PBC, checks for unbounded Voronoi cells
+
+def get_surface_by_normals(atoms, surface_normal=0.5, rem_symbols: list[str] = None):
+    """Detect surface using atomic neighbor vectors (normals).
+	Normal vector-based surface (filters out rem_symbols before analysis)."""
+    # Surface atoms have significant normal vector magnitudes
+
+"""Predefined site selection strategies combining constraints, tags, and coordination."""
+
+# [Core Classes in gg.predefined_sites] ---------------------------------------------------------------
+from gg.sites import sites, get_unconstrained_sites, get_surface_sites_by_coordination, get_com_sites
+
+class FlexibleSites(Sites):
+    """Combine multiple selection criteria:
+    - Constraints (unfixed atoms)
+    - Tags (specific or opposite)
+    - Explicit indices
+    - COM z-position filtering
+    """
+    def __init__(self, constraints=False, index=None, tag=None, opp_tag=False, 
+                 com=None, **kwargs):
+        super().__init__(**kwargs)
+        self.constraints = constraints
+        self.index = index  # Direct index selection
+        self.tag = tag      # Tag-based filtering
+        self.opp_tag = opp_tag  # Invert tag selection
+        self.com = com      # COM height threshold
+
+    def get_sites(self, atoms) -> list[int]:
+        """Applies filters sequentially: constraints → tag → COM"""
+        indices = self.index or range(len(atoms))
+        if self.constraints:
+            indices &= get_unconstrained_sites(atoms)
+        if self.tag is not None:
+            tag_set = set(get_tagged_sites(atoms, self.tag))
+            indices = indices - tag_set if self.opp_tag else indices & tag_set
+        if self.com:
+            indices &= get_com_sites(atoms, self.com)
+        return indices
+
+class SurfaceSites(Sites):
+    """Identifies surface atoms through coordination deficits + COM filtering"""
+    def __init__(self, max_coord: dict, com=0.1, **kwargs):
+        super().__init__(**kwargs)
+        self.max_coord = max_coord  # Element-specific coord thresholds (e.g., {'Au': 11})
+        self.com = com  # Center-of-mass cutoff
+
+    def get_sites(self, atoms) -> list:
+        """Uses coordination analysis then applies COM filter"""
+        indices = get_surface_sites_by_coordination(atoms, self.max_coord, **self._params)
+        if self.com:
+            indices &= get_com_sites(atoms, fraction=self.com)
+        return indices

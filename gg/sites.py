@@ -126,8 +126,8 @@ class RuleSites(Sites):
             self.index_parsers = (
                 [index_parsers] if callable(index_parsers) else index_parsers
             )
-
-        if combine_rules not in ["union", "intersection"]:
+        combine_rules = combine_rules[0]
+        if combine_rules not in ["u", "i"]:
             raise ValueError("combine_rules must be 'union' or 'intersection'.")
         self.combine_rules = combine_rules
 
@@ -139,16 +139,19 @@ class RuleSites(Sites):
         Returns:
             list: A list of indices representing the sites of interest.
         """
-        # Apply each rule to the atoms object
-        results = [parser(atoms) for parser in self.index_parsers]
+        result = set() if self.combine_rules == "u" else None
 
-        # Combine results based on the specified logic
-        if self.combine_rules == "union":
-            # Use set union to combine results
-            return list(set().union(*results))
-        elif self.combine_rules == "intersection":
-            # Use set intersection to combine results
-            return list(set(results[0]).intersection(*results[1:]))
+        for parser in self.index_parsers:
+            temp_result = set(parser(atoms))
+
+            if result is None:
+                result = temp_result
+            elif self.combine_rules == "u":
+                result |= temp_result  # Union
+            elif self.combine_rules == "i":
+                result &= temp_result  # Intersection
+
+        return result
 
 
 # Rules Defined
@@ -283,7 +286,9 @@ def get_surface_sites_by_coordination(
     return df["ind"].to_list()
 
 
-def get_surface_sites_by_voronoi_pbc(atoms: Atoms) -> List[int]:
+def get_surface_sites_by_voronoi_pbc(
+    atoms: Atoms, rem_symbols: list[str] = None
+) -> List[int]:
     """
     Identifies surface atoms using Voronoi tessellation with periodic boundary conditions.
 
@@ -298,9 +303,14 @@ def get_surface_sites_by_voronoi_pbc(atoms: Atoms) -> List[int]:
         print("Scipy isnt installed; get_surface_sites_by_voronoi_pbc wont work")
         return list(range(len(atoms)))
 
-    cell = atoms.cell
-    pbc = atoms.pbc
-    positions = atoms.get_positions()
+    atoms2 = atoms.copy()
+    if rem_symbols:
+        rem_atoms = [i for i, a in enumerate(atoms2) if a.symbol in rem_symbols]
+        del atoms2[rem_atoms]
+
+    cell = atoms2.cell
+    pbc = atoms2.pbc
+    positions = atoms2.get_positions()
     extended_positions = []
     tags = []
     original_indices = []
@@ -343,6 +353,7 @@ def get_surface_sites_by_voronoi_pbc(atoms: Atoms) -> List[int]:
 
 def get_surface_by_normals(
     atoms: Atoms,
+    rem_symbols: List[str] = None,
     surface_normal: float = 0.5,
     tolerance: float = 1e-5,
     normalize_final: bool = True,
@@ -362,21 +373,24 @@ def get_surface_by_normals(
         np.ndarray: Surface normals for each atom.
         list: Indices of detected surface atoms.
     """
-    atoms = atoms.copy()
+    atoms2 = atoms.copy()
+    if rem_symbols:
+        rem_atoms = [i for i, a in enumerate(atoms2) if a.symbol in rem_symbols]
+        del atoms2[rem_atoms]
 
     # Create the graph
     nl = NeighborList(
-        natural_cutoffs(atoms), self_interaction=self_interaction, bothways=bothways
+        natural_cutoffs(atoms2), self_interaction=self_interaction, bothways=bothways
     )
-    nl.update(atoms)
+    nl.update(atoms2)
 
-    normals = np.zeros((len(atoms), 3), dtype=float)
-    for index in range(len(atoms)):
+    normals = np.zeros((len(atoms2), 3), dtype=float)
+    for index in range(len(atoms2)):
         normal = np.zeros(3, dtype=float)
-        atom_pos = atoms.positions[index]
+        atom_pos = atoms2.positions[index]
 
         for neighbor, offset in zip(*nl.get_neighbors(index)):
-            neighbor_pos = atoms.positions[neighbor] + np.dot(offset, atoms.cell)
+            neighbor_pos = atoms2.positions[neighbor] + np.dot(offset, atoms2.cell)
             normal += atom_pos - neighbor_pos  # Vector sum of neighbor directions
 
         # Store normal vector if it's above threshold
@@ -388,7 +402,7 @@ def get_surface_by_normals(
     # Identify surface atoms based on normal magnitude
     surface = [
         index
-        for index in range(len(atoms))
+        for index in range(len(atoms2))
         if np.linalg.norm(normals[index]) > tolerance
     ]
     return surface

@@ -18,11 +18,11 @@ def slab_with_multiple_co():
     slab[top_sites[3]].symbol = "Cu"
 
     # Define CO molecule
-    CO = Atoms("CO", positions=[[0, 0, 0], [0, 0, 1.1]])
+    co = Atoms("CO", positions=[[0, 0, 0], [0, 0, 1.1]])
 
     # Add CO on top of the slab
     for i in top_sites[:2]:
-        add_adsorbate(slab, CO, height=2.0, position=slab[i].position[:2])
+        add_adsorbate(slab, co, height=2.0, position=slab[i].position[:2])
 
     return slab
 
@@ -169,8 +169,9 @@ def test_modifier_adder(slab_with_multiple_co):
         unique=True,
     )
 
+    # Initialize Modifier Adder
     modifier_add = ModifierAdder([remover, swapper], print_movie=True, unique=True)
-    
+
     # Apply modifier
     unique_structures = modifier_add.get_modified_atoms(slab_with_multiple_co)
 
