@@ -69,11 +69,13 @@ class ModifierAdder(ParentModifier):
     def __init__(
         self,
         modifier_instances: list,
-        weight: float = 1,
         max_bond_ratio: float = 1.2,
         max_bond: float = 0,
         print_movie: bool = False,
         unique: bool = True,
+        unique_method: str = "fullgraph",
+        unique_depth: int = 3,
+        weight: float = 1,
     ):
         super().__init__(weight)
         if isinstance(modifier_instances, list):
@@ -84,6 +86,8 @@ class ModifierAdder(ParentModifier):
         self.max_bond = max_bond
         self.print_movie = print_movie
         self.unique = unique
+        self.unique_method = unique_method
+        self.unique_depth = unique_depth
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
@@ -111,6 +115,8 @@ class ModifierAdder(ParentModifier):
                     movie,
                     max_bond=self.max_bond,
                     max_bond_ratio=self.max_bond_ratio,
+                    unique_method=self.unique_method,
+                    depth=self.unique_depth
                 )
             else:
                 return movie
@@ -224,6 +230,8 @@ class Remove(
         max_bond: float = 0,
         print_movie: bool = False,
         unique: bool = False,
+        unique_method: str = "fullgraph",
+        unique_depth: int = 3,
         weight: float = 1,
     ):
         """
@@ -258,6 +266,8 @@ class Remove(
         self.ss = surface_sites
         self.print_movie = print_movie
         self.unique = unique
+        self.unique_method = unique_method
+        self.unique_depth = unique_depth
 
     def node_match(self, n1: str, n2: str):
         """node matching criteria
@@ -325,6 +335,8 @@ class Remove(
                     movie,
                     max_bond=self.ss.max_bond,
                     max_bond_ratio=self.ss.max_bond_ratio,
+                    unique_method=self.unique_method,
+                    depth=self.unique_depth
                 )
             else:
                 return movie
@@ -357,6 +369,8 @@ class Swap(
         swap_ind: list = None,
         print_movie: bool = False,
         unique: bool = True,
+        unique_method: str = "fullgraph",
+        unique_depth: int = 3,
         weight: float = 1,
     ):
         """
@@ -383,6 +397,8 @@ class Swap(
         self.ss = surface_sites
         self.print_movie = print_movie
         self.unique = unique
+        self.unique_method = unique_method
+        self.unique_depth = unique_depth
 
     def get_modified_atoms(self, atoms: Atoms) -> Atoms:
         """
@@ -454,6 +470,8 @@ class Swap(
                     movie,
                     max_bond=self.ss.max_bond,
                     max_bond_ratio=self.ss.max_bond_ratio,
+                    unique_method=self.unique_method,
+                    depth=self.unique_depth
                 )
             else:
                 return movie
@@ -475,6 +493,8 @@ class Replace(
         max_bond: float = 0,
         print_movie: bool = False,
         unique: bool = True,
+        unique_method: str = "fullgraph",
+        unique_depth: int = 3,
         weight: float = 1,
     ):
         """
@@ -509,6 +529,8 @@ class Replace(
             print_movie=print_movie,
             unique=unique,
             weight=weight,
+            unique_method=unique_method,
+            unique_depth = unique_depth,
         )
 
         self.with_rep = with_replace
@@ -537,6 +559,8 @@ class Replace(
                     movie,
                     max_bond=self.ss.max_bond,
                     max_bond_ratio=self.ss.max_bond_ratio,
+                    unique_method=self.unique_method,
+                    depth=self.unique_depth
                 )
             else:
                 return movie

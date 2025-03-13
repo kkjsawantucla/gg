@@ -25,7 +25,7 @@ class Sites:
         self,
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
-        contact_error: Optional[float] = 0.2,
+        contact_error: Optional[float] = 0.3,
     ):
         """
         Args: All the variables help in making graphs
@@ -98,7 +98,7 @@ class RuleSites(Sites):
         combine_rules: str = "union",
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
-        contact_error: Optional[float] = 0.2,
+        contact_error: Optional[float] = 0.3,
     ):
         """
         Args:

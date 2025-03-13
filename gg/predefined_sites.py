@@ -23,7 +23,7 @@ class FlexibleSites(Sites):
         com: Optional[float] = None,
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
-        contact_error: Optional[float] = 0.2,
+        contact_error: Optional[float] = 0.3,
     ):
         """
         Args:
@@ -110,7 +110,7 @@ class SurfaceSites(Sites):
         max_coord: dict,
         max_bond_ratio: Optional[float] = 1.2,
         max_bond: Optional[float] = 0,
-        contact_error: Optional[float] = 0.2,
+        contact_error: Optional[float] = 0.3,
         com: Optional[bool] = 0.1,
     ):
         """

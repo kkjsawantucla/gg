@@ -33,6 +33,8 @@ class Add(ParentModifier):
         ads_rotate: bool = True,
         weight: float = 1,
         normal_method: str = "svd",
+        unique_method: str = "fullgraph",
+        unique_depth: int =3,
         tag: bool = True,
     ):
         """
@@ -95,6 +97,8 @@ class Add(ParentModifier):
         self.ads_rotate = ads_rotate
         self.method = normal_method
         self.tag = tag
+        self.unique_method = unique_method
+        self.unique_depth = unique_depth
 
         # Check multiple possibilities of adsorbate
         if isinstance(self.ad_dist, list):
@@ -165,6 +169,8 @@ class Add(ParentModifier):
                     movie,
                     max_bond=self.ss.max_bond,
                     max_bond_ratio=self.ss.max_bond_ratio,
+                    unique_method = self.unique_method,
+                    depth = self.unique_depth
                 )
             else:
                 return movie
@@ -189,6 +195,8 @@ class AddBi(Add):
         add_ads_error: float = 0.5,
         normal_method: str = "mean",
         tag: bool = True,
+        unique_method: str = "fullgraph",
+        unique_depth: int =3,
         weight: float = 1,
     ):
         """
@@ -242,6 +250,8 @@ class AddBi(Add):
             weight=weight,
             normal_method=normal_method,
             tag=tag,
+            unique_method=unique_method,
+            unique_depth = unique_depth,
         )
 
         self.ads_id_list = ads_id
@@ -337,6 +347,7 @@ class AddBi(Add):
                     movie,
                     max_bond=self.ss.max_bond,
                     max_bond_ratio=self.ss.max_bond_ratio,
+                    depth = self.unique_depth,
                 )
             else:
                 return movie

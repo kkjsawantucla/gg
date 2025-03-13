@@ -391,6 +391,8 @@ class Gcbh(Dynamics):
         self.c["energy"] = en
         ref = self.get_ref_potential(self.atoms)
         self.c["fe"] = self.c["energy"] - ref
+        if self.c["vib_correction"]:
+            self.c["fe"] += self.get_vib_correction(self.atoms)
         self.c["fe_min"] = self.c["fe"]
         self.c["opt_on"] = -1
         self.dump(self.status_file)
@@ -483,7 +485,8 @@ class Gcbh(Dynamics):
         """
         assert newatoms is not None  # Energy_new
         fn = en - self.get_ref_potential(newatoms)  # Free_energy_new
-        fn += self.get_vib_correction(newatoms)
+        if self.c["vib_correction"]:
+            fn += self.get_vib_correction(newatoms)
 
         if fn < self.c["fe"]:
             accept = True

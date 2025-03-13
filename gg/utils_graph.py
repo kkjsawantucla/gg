@@ -153,7 +153,9 @@ def get_wl_hash(graph: nx.Graph, iterations: int = 3) -> hash:
     )
 
 
-def get_unique_graph_indexes(graph_list: list) -> list:
+def get_unique_graph_indexes(
+    graph_list: list, unique_method: str = "fullgraph", depth: int = 3
+) -> list:
     """
     Args:
         graph_list (list): list[nx.Graph]
@@ -171,15 +173,24 @@ def get_unique_graph_indexes(graph_list: list) -> list:
             unique_graphs.append(graph)
             unique_indexes.append(index)
         else:
-            # Perform a full isomorphism check to confirm the uniqueness
-            if not any(
-                nx.algorithms.isomorphism.GraphMatcher(
-                    graph, unique_graph, node_match=node_match
-                ).is_isomorphic()
-                for unique_graph in unique_graphs
-            ):
-                unique_graphs.append(graph)
-                unique_indexes.append(index)
+            if unique_method == "fullgraph":
+                # Perform a full isomorphism check to confirm the uniqueness
+                if not any(
+                    compare_fullgraph_uniqueness(graph, unique_graph)
+                    for unique_graph in unique_graphs
+                ):
+                    unique_graphs.append(graph)
+                    unique_indexes.append(index)
+            if unique_method in chemical_symbols:
+                # Perform a full isomorphism check to confirm the uniqueness
+                if not any(
+                    compare_subgraph_uniqueness(
+                        graph, unique_graph, center_symbol=unique_method, depth=depth
+                    )
+                    for unique_graph in unique_graphs
+                ):
+                    unique_graphs.append(graph)
+                    unique_indexes.append(index)
     return unique_indexes
 
 
@@ -206,7 +217,11 @@ def list_atoms_to_graphs(
 
 
 def get_unique_atoms(
-    movie: list, max_bond: float = 0, max_bond_ratio: float = 0
+    movie: list,
+    max_bond: float = 0,
+    max_bond_ratio: float = 0,
+    unique_method: str = "fullgraph",
+    depth: int = 3,
 ) -> list:
     """
     Args:
@@ -220,11 +235,15 @@ def get_unique_atoms(
     graph_list = list_atoms_to_graphs(
         movie, max_bond=max_bond, max_bond_ratio=max_bond_ratio
     )
-    unique_indexes = get_unique_graph_indexes(graph_list)
+    unique_indexes = get_unique_graph_indexes(
+        graph_list, unique_method=unique_method, depth=depth
+    )
     return [movie[i] for i in unique_indexes]
 
 
-def is_unique_graph(graph: nx.Graph, graph_list: list) -> bool:
+def is_unique_graph(
+    graph: nx.Graph, graph_list: list, comp_type: str = "fullgraph"
+) -> bool:
     """Check if the given graph is not isomorphic to any graph in the list.
 
     Args:
@@ -240,10 +259,14 @@ def is_unique_graph(graph: nx.Graph, graph_list: list) -> bool:
         if graph_hash != unique_graph_hashes:
             continue
         else:
-            if nx.algorithms.isomorphism.GraphMatcher(
-                graph, unique_graph, node_match=node_match
-            ).is_isomorphic():
-                return False
+            if comp_type == "fullgraph":
+                if compare_fullgraph_uniqueness(graph, unique_graph):
+                    return False
+            elif comp_type in chemical_symbols:
+                if compare_subgraph_uniqueness(
+                    graph, unique_graph, center_symbol=comp_type
+                ):
+                    return False
     return True
 
 
@@ -329,3 +352,63 @@ def get_connecting_nodes(graph: nx.Graph, cluster_ind: list, atoms: Atoms) -> li
     # Get the 'index' attribute of each connecting node
     connecting_indices = [graph.nodes[node]["index"] for node in connecting_nodes]
     return connecting_indices
+
+
+def generate_centered_subgraphs(
+    graph: nx.Graph, center_symbol: str, depth: int
+) -> list[nx.Graph]:
+    """
+    Generate subgraphs centered around nodes with `center_symbol`,
+    up to `depth` levels using ego_graph.
+    """
+    # Find all center nodes with the specified symbol
+    center_nodes = [
+        node for node, data in graph.nodes(data=True) if data["symbol"] == center_symbol
+    ]
+
+    # Generate ego graphs (subgraphs) for each center node
+    subgraphs = [nx.ego_graph(graph, node, radius=depth) for node in center_nodes]
+
+    return subgraphs
+
+
+def compare_subgraph_uniqueness(
+    graph1: nx.Graph, graph2: nx.Graph, center_symbol: str, depth: int = 3
+) -> bool:
+    """Compare uniqueness of two graphs by checking their subgraphs first."""
+
+    subgraphs1 = generate_centered_subgraphs(graph1, center_symbol, depth)
+    subgraphs2 = generate_centered_subgraphs(graph2, center_symbol, depth)
+
+    # If different number of subgraphs, they are not identical
+    if len(subgraphs1) != len(subgraphs2):
+        return False
+
+    # Compare subgraphs for isomorphism
+    matched = set()
+    for sg1 in subgraphs1:
+        for i, sg2 in enumerate(subgraphs2):
+            if (
+                i not in matched
+                and nx.algorithms.isomorphism.GraphMatcher(
+                    sg1, sg2, node_match=node_match
+                ).is_isomorphic()
+            ):
+                matched.add(i)
+                break
+
+    # If all subgraphs from graph1 found a match in graph2, they are equivalent
+    return len(matched) == len(subgraphs1)
+
+
+def compare_fullgraph_uniqueness(
+    graph1: nx.Graph,
+    graph2: nx.Graph,
+) -> bool:
+    """_summary_"""
+
+    result = nx.algorithms.isomorphism.GraphMatcher(
+        graph1, graph2, node_match=node_match
+    ).is_isomorphic()
+
+    return result
