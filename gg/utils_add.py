@@ -65,7 +65,7 @@ def generate_surf_sites(
                 if is_cycle(graph, nodes):
                     # Some small unit cell can give collinear atoms as 3 adsorbate cycle
                     if not are_points_collinear_with_tolerance(
-                        pos[0], pos[1], pos[2], tolerance=0.01
+                        pos[0], pos[1], pos[2], tolerance=0.05
                     ):
                         valid.append(list(cycle))
         total_valid = total_valid + valid
@@ -100,6 +100,7 @@ def generate_add_mono(
     valid = generate_surf_sites(atoms, graph, index, surf_coord)
     movie = []
     # This for loops find the best position to add and generate atoms
+
     for cycle in valid:
         normal, ref_pos = get_normals(cycle, atoms, graph, method=method)
         offset = ref_pos
@@ -109,26 +110,16 @@ def generate_add_mono(
         # It will try to find the best position according to covalent radii
         # Not very accurate
         if isinstance(ad_dist, str):
-            if ad_dist in ads.get_chemical_symbols():
-                for i in cycle:
-                    current_dist = norm(offset - atoms[i].position)
-                    req_dist = (
-                        covalent_radii[atoms[i].number]
-                        + covalent_radii[atomic_numbers[ad_dist]] * 0.9
-                    )
-                    if current_dist == 0:
-                        offset += req_dist * unit_normal / len(cycle)
-                    elif current_dist < req_dist:
-                        proj_len = distance_point_to_line(
-                            offset, unit_normal, atoms[i].position
-                        )
-                        offset += proj_len * unit_normal / len(cycle)
+            offset = get_offset(offset, ad_dist, cycle, unit_normal, atoms, ads)
 
-        elif isinstance(ad_dist, float):
+        elif isinstance(ad_dist, float) or isinstance(ad_dist, int):
             if ad_dist < np.average([covalent_radii[atoms[i].number] for i in cycle]):
                 print("Issue in distance of adsorbate and substrate")
                 continue
             else:
+                offset = get_average_cycle_position(cycle, atoms)
+                if norm(offset - atoms[cycle[0]].position) < 0.01 and len(cycle) != 1:
+                    continue
                 offset += ad_dist * unit_normal
         ads_copy = ads.copy()
         ads_copy.rotate([0, 0, 1], normal, center=[0, 0, 0])
@@ -208,22 +199,34 @@ def generate_add_bi(
                 offset_1, ad_dist[0], cycle_1, unit_normal_1, atoms, ads_copy
             )
 
-        elif isinstance(ad_dist[0], float):
-            if ad_dist < np.average([covalent_radii[atoms[i].number] for i in cycle_1]):
+        elif isinstance(ad_dist[0], float) or isinstance(ad_dist[0], int):
+            if ad_dist[0] < np.average([covalent_radii[atoms[i].number] for i in cycle_1]):
                 print("Issue in distance of adsorbate and substrate")
                 continue
             else:
+                offset_1 = get_average_cycle_position(cycle_1, atoms)
+                if (
+                    norm(offset_1 - atoms[cycle_1[0]].position) < 0.01
+                    and len(cycle_1) != 1
+                ):
+                    continue
                 offset_1 += ad_dist[0] * unit_normal_1
 
         if isinstance(ad_dist[1], str):
             offset_2 = get_offset(
                 offset_2, ad_dist[1], cycle_2, unit_normal_2, atoms, ads_copy
             )
-        elif isinstance(ad_dist[1], float):
-            if ad_dist < np.average([covalent_radii[atoms[i].number] for i in cycle_2]):
+        elif isinstance(ad_dist[1], float) or isinstance(ad_dist[1], int):
+            if ad_dist[1] < np.average([covalent_radii[atoms[i].number] for i in cycle_2]):
                 print("Issue in distance of adsorbate and substrate")
                 continue
             else:
+                offset_2 = get_average_cycle_position(cycle_2, atoms)
+                if (
+                    norm(offset_2 - atoms[cycle_2[0]].position) < 0.01
+                    and len(cycle_2) != 1
+                ):
+                    continue
                 offset_2 += ad_dist[1] * unit_normal_1
         if abs(diff - diff_og) > 0.001:
             target_vector = minimum_image_distance(
@@ -320,17 +323,20 @@ def get_offset(offset, ad_dist, cycle, unit_normal, atoms, ads):
     """
     if ad_dist in ads.get_chemical_symbols():
         for i in cycle:
-            current_dist = norm(offset - atoms[i].position)
+            current_dist = minimum_image_distance(
+                offset, atoms[i].position, atoms.cell
+            )
             req_dist = (
                 covalent_radii[atoms[i].number]
                 + covalent_radii[atomic_numbers[ad_dist]] * 0.9
             )
-            if current_dist == 0:
+            if current_dist < 0.001:
                 offset += req_dist * unit_normal / len(cycle)
             elif current_dist < req_dist:
-                proj_len = distance_point_to_line(
-                    offset, unit_normal, atoms[i].position
+                clos_pos = closest_periodic_image(
+                    offset, atoms[i].position, atoms.cell[0], atoms.cell[1]
                 )
+                proj_len = distance_point_to_line(offset, unit_normal, clos_pos)
                 offset += proj_len * unit_normal / len(cycle)
     return offset
 
@@ -483,3 +489,57 @@ def minimum_image_distance(coord1, coord2, cell, get_norm=True):
         return norm(delta)
     else:
         return delta
+
+
+def get_average_cycle_position(cycle, atoms):
+    """_summary_
+    Args:
+        cycle (list(int)):
+        atoms (ase.Atoms):
+    Returns:
+        np.array:
+    """
+    init_pos = atoms[cycle[0]].position
+    corr = 0
+    for i in cycle[1:]:
+        corr += minimum_image_distance(
+            init_pos, atoms[i].position, cell=atoms.cell, get_norm=False
+        )
+
+    return init_pos + corr / 3
+
+
+def closest_periodic_image(reference, point, x_vec, y_vec):
+    """
+    Finds the closest periodic image of 'point' to 'reference' within a 2D periodic cell in 3D space.
+
+    Parameters:
+        reference (array-like): The fixed reference point [x, y, z].
+        point (array-like): The point whose closest periodic image is sought [x, y, z].
+        x_vec (array-like): The x-direction periodic cell vector [x, y, z].
+        y_vec (array-like): The y-direction periodic cell vector [x, y, z].
+
+    Returns:
+        np.ndarray: The coordinates of the closest periodic image.
+    """
+    reference = np.array(reference)
+    point = np.array(point)
+    x_vec = np.array(x_vec)
+    y_vec = np.array(y_vec)
+
+    # Generate translations along periodic directions
+    translations = [
+        i * x_vec + j * y_vec
+        for i in range(-1, 2)  # Checking -1, 0, 1 in x direction
+        for j in range(-1, 2)  # Checking -1, 0, 1 in y direction
+    ]
+
+    # Generate all periodic images
+    periodic_images = [point + t for t in translations]
+
+    # Find the closest image
+    closest_image = min(
+        periodic_images, key=lambda img: np.linalg.norm(img - reference)
+    )
+
+    return closest_image

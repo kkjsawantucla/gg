@@ -65,12 +65,39 @@ def test_add_CO(slab_with_multiple_co):
 
     # Check results
     assert isinstance(unique_structures, list), "Expected a list of unique structures"
-    assert len(unique_structures) == 27, "Expected 27 structures"
+    assert len(unique_structures) == 24, "Expected 27 structures"
     for structure in unique_structures:
         assert (
             len(slab_with_multiple_co) == len(structure) - 2
         ), "Number of atoms should increase by 2"
 
+def test_add_CO_subgraphs(slab_with_multiple_co):
+    """Test Add modifier ensures uniqueness when adding multiple CO adsorbates."""
+
+    # Define the Site Module
+    sites = FlexibleSites(com=0.5)
+
+    add_co = Add(
+        sites,
+        "CO",
+        surf_coord=[1, 2, 3],
+        ads_id=["C"],
+        surf_sym=["Au"],
+        print_movie=True,
+        unique=True,
+        unique_method="C"
+    )
+
+    # Apply modifier
+    unique_structures = add_co.get_modified_atoms(slab_with_multiple_co)
+
+    # Check results
+    assert isinstance(unique_structures, list), "Expected a list of unique structures"
+    assert len(unique_structures) == 24, "Expected 27 structures"
+    for structure in unique_structures:
+        assert (
+            len(slab_with_multiple_co) == len(structure) - 2
+        ), "Number of atoms should increase by 2"
 
 def test_add_formate(slab_with_multiple_co):
     # Define the Site Module

@@ -2,7 +2,9 @@
 
 from typing import Union
 import networkx as nx
+from networkx import Graph
 from networkx.algorithms import weisfeiler_lehman_graph_hash
+from networkx.algorithms.isomorphism import GraphMatcher
 import numpy as np
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
@@ -10,6 +12,10 @@ from ase.data import covalent_radii, chemical_symbols
 from ase import Atoms
 from ase.neighborlist import NeighborList, natural_cutoffs
 from ase.data.colors import jmol_colors
+from ase.build import molecule
+from ase.collections import g2
+from gg.data import adsorbates
+
 
 __author__ = "Kaustubh Sawant"
 
@@ -38,7 +44,7 @@ def relative_position(atoms: Atoms, neighbor: int, offset: np.array) -> np.array
     return atoms[neighbor].position + np.dot(offset, atoms.get_cell())
 
 
-def node_match(n1: str, n2: str) -> bool:
+def node_match(n1: dict, n2: dict) -> bool:
     """
     Args:
         n1 (str):
@@ -49,7 +55,7 @@ def node_match(n1: str, n2: str) -> bool:
     return n1["symbol"] == n2["symbol"]
 
 
-def is_cycle(g: nx.Graph, nodes: list) -> bool:
+def is_cycle(g: Graph, nodes: list) -> bool:
     """Check if the nodes in graph G form a cycle
     Args:
        G (networkx Graph):
@@ -95,7 +101,7 @@ def are_points_collinear_with_tolerance(
 
 def atoms_to_graph(
     atoms: Atoms, nl, max_bond: float = 0, max_bond_ratio: float = 0
-) -> nx.Graph:
+) -> Graph:
     """
     Args:
         atoms (ase.Atoms): an ase atoms object
@@ -104,11 +110,11 @@ def atoms_to_graph(
         max_bond_ratio (int, optional): . Defaults to 0.
 
     Returns:
-       (nx.Graph):
+       (Graph):
     """
     if max_bond == 0 and max_bond_ratio == 0:
         raise RuntimeError("Please Specify bond information")
-    g = nx.Graph()
+    g = Graph()
     for index, atom in enumerate(atoms):
         index_n = []
         if not g.has_node(node_symbol(atom)):
@@ -139,14 +145,14 @@ def atoms_to_graph(
     return g
 
 
-def get_graph_hash(graph: nx.Graph) -> hash:
+def get_graph_hash(graph: Graph) -> hash:
     """Generate a hash for the graph using node degrees and chemical symbols."""
     degrees = sorted(dict(graph.degree()).values())  # Degree sequence
     elements = sorted([data["symbol"] for _, data in graph.nodes(data=True)])
     return hash((tuple(degrees), tuple(elements)))
 
 
-def get_wl_hash(graph: nx.Graph, iterations: int = 3) -> hash:
+def get_wl_hash(graph: Graph, iterations: int = 3) -> hash:
     """Get weisfeiler_lehman_graph_hash"""
     return weisfeiler_lehman_graph_hash(
         graph, node_attr="symbol", iterations=iterations
@@ -158,7 +164,7 @@ def get_unique_graph_indexes(
 ) -> list:
     """
     Args:
-        graph_list (list): list[nx.Graph]
+        graph_list (list): list[Graph]
 
     Returns:
         list: get list of unique graph indexes
@@ -181,7 +187,7 @@ def get_unique_graph_indexes(
                 ):
                     unique_graphs.append(graph)
                     unique_indexes.append(index)
-            if unique_method in chemical_symbols:
+            else:
                 # Perform a full isomorphism check to confirm the uniqueness
                 if not any(
                     compare_subgraph_uniqueness(
@@ -204,7 +210,7 @@ def list_atoms_to_graphs(
         max_bond_ratio (int, optional): . Defaults to 0.
 
     Returns:
-        list[nx.Graph]: converted list of graphs
+        list[Graph]: converted list of graphs
     """
     graph_list = []
     for atoms in list_atoms:
@@ -242,13 +248,13 @@ def get_unique_atoms(
 
 
 def is_unique_graph(
-    graph: nx.Graph, graph_list: list, comp_type: str = "fullgraph"
+    graph: Graph, graph_list: list, comp_type: str = "fullgraph"
 ) -> bool:
     """Check if the given graph is not isomorphic to any graph in the list.
 
     Args:
-    graph (nx.Graph): The graph to check.
-    graph_list (list of nx.Graph): The list of graphs to compare against.
+    graph (Graph): The graph to check.
+    graph_list (list of Graph): The list of graphs to compare against.
 
     Returns:
     bool: True if the graph is unique, False otherwise.
@@ -262,7 +268,7 @@ def is_unique_graph(
             if comp_type == "fullgraph":
                 if compare_fullgraph_uniqueness(graph, unique_graph):
                     return False
-            elif comp_type in chemical_symbols:
+            else:
                 if compare_subgraph_uniqueness(
                     graph, unique_graph, center_symbol=comp_type
                 ):
@@ -271,13 +277,13 @@ def is_unique_graph(
 
 
 def draw_graph(
-    graph: nx.Graph, graph_type: str = "none", atoms: Atoms = None, **kwargs
+    graph: Graph, graph_type: str = "none", atoms: Atoms = None, **kwargs
 ) -> plt.Figure:
     """Draw an atomic graph with different layout options, displaying node degrees.
 
     Args:
-        graph (nx.Graph): Graph to draw.
-        graph_type (str, optional): Layout type ("none", "circular", "kamada_kawai"). Defaults to "none".
+        graph (Graph): Graph to draw.
+        graph_type (str, optional): Layout type ("none", "circular", "kamada_kawai").
         **kwargs: Additional keyword arguments for the NetworkX draw functions.
 
     Returns:
@@ -329,12 +335,12 @@ def draw_graph(
     return fig
 
 
-def get_connecting_nodes(graph: nx.Graph, cluster_ind: list, atoms: Atoms) -> list:
+def get_connecting_nodes(graph: Graph, cluster_ind: list, atoms: Atoms) -> list:
     """
     Find nodes that connect the cluster to the rest of the graph and return their 'index' attribute.
 
     Parameters:
-    graph (nx.Graph): The input graph.
+    graph (Graph): The input graph.
     cluster_nodes (list): The list of nodes in the cluster.
 
     Returns:
@@ -353,27 +359,92 @@ def get_connecting_nodes(graph: nx.Graph, cluster_ind: list, atoms: Atoms) -> li
     connecting_indices = [graph.nodes[node]["index"] for node in connecting_nodes]
     return connecting_indices
 
+def replace_subgraph_with_node(graph: nx.Graph, subgraph: nx.Graph, new_node_label: str) -> nx.Graph:
+    """
+    Find instances of a subgraph and replace them with a single node while preserving connectivity.
+
+    Args:
+        graph (nx.Graph): The input graph.
+        subgraph (nx.Graph): The subgraph to be replaced.
+        new_node_label (str): The label of the new node that replaces the subgraph.
+
+    Returns:
+        nx.Graph: A modified graph with the subgraph replaced by a new node.
+    """
+    temp_graph = graph.copy()
+    matcher = GraphMatcher(temp_graph, subgraph, node_match=node_match)
+
+    matched_subgraphs = []
+    
+    # Step 1: Collect all subgraph matches before making modifications
+    for match in matcher.subgraph_isomorphisms_iter():
+        matched_subgraphs.append(set(match.keys()))  # Store node sets
+
+    nodes_to_remove = set()
+    replacement_mapping = {}
+
+    for subgraph_nodes in matched_subgraphs:
+        # Create the new replacement node
+        new_node = f"{new_node_label}_{len(temp_graph.nodes)}"
+        temp_graph.add_node(new_node, symbol=new_node_label)
+
+        # Identify external edges (edges connecting subgraph to the rest of the graph)
+        external_edges = []
+        for node in subgraph_nodes:
+            for neighbor in temp_graph.neighbors(node):
+                if neighbor not in subgraph_nodes:
+                    external_edges.append((new_node, neighbor))
+
+        # Store the mapping and mark nodes for removal later
+        replacement_mapping[frozenset(subgraph_nodes)] = new_node
+        nodes_to_remove.update(subgraph_nodes)
+
+        # Add external edges to the new node
+        temp_graph.add_edges_from(external_edges)
+
+    # Step 3: Remove all matched subgraph nodes after replacements
+    for nodes in replacement_mapping:
+        temp_graph.remove_nodes_from(nodes)
+
+    return temp_graph
 
 def generate_centered_subgraphs(
-    graph: nx.Graph, center_symbol: str, depth: int
-) -> list[nx.Graph]:
+    graph: Graph, center_symbol: str | list, depth: int
+) -> list[Graph]:
     """
     Generate subgraphs centered around nodes with `center_symbol`,
     up to `depth` levels using ego_graph.
     """
-    # Find all center nodes with the specified symbol
-    center_nodes = [
-        node for node, data in graph.nodes(data=True) if data["symbol"] == center_symbol
-    ]
+    if isinstance(center_symbol, str):
+        center_symbol = [center_symbol]
 
-    # Generate ego graphs (subgraphs) for each center node
+    center_symbol = set(center_symbol)
+
+    if not all(item in chemical_symbols for item in center_symbol):
+        for symbol in center_symbol:
+            if symbol in adsorbates:
+                atoms = adsorbates[symbol]
+            elif symbol in g2.names:
+                atoms = molecule(symbol)
+            else:
+                raise RuntimeError("Cannot generate graphs")
+
+            # Make the ase.NeighborList
+            nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
+            nl.update(atoms)
+            subgraph = atoms_to_graph(atoms, nl, max_bond_ratio=1.2)
+            graph = replace_subgraph_with_node(graph, subgraph, symbol)
+
+    center_nodes = [
+    node for node, data in graph.nodes(data=True) if data["symbol"]  in center_symbol
+    ]
     subgraphs = [nx.ego_graph(graph, node, radius=depth) for node in center_nodes]
 
     return subgraphs
 
 
 def compare_subgraph_uniqueness(
-    graph1: nx.Graph, graph2: nx.Graph, center_symbol: str, depth: int = 3
+    graph1: Graph, graph2: Graph, center_symbol: str, depth: int = 3
 ) -> bool:
     """Compare uniqueness of two graphs by checking their subgraphs first."""
 
@@ -390,7 +461,7 @@ def compare_subgraph_uniqueness(
         for i, sg2 in enumerate(subgraphs2):
             if (
                 i not in matched
-                and nx.algorithms.isomorphism.GraphMatcher(
+                and GraphMatcher(
                     sg1, sg2, node_match=node_match
                 ).is_isomorphic()
             ):
@@ -402,13 +473,11 @@ def compare_subgraph_uniqueness(
 
 
 def compare_fullgraph_uniqueness(
-    graph1: nx.Graph,
-    graph2: nx.Graph,
+    graph1: Graph,
+    graph2: Graph,
 ) -> bool:
-    """_summary_"""
+    """Compare Full Graphs"""
 
-    result = nx.algorithms.isomorphism.GraphMatcher(
+    return GraphMatcher(
         graph1, graph2, node_match=node_match
     ).is_isomorphic()
-
-    return result

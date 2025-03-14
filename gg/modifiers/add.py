@@ -89,9 +89,11 @@ class Add(ParentModifier):
         else:
             raise NoReasonableStructureFound("Please enter proper value for surf_coord")
         if ads_id:
-            self.ad_dist = ads_id
+            self.ads_id = ads_id
+        if ads_dist:
+            self.ads_dist = ads_dist
         else:
-            self.ad_dist = ads_dist
+            self.ads_dist = ads_id
         self.print_movie = print_movie
         self.unique = unique
         self.ads_rotate = ads_rotate
@@ -99,16 +101,6 @@ class Add(ParentModifier):
         self.tag = tag
         self.unique_method = unique_method
         self.unique_depth = unique_depth
-
-        # Check multiple possibilities of adsorbate
-        if isinstance(self.ad_dist, list):
-            if all(isinstance(item, str) for item in self.ad_dist):
-                self.ads_list, self.ad_dist_list = self.get_all_adsorbates(
-                    self.ads, self.ad_dist
-                )
-        else:
-            self.ads_list = [self.ads]
-            self.ad_dist_list = [self.ad_dist]
 
     def get_all_adsorbates(self, atoms: Atoms, chem_symbol_list) -> list:
         """
@@ -123,7 +115,10 @@ class Add(ParentModifier):
             if atom.symbol in chem_symbol_list:
                 ads = rotate_mono(atoms.copy(), ind)
                 ads_list.append(ads)
-                ads_dist_list.append(atom.symbol)
+                if isinstance(self.ads_dist,float) or isinstance(self.ads_dist,int):
+                    ads_dist_list.append(self.ads_dist)
+                else:
+                    ads_dist_list.append(atom.symbol)
 
         return ads_list, ads_dist_list
 
@@ -135,6 +130,17 @@ class Add(ParentModifier):
             ase.Atoms if print_movie = True
             list[ase.Atoms] if print_movie = False
         """
+
+        # Check multiple possibilities of adsorbate
+        if isinstance(self.ads_id, list):
+            if all(isinstance(item, str) for item in self.ads_id):
+                ads_list, ad_dist_list = self.get_all_adsorbates(
+                    self.ads, self.ads_id
+                )
+        else:
+            ads_list = [self.ads]
+            ad_dist_list = [self.ads_dist]
+
         self.atoms = atoms
         df_ind = self.ss.get_sites(self.atoms)
         g = self.ss.get_graph(self.atoms)
@@ -146,7 +152,7 @@ class Add(ParentModifier):
             )
 
         movie = []
-        for i, ads in enumerate(self.ads_list):
+        for i, ads in enumerate(ads_list):
             # Read gg.utils_add to understand the working
             movie += generate_add_mono(
                 self.atoms,
@@ -154,7 +160,7 @@ class Add(ParentModifier):
                 g,
                 index,
                 self.surf_coord,
-                ad_dist=self.ad_dist_list[i],
+                ad_dist=ad_dist_list[i],
                 contact_error=self.ss.contact_error,
                 method=self.method,
                 tag=self.tag,
@@ -256,22 +262,6 @@ class AddBi(Add):
 
         self.ads_id_list = ads_id
 
-        if all(isinstance(item, int) for item in self.ads_id_list):
-            assert len(self.ads_id_list) == 2
-            if self.ad_dist:
-                if not isinstance(self.ad_dist, list):
-                    self.ad_dist = [self.ad_dist, self.ad_dist]
-            else:
-                self.ad_dist = [
-                    self.ads[self.ads_id_list[0]].symbol,
-                    self.ads[self.ads_id_list[1]].symbol,
-                ]
-            if self.ads_rotate:
-                self.ads = rotate_bi(self.ads, self.ads_id_list)
-            self.ads_id_list = [self.ads_id_list]
-            self.ads = [self.ads]
-            self.ads_dist_list = [self.ad_dist]
-
         if all(isinstance(item, str) for item in self.ads_id_list):
             self.ads_id_list, self.ads, self.ads_dist_list = self.get_all_adsorbates(
                 self.ads, self.ads_id_list
@@ -299,7 +289,11 @@ class AddBi(Add):
 
                 list_ads.append(ads_id)
                 ads_list.append(ads)
-                ads_dist_list.append([atoms[ads_id[0]].symbol, atoms[ads_id[1]].symbol])
+
+                if isinstance(self.ads_dist,float) or isinstance(self.ads_dist,int):
+                    ads_dist_list.append([self.ads_dist,self.ads_dist])
+                else:
+                    ads_dist_list.append([atoms[ads_id[0]].symbol, atoms[ads_id[1]].symbol])
 
         return list_ads, ads_list, ads_dist_list
 
