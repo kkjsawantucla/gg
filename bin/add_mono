@@ -81,6 +81,24 @@ parser.add_argument(
     help="Method to calculate normals",
 )
 
+parser.add_argument(
+    "--un_meth",
+    "-un_meth",
+    "-un_meth",
+    type=str,
+    default="fullgraph",
+    help="Method to calculate uniqueness",
+)
+
+parser.add_argument(
+    "--un_deg",
+    "-un_deg",
+    "-un_deg",
+    type=int,
+    default=3,
+    help="Degree of subgraphs",
+)
+
 args = parser.parse_args()
 print("--------------------------------------------")
 print("Surface Atoms found :", args.surface)
@@ -120,7 +138,9 @@ if args.surface and args.adsorbate:
                 ads_dist=args.ads_atom,
                 print_movie=True,
                 unique=args.unique,
-                normal_method=args.norm_meth
+                normal_method=args.norm_meth,
+                unique_method=args.un_meth,
+                unique_depth=args.un_deg,
             )
 
             filename = f"{adsorbate.get_chemical_formula()}_{surface.get_chemical_formula()}.traj"

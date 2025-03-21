@@ -13,13 +13,13 @@ The modifier can add a monodentate adsorbate, or moiety at specific sites on the
 
   from gg.modifiers import Add
   from gg.predefined_sites import FlexibleSites
-  from ase.io import read
+  from ase.build import fcc111
+
+  atoms = fcc111("Pt", size=(3, 3 , 4), vacuum=10.0)
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
-  ads_OH = read("OH.POSCAR") #adsorbate to be added
-  add_OH = Add(FS, ads=ads_OH, surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"],print_movie=True)
+  add_OH = Add(FS, ads="OH", surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"], print_movie=True, unique=True)
 
-  atoms = read('POSCAR') #The atoms object that will adsorb
   modified_atoms = add_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 
 .. autoclass:: gg.modifiers.add.Add
@@ -36,13 +36,13 @@ The modifier can add a bidentate adsorbate, or moiety at specific sites on the p
 
   from gg.modifiers import AddBi
   from gg.predefined_sites import FlexibleSites
-  from ase.io import read
+  from ase.build import fcc111
+
+  atoms = fcc111("Pt", size=(3, 3 , 4), vacuum=10.0)
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
-  ads_formate = read("OCHO.POSCAR") #adsorbate to be added (formate)
-  add_formate = AddBi(FS, ads=ads_formate, surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"], print_movie=True)
+  add_formate = AddBi(FS, ads="HCOO", surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"], print_movie=True, unique=True)
 
-  atoms = read('POSCAR') #The atoms object that will adsorb
   modified_atoms = add_formate.get_modified_atoms(atoms) #Atoms with the adsorbate
 
 .. autoclass:: gg.modifiers.add.AddBi
@@ -59,11 +59,9 @@ Remove an adsorbate from the surface
 
   from gg.modifiers import Remove
   from gg.predefined_sites import FlexibleSites
-  from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface  
-  ads_OH = read("OH.POSCAR") #adsorbate to be removed
-  remove_OH = Remove(FS, to_del=ads_OH, print_movie=True)
+  remove_OH = Remove(FS, to_del="OH", print_movie=True)
 
   atoms = read('POSCAR_with_OH') #The atoms object that has OHs to be removed
   modified_atoms = remove_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
@@ -85,9 +83,7 @@ Remove an adsorbate from the surface
   from ase.io import read
 
   FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
-  adsorbate_OH = read("OH.POSCAR") #adsorbate to be removed
-  adsorbate_NO = read("NO.POSCAR") #adsorbate to be replaced with
-  remove_OH = Replace(FS, to_del=adsorbate_OH, with_replace= adsorbate_NO, print_movie=True)
+  remove_OH = Replace(FS, to_del="OH", with_replace="NO", print_movie=True)
 
   atoms = read('POSCAR_with_OH') #The atoms object that has OHs to be removed
   modified_atoms = remove_OH.get_modified_atoms(atoms) #Atoms with the adsorbate

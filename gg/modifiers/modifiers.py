@@ -68,7 +68,7 @@ class ModifierAdder(ParentModifier):
 
     def __init__(
         self,
-        modifier_instances: list,
+        modifier_instances: list[ParentModifier],
         max_bond_ratio: float = 1.2,
         max_bond: float = 0,
         print_movie: bool = False,
@@ -77,6 +77,32 @@ class ModifierAdder(ParentModifier):
         unique_depth: int = 3,
         weight: float = 1,
     ):
+        """
+        Args:
+            modifier_instance ([gg.ParentModifier]): List of Modifier instances that need to be added
+            Required input
+
+            max_bond_ratio (float, optional): Max bond ratio to make graph of atoms to delete.
+            Defaults to 1.2.
+
+            max_bond (int, optional): Max bond ratio to make graph of atoms to delete.
+            Defaults to 0.
+
+            print_movie (bool, optional): Return a movie of all sites or one random site.
+            Defaults to False.
+
+            unique (bool, optional): Return only unique sites.
+            
+            unique_method (str): Determines how uniqueness is calculated. User can specify atom symbols/mol
+            to construct subgraphs e.g: unique_method = ["C"]
+            Defaults to "fullgraph"
+            
+            unique_depth (int): Determines the depth of subgraphs created to calculate uniqueness.
+            Defaults to 3. If unique_method is "fullgraph" the value is ignored
+
+            weight (float): weight for gcbh.
+            Defaults to 1.
+        """
         super().__init__(weight)
         if isinstance(modifier_instances, list):
             self.modifier_instances = modifier_instances
@@ -387,6 +413,13 @@ class Swap(
 
             unique (bool, optional): Return only unique sites.
             Defaults to True
+            
+            unique_method (str): Determines how uniqueness is calculated. User can specify atom symbols/mol
+            to construct subgraphs e.g: unique_method = ["C"]
+            Defaults to "fullgraph"
+
+            unique_depth (int): Determines the depth of subgraphs created to calculate uniqueness.
+            Defaults to 3. If unique_method is "fullgraph" the value is ignored
 
             weight (float): weight for gcbh.
             Defaults to 1.
@@ -517,6 +550,13 @@ class Replace(
             Defaults to False.
 
             unique (bool, optional): Return only unique sites.
+            
+            unique_method (str): Determines how uniqueness is calculated. User can specify atom symbols/mol
+            to construct subgraphs e.g: unique_method = ["C"]
+            Defaults to "fullgraph"
+            
+            unique_depth (int): Determines the depth of subgraphs created to calculate uniqueness.
+            Defaults to 3. If unique_method is "fullgraph" the value is ignored
 
             weight (float): weight for gcbh.
             Defaults to 1.

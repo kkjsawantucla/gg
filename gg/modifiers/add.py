@@ -34,7 +34,7 @@ class Add(ParentModifier):
         weight: float = 1,
         normal_method: str = "svd",
         unique_method: str = "fullgraph",
-        unique_depth: int =3,
+        unique_depth: int = 3,
         tag: bool = True,
     ):
         """
@@ -50,8 +50,8 @@ class Add(ParentModifier):
             ads_id (list[float]): Strings denoting chemical symbol of adsorbate atom
             Defaults to None
 
-            ads_dist (str, optional): if ads_id is mentioned, this variable is ignored.
-            Defaults to 1.8.
+            ads_dist (str, optional): Distance of adsorbate from substrate.
+            Defaults to covalent radii of ads_id from ase database.
 
             print_movie (bool, optional): return a movie of all sites or one random site.
             Defaults to False.
@@ -61,6 +61,13 @@ class Add(ParentModifier):
 
             normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
             Defaults to "svd"
+
+            unique_method (str): Determines how uniqueness is calculated. User can specify atom symbols/mol
+            to construct subgraphs e.g: unique_method = ["CO"]
+            Defaults to "fullgraph"
+
+            unique_depth (int): Determines the depth of subgraphs created to calculate uniqueness.
+            Defaults to 3. If unique_method is "fullgraph" the value is ignored
 
             tag (bool): add to tag=-1 to the adsorbate (imp for clusters)
             Defaults to True.
@@ -115,7 +122,7 @@ class Add(ParentModifier):
             if atom.symbol in chem_symbol_list:
                 ads = rotate_mono(atoms.copy(), ind)
                 ads_list.append(ads)
-                if isinstance(self.ads_dist,float) or isinstance(self.ads_dist,int):
+                if isinstance(self.ads_dist, float) or isinstance(self.ads_dist, int):
                     ads_dist_list.append(self.ads_dist)
                 else:
                     ads_dist_list.append(atom.symbol)
@@ -134,9 +141,7 @@ class Add(ParentModifier):
         # Check multiple possibilities of adsorbate
         if isinstance(self.ads_id, list):
             if all(isinstance(item, str) for item in self.ads_id):
-                ads_list, ad_dist_list = self.get_all_adsorbates(
-                    self.ads, self.ads_id
-                )
+                ads_list, ad_dist_list = self.get_all_adsorbates(self.ads, self.ads_id)
         else:
             ads_list = [self.ads]
             ad_dist_list = [self.ads_dist]
@@ -175,8 +180,8 @@ class Add(ParentModifier):
                     movie,
                     max_bond=self.ss.max_bond,
                     max_bond_ratio=self.ss.max_bond_ratio,
-                    unique_method = self.unique_method,
-                    depth = self.unique_depth
+                    unique_method=self.unique_method,
+                    depth=self.unique_depth,
                 )
             else:
                 return movie
@@ -202,7 +207,7 @@ class AddBi(Add):
         normal_method: str = "mean",
         tag: bool = True,
         unique_method: str = "fullgraph",
-        unique_depth: int =3,
+        unique_depth: int = 3,
         weight: float = 1,
     ):
         """
@@ -238,6 +243,13 @@ class AddBi(Add):
             normal_method (str): Determines how normals are calculated. It could be "svd" or "mean"
             Defaults to "mean"
 
+            unique_method (str): Determines how uniqueness is calculated. User can specify atom symbols/mol
+            to construct subgraphs e.g: unique_method = ["C"]
+            Defaults to "fullgraph"
+
+            unique_depth (int): Determines the depth of subgraphs created to calculate uniqueness.
+            Defaults to 3. If unique_method is "fullgraph" the value is ignored
+
             tag (bool): add to tag=-1 to the adsorbate (imp for clusters)
             Defaults to 1.
 
@@ -257,7 +269,7 @@ class AddBi(Add):
             normal_method=normal_method,
             tag=tag,
             unique_method=unique_method,
-            unique_depth = unique_depth,
+            unique_depth=unique_depth,
         )
 
         self.ads_id_list = ads_id
@@ -290,10 +302,12 @@ class AddBi(Add):
                 list_ads.append(ads_id)
                 ads_list.append(ads)
 
-                if isinstance(self.ads_dist,float) or isinstance(self.ads_dist,int):
-                    ads_dist_list.append([self.ads_dist,self.ads_dist])
+                if isinstance(self.ads_dist, float) or isinstance(self.ads_dist, int):
+                    ads_dist_list.append([self.ads_dist, self.ads_dist])
                 else:
-                    ads_dist_list.append([atoms[ads_id[0]].symbol, atoms[ads_id[1]].symbol])
+                    ads_dist_list.append(
+                        [atoms[ads_id[0]].symbol, atoms[ads_id[1]].symbol]
+                    )
 
         return list_ads, ads_list, ads_dist_list
 
@@ -341,7 +355,7 @@ class AddBi(Add):
                     movie,
                     max_bond=self.ss.max_bond,
                     max_bond_ratio=self.ss.max_bond_ratio,
-                    depth = self.unique_depth,
+                    depth=self.unique_depth,
                 )
             else:
                 return movie

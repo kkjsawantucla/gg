@@ -14,3 +14,8 @@ For examples, you can refer to `gg/examples/ <https://github.com/kkjsawantucla/g
     :members: run
     :undoc-members:
     :show-inheritance:
+
+.. autoclass:: gg.gcbh.GcbhFlexOpt
+    :members: run
+    :undoc-members:
+    :show-inheritance:
