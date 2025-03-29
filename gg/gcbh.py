@@ -391,10 +391,16 @@ class Gcbh(Dynamics):
     def initialize(self):
         """Initialize Atoms"""
         if not self.c["initialize"]:
-            self.logtxt("Skipping initialization, I hope you know what you are doing")
+            self.logtxt(
+                "Skipping initialization, I hope you know what you are doing !!"
+            )
             self.c["fe"] = float("inf")
             self.c["energy"] = 0
             self.c["nsteps"] += 1
+            self.append_graph(self.atoms)
+            self.dump(self.status_file)
+            self.traj.write(self.atoms, energy=0)
+            self.lm_trajectory.write(self.atoms, energy=0, accept=1)
             return
 
         self.c["opt_on"] = 0
