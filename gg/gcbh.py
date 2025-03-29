@@ -392,7 +392,7 @@ class Gcbh(Dynamics):
         """Initialize Atoms"""
         if not self.c["initialize"]:
             self.logtxt(
-                "Skipping initialization, I hope you know what you are doing !!"
+                "Warning!!! Skipping initialization, I hope you know what you are doing"
             )
             self.c["fe"] = float("inf")
             self.c["energy"] = 0
@@ -585,7 +585,7 @@ class Gcbh(Dynamics):
         os.chdir(topdir)
         return atoms, en
 
-    def append_graph(self, atoms):
+    def append_graph(self, atoms, unique_method = "fullgraph"):
         """Append the graph to list if its unique
         Args:
             atoms (_type_): _description_
@@ -602,7 +602,7 @@ class Gcbh(Dynamics):
                 max_bond_ratio=self.c["max_bond_ratio"],
             )
             if self.c["graphs"]:
-                if is_unique_graph(new_g, self.c["graphs"]):
+                if is_unique_graph(new_g, self.c["graphs"], comp_type = unique_method):
                     self.logtxt(
                         f"Add graph step:{self.c['nsteps']} and graph loc:{len(self.c['graphs'])}"
                     )
@@ -712,8 +712,9 @@ class GcbhFlexOpt(Gcbh):
         if not isinstance(traj, list):
             mod_structures = [traj]
         index = 0
-        for atoms in traj:
+        for a in traj:
             for mod_name, mod_instance in self.structure_modifiers.items():
+                atoms = a.copy()
                 self.logtxt(f"Processing modifier: {mod_name}")
                 try:
                     # Generate modified structures.
@@ -736,7 +737,7 @@ class GcbhFlexOpt(Gcbh):
                     # Check uniqueness by using the already available append_graph method.
                     if self.c["check_graphs"]:
                         # append_graph returns True if the structure is unique.
-                        is_unique = self.append_graph(struct)
+                        is_unique = self.append_graph(struct,unique_method=mod_instance.unique_method)
                     else:
                         is_unique = True
 
