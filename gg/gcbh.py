@@ -17,7 +17,11 @@ from ase.optimize.optimize import Dynamics
 from ase.optimize import BFGS
 from ase.neighborlist import NeighborList, natural_cutoffs
 from gg.reference import get_ref_coeff
-from gg.utils import NoReasonableStructureFound, get_area
+from gg.utils import (
+    NoReasonableStructureFound,
+    get_area,
+    extract_lowest_energy_from_oszicar,
+)
 from gg.utils_graph import atoms_to_graph, is_unique_graph
 from gg.logo import logo
 
@@ -100,6 +104,7 @@ class Gcbh(Dynamics):
             "area": False,
             "fmax": 0.05,
             "vib_correction": False,
+            "initialize": True,
         }
         self.optimizer = optimizer
         if config_file:
@@ -385,6 +390,13 @@ class Gcbh(Dynamics):
 
     def initialize(self):
         """Initialize Atoms"""
+        if not self.c["initialize"]:
+            self.logtxt("Skipping initialization, I hope you know what you are doing")
+            self.c["fe"] = float("inf")
+            self.c["energy"] = 0
+            self.c["nsteps"] += 1
+            return
+
         self.c["opt_on"] = 0
         self.atoms, en = self.optimize(self.atoms)
         self.dump(self.status_file)
@@ -678,3 +690,116 @@ class GcbhFlexOpt(Gcbh):
             os.chdir(topdir)
         en = atoms.get_potential_energy()
         return atoms, en
+
+    def generate_all(self, traj=None):
+        """
+        Generate all possible structures for all modifiers by looping over each
+        modifier, generating modified atoms, filtering unique structures, and
+        saving each unique structure as a POSCAR in a new subfolder with the
+        required files copied.
+        """
+        self.logtxt(
+            "Starting GcbhAll run: generating all unique structures for all modifiers."
+        )
+        if not traj:
+            traj = [self.atoms]
+        if not isinstance(traj, list):
+            mod_structures = [traj]
+        self.c["nsteps"] += 1
+        index = 0
+        for atoms in traj:
+            for mod_name, mod_instance in self.structure_modifiers.items():
+                self.logtxt(f"Processing modifier: {mod_name}")
+                try:
+                    # Generate modified structures.
+                    mod_instance.unique = True
+                    mod_instance.print_movie = True
+                    mod_structures = mod_instance.get_modified_atoms(atoms)
+                except (
+                    NoReasonableStructureFound
+                ) as emsg:  # emsg stands for error message
+                    self.logtxt(
+                        f"{mod_name} did not find a good structure because {emsg} {type(emsg)}"
+                    )
+                    continue
+
+                if not isinstance(mod_structures, list):
+                    mod_structures = [mod_structures]
+
+                # Process each generated structure.
+                for struct in mod_structures:
+                    # Check uniqueness by using the already available append_graph method.
+                    if self.c["check_graphs"]:
+                        # append_graph returns True if the structure is unique.
+                        is_unique = self.append_graph(struct)
+                    else:
+                        is_unique = True
+
+                    if is_unique:
+                        # Increment the step counter to generate a unique folder name.
+                        subfolder = os.path.join(
+                            os.getcwd(),
+                            self.opt_folder,
+                            f"opt_{self.c['nsteps']}",
+                            f"opt_{index}",
+                        )
+
+                        if not os.path.isdir(subfolder):
+                            os.makedirs(subfolder)
+
+                        # Write the POSCAR file in VASP format.
+                        poscar_file = os.path.join(subfolder, "POSCAR")
+                        struct.write(poscar_file, format="vasp")
+
+                        # Copy any additional required files into the new subfolder.
+                        for file in self.copied_files:
+                            if os.path.isfile(file):
+                                shutil.copy(file, subfolder)
+                            else:
+                                self.logtxt(f"File {file} not found for copying.")
+
+                        self.logtxt(
+                            f"Unique structure from modifier '{mod_name}' saved in {subfolder}"
+                        )
+                    else:
+                        self.logtxt(
+                            f"Duplicate structure from modifier '{mod_name}' encountered; skipping."
+                        )
+                    index += 1
+
+    def update_lowest_energy(self):
+        """
+        Loops over all subdirectories in self.opt_folder.
+        """
+
+        best_fe = self.c["fe"]
+        best_atoms = self.atoms
+
+        opt_folder_path = os.path.join(os.getcwd(), self.opt_folder)
+        if not os.path.isdir(opt_folder_path):
+            self.logtxt(f"Optimization folder '{self.opt_folder}' does not exist.")
+            return
+
+        # Loop over every subdirectory in the optimization folder.
+        for subdir in os.listdir(opt_folder_path):
+            subdir_path = os.path.join(opt_folder_path, subdir)
+            if os.path.isdir(subdir_path):
+                contcar_path = os.path.join(subdir_path, "CONTCAR")
+                oszicar_path = os.path.join(subdir_path, "OSZICAR")
+                if os.path.isfile(contcar_path) and os.path.isfile(oszicar_path):
+                    en = extract_lowest_energy_from_oszicar(oszicar_path)
+                    if en is not None:
+                        self.logtxt(f"Found energy {en:.2f} in {subdir_path}")
+                        atoms = read(contcar_path, format="vasp")
+                        fn = en - self.get_ref_potential(atoms)
+                        if self.c["vib_correction"]:
+                            fn += self.get_vib_correction(atoms)
+                        self.logtxt(f"F at {subdir_path} is {fn}")
+                        if fn < best_fe:
+                            best_fe = fn
+                            best_atoms = atoms
+                            self.logtxt(f"Accepted; F(new)={fn} at {subdir_path}")
+                        else:
+                            self.logtxt(f"Rejected; F(new)={fn} at {subdir_path}")
+        self.atoms = best_atoms
+        self.c["fe"] = best_fe

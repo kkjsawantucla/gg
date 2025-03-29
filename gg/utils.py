@@ -305,3 +305,19 @@ def get_area(atoms: Atoms) -> float:
     )
     area = abs(np.linalg.det(a))
     return area
+
+def extract_lowest_energy_from_oszicar(file_path):
+    """Extract the lowest energy value from an OSZICAR file."""
+    lowest_energy = float('inf')
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            if 'E0=' in line:
+                parts = line.split('E0=')
+                try:
+                    energy = float(parts[1].split()[0])
+                    lowest_energy = min(lowest_energy, energy)
+                except (IndexError, ValueError):
+                    print(f"Skipping invalid energy format in {file_path}: {line.strip()}")
+
+    return lowest_energy if lowest_energy != float('inf') else None
