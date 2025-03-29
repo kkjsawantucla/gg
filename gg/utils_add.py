@@ -200,7 +200,9 @@ def generate_add_bi(
             )
 
         elif isinstance(ad_dist[0], float) or isinstance(ad_dist[0], int):
-            if ad_dist[0] < np.average([covalent_radii[atoms[i].number] for i in cycle_1]):
+            if ad_dist[0] < np.average(
+                [covalent_radii[atoms[i].number] for i in cycle_1]
+            ):
                 print("Issue in distance of adsorbate and substrate")
                 continue
             else:
@@ -217,7 +219,9 @@ def generate_add_bi(
                 offset_2, ad_dist[1], cycle_2, unit_normal_2, atoms, ads_copy
             )
         elif isinstance(ad_dist[1], float) or isinstance(ad_dist[1], int):
-            if ad_dist[1] < np.average([covalent_radii[atoms[i].number] for i in cycle_2]):
+            if ad_dist[1] < np.average(
+                [covalent_radii[atoms[i].number] for i in cycle_2]
+            ):
                 print("Issue in distance of adsorbate and substrate")
                 continue
             else:
@@ -323,9 +327,7 @@ def get_offset(offset, ad_dist, cycle, unit_normal, atoms, ads):
     """
     if ad_dist in ads.get_chemical_symbols():
         for i in cycle:
-            current_dist = minimum_image_distance(
-                offset, atoms[i].position, atoms.cell
-            )
+            current_dist = minimum_image_distance(offset, atoms[i].position, atoms.cell)
             req_dist = (
                 covalent_radii[atoms[i].number]
                 + covalent_radii[atomic_numbers[ad_dist]] * 0.9

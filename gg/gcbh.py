@@ -711,7 +711,6 @@ class GcbhFlexOpt(Gcbh):
             traj = [self.atoms]
         if not isinstance(traj, list):
             mod_structures = [traj]
-        self.c["nsteps"] += 1
         index = 0
         for atoms in traj:
             for mod_name, mod_instance in self.structure_modifiers.items():
@@ -772,6 +771,7 @@ class GcbhFlexOpt(Gcbh):
                             f"Duplicate structure from modifier '{mod_name}' encountered; skipping."
                         )
                     index += 1
+        self.c["nsteps"] += 1
 
     def update_lowest_energy(self):
         """
