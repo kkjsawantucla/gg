@@ -721,6 +721,7 @@ class GcbhFlexOpt(Gcbh):
                     mod_instance.unique = True
                     mod_instance.print_movie = True
                     mod_structures = mod_instance.get_modified_atoms(atoms)
+                    self.logtxt(f"Found {len(mod_structures)} structures")
                 except (
                     NoReasonableStructureFound
                 ) as emsg:  # emsg stands for error message
@@ -787,26 +788,27 @@ class GcbhFlexOpt(Gcbh):
             self.logtxt(f"Optimization folder '{self.opt_folder}' does not exist.")
             return
 
-        # Loop over every subdirectory in the optimization folder.
-        for subdir in os.listdir(opt_folder_path):
-            subdir_path = os.path.join(opt_folder_path, subdir)
-            if os.path.isdir(subdir_path):
-                contcar_path = os.path.join(subdir_path, "CONTCAR")
-                oszicar_path = os.path.join(subdir_path, "OSZICAR")
-                if os.path.isfile(contcar_path) and os.path.isfile(oszicar_path):
-                    en = extract_lowest_energy_from_oszicar(oszicar_path)
-                    if en is not None:
-                        self.logtxt(f"Found energy {en:.2f} in {subdir_path}")
-                        atoms = read(contcar_path, format="vasp")
-                        fn = en - self.get_ref_potential(atoms)
-                        if self.c["vib_correction"]:
-                            fn += self.get_vib_correction(atoms)
-                        self.logtxt(f"F at {subdir_path} is {fn}")
-                        if fn < best_fe:
-                            best_fe = fn
-                            best_atoms = atoms
-                            self.logtxt(f"Accepted; F(new)={fn} at {subdir_path}")
-                        else:
-                            self.logtxt(f"Rejected; F(new)={fn} at {subdir_path}")
+        # Walk through all directories recursively
+        for root, _, files in os.walk(opt_folder_path):
+            if "CONTCAR" in files and "OSZICAR" in files:
+                contcar_path = os.path.join(root, "CONTCAR")
+                oszicar_path = os.path.join(root, "OSZICAR")
+
+                en = extract_lowest_energy_from_oszicar(oszicar_path)
+                if en is not None:
+                    self.logtxt(f"Found energy {en:.2f} in {root}")
+                    atoms = read(contcar_path, format="vasp")
+                    fn = en - self.get_ref_potential(atoms)
+                    if self.c["vib_correction"]:
+                        fn += self.get_vib_correction(atoms)
+                    self.logtxt(f"F at {root} is {fn}")
+
+                    if fn < best_fe:
+                        best_fe = fn
+                        best_atoms = atoms
+                        self.logtxt(f"Accepted; F(new)={fn} at {root}")
+                    else:
+                        self.logtxt(f"Rejected; F(new)={fn} at {root}")
+
         self.atoms = best_atoms
         self.c["fe"] = best_fe

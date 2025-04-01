@@ -409,7 +409,7 @@ def replace_subgraph_with_node(graph: nx.Graph, subgraph: nx.Graph, new_node_lab
     return temp_graph
 
 def generate_centered_subgraphs(
-    graph: Graph, center_symbol: str | list, depth: int
+    graph: Graph, center_symbol: str, depth: int
 ) -> list[Graph]:
     """
     Generate subgraphs centered around nodes with `center_symbol`,
