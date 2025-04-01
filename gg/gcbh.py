@@ -172,6 +172,7 @@ class Gcbh(Dynamics):
                     arg is None
                     for arg in [self.c["energy"], self.c["fe"], self.c["fe_min"]]
                 ):
+                    self.logtxt("Cannot restart since energy,fe or fe_min value is missing !")
                     self.initialize()
 
                 elif self.c["opt_on"] > 0:
@@ -181,6 +182,7 @@ class Gcbh(Dynamics):
                     if os.path.isdir(subdir):
                         print(f'Restarting from {self.c["opt_on"]}')
             else:
+                self.logtxt("Cannot restart since ecurrent_status.pkl file is missing !")
                 self.initialize()
             try:
                 self.atoms = read("local_minima.traj")
@@ -395,6 +397,7 @@ class Gcbh(Dynamics):
                 "Warning!!! Skipping initialization, I hope you know what you are doing"
             )
             self.c["fe"] = float("inf")
+            self.c["fe_min"] = self.c["fe"]
             self.c["energy"] = 0
             self.c["nsteps"] += 1
             self.append_graph(self.atoms)
@@ -806,9 +809,9 @@ class GcbhFlexOpt(Gcbh):
                     if fn < best_fe:
                         best_fe = fn
                         best_atoms = atoms
-                        self.logtxt(f"Accepted; F(new)={fn} at {root}")
+                        self.logtxt(f"Accepted; F(new)={fn:.2f} at {root}")
                     else:
-                        self.logtxt(f"Rejected; F(new)={fn} at {root}")
+                        self.logtxt(f"Rejected; F(new)={fn:.2f} at {root}")
 
         self.atoms = best_atoms
         self.c["fe"] = best_fe
