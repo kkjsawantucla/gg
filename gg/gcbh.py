@@ -799,19 +799,17 @@ class GcbhFlexOpt(Gcbh):
 
                 en = extract_lowest_energy_from_oszicar(oszicar_path)
                 if en is not None:
-                    self.logtxt(f"Found energy {en:.2f} in {root}")
                     atoms = read(contcar_path, format="vasp")
                     fn = en - self.get_ref_potential(atoms)
                     if self.c["vib_correction"]:
                         fn += self.get_vib_correction(atoms)
-                    self.logtxt(f"F at {root} is {fn}")
 
                     if fn < best_fe:
                         best_fe = fn
                         best_atoms = atoms
                         self.logtxt(f"Accepted; F(new)={fn:.2f} at {root}")
-                    else:
-                        self.logtxt(f"Rejected; F(new)={fn:.2f} at {root}")
+                    #else:
+                    #self.logtxt(f"Rejected; F(new)={fn:.2f} at {root}")
 
         self.atoms = best_atoms
         self.c["fe"] = best_fe
