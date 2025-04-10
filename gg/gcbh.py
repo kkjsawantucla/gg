@@ -172,7 +172,9 @@ class Gcbh(Dynamics):
                     arg is None
                     for arg in [self.c["energy"], self.c["fe"], self.c["fe_min"]]
                 ):
-                    self.logtxt("Cannot restart since energy,fe or fe_min value is missing !")
+                    self.logtxt(
+                        "Cannot restart since energy,fe or fe_min value is missing !"
+                    )
                     self.initialize()
 
                 elif self.c["opt_on"] > 0:
@@ -182,7 +184,9 @@ class Gcbh(Dynamics):
                     if os.path.isdir(subdir):
                         print(f'Restarting from {self.c["opt_on"]}')
             else:
-                self.logtxt("Cannot restart since ecurrent_status.pkl file is missing !")
+                self.logtxt(
+                    "Cannot restart since ecurrent_status.pkl file is missing !"
+                )
                 self.initialize()
             try:
                 self.atoms = read("local_minima.traj")
@@ -588,7 +592,7 @@ class Gcbh(Dynamics):
         os.chdir(topdir)
         return atoms, en
 
-    def append_graph(self, atoms, unique_method = "fullgraph"):
+    def append_graph(self, atoms, unique_method="fullgraph"):
         """Append the graph to list if its unique
         Args:
             atoms (_type_): _description_
@@ -605,7 +609,7 @@ class Gcbh(Dynamics):
                 max_bond_ratio=self.c["max_bond_ratio"],
             )
             if self.c["graphs"]:
-                if is_unique_graph(new_g, self.c["graphs"], comp_type = unique_method):
+                if is_unique_graph(new_g, self.c["graphs"], comp_type=unique_method):
                     self.logtxt(
                         f"Add graph step:{self.c['nsteps']} and graph loc:{len(self.c['graphs'])}"
                     )
@@ -741,7 +745,9 @@ class GcbhFlexOpt(Gcbh):
                     # Check uniqueness by using the already available append_graph method.
                     if self.c["check_graphs"]:
                         # append_graph returns True if the structure is unique.
-                        is_unique = self.append_graph(struct,unique_method=mod_instance.unique_method)
+                        is_unique = self.append_graph(
+                            struct, unique_method=mod_instance.unique_method
+                        )
                     else:
                         is_unique = True
 
@@ -778,17 +784,18 @@ class GcbhFlexOpt(Gcbh):
                     index += 1
         self.c["nsteps"] += 1
 
-    def update_lowest_energy(self):
+    def update_lowest_energy(self, folder=None, unique_method="fullgraph"):
         """
         Loops over all subdirectories in self.opt_folder.
         """
 
         best_fe = self.c["fe"]
         best_atoms = self.atoms
-
-        opt_folder_path = os.path.join(os.getcwd(), self.opt_folder)
+        if not folder:
+            folder = self.opt_folder
+        opt_folder_path = os.path.join(os.getcwd(), folder)
         if not os.path.isdir(opt_folder_path):
-            self.logtxt(f"Optimization folder '{self.opt_folder}' does not exist.")
+            self.logtxt(f"Optimization folder '{folder}' does not exist.")
             return
 
         # Walk through all directories recursively
@@ -808,8 +815,8 @@ class GcbhFlexOpt(Gcbh):
                         best_fe = fn
                         best_atoms = atoms
                         self.logtxt(f"Accepted; F(new)={fn:.2f} at {root}")
-                    #else:
-                    #self.logtxt(f"Rejected; F(new)={fn:.2f} at {root}")
+
+                    self.append_graph(self, atoms, unique_method=unique_method)
 
         self.atoms = best_atoms
         self.c["fe"] = best_fe
