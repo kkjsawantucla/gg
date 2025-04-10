@@ -816,7 +816,7 @@ class GcbhFlexOpt(Gcbh):
                         best_atoms = atoms
                         self.logtxt(f"Accepted; F(new)={fn:.2f} at {root}")
 
-                    self.append_graph(self, atoms, unique_method=unique_method)
+                    self.append_graph(atoms, unique_method=unique_method)
 
         self.atoms = best_atoms
         self.c["fe"] = best_fe
