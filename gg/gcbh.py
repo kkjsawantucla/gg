@@ -21,6 +21,7 @@ from gg.utils import (
     NoReasonableStructureFound,
     get_area,
     extract_lowest_energy_from_oszicar,
+    extract_lowest_energy_from_outlog,
 )
 from gg.utils_graph import atoms_to_graph, is_unique_graph
 from gg.logo import logo
@@ -784,7 +785,9 @@ class GcbhFlexOpt(Gcbh):
                     index += 1
         self.c["nsteps"] += 1
 
-    def update_lowest_energy(self, folder=None, unique_method="fullgraph"):
+    def update_lowest_energy(
+        self, folder=None, unique_method="fullgraph", file_type=["OSZICAR", "CONTCAR"]
+    ):
         """
         Loops over all subdirectories in self.opt_folder.
         """
@@ -800,11 +803,18 @@ class GcbhFlexOpt(Gcbh):
 
         # Walk through all directories recursively
         for root, _, files in os.walk(opt_folder_path):
-            if "CONTCAR" in files and "OSZICAR" in files:
-                contcar_path = os.path.join(root, "CONTCAR")
-                oszicar_path = os.path.join(root, "OSZICAR")
-
-                en = extract_lowest_energy_from_oszicar(oszicar_path)
+            if file_type[0] in files and file_type[1] in files:
+                contcar_path = os.path.join(root, file_type[1])
+                en_path = os.path.join(root, file_type[0])
+                if file_type[0] == "OSZICAR":
+                    en = extract_lowest_energy_from_oszicar(en_path)
+                elif file_type[0] == "out.log":
+                    en = extract_lowest_energy_from_outlog(en_path)
+                else:
+                    en = None
+                    raise RuntimeError(
+                        "The energy should be output in out.log or OSZICAR"
+                    )
                 if en is not None:
                     atoms = read(contcar_path, format="vasp")
                     fn = en - self.get_ref_potential(atoms)
