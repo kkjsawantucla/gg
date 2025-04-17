@@ -25,6 +25,8 @@ from gg.utils import (
 )
 from gg.utils_graph import atoms_to_graph, is_unique_graph
 from gg.logo import logo
+from gg.predefined_sites import FlexibleSites
+from gg.modifiers import Remove
 
 
 __author__ = "Kaustubh Sawant, Geng Sun"
@@ -81,7 +83,7 @@ class Gcbh(Dynamics):
         if atoms.calc is None:
             raise RuntimeError("The atoms instance has no calculator")
         else:
-            calc = atoms.calc
+            self.calc = atoms.calc
 
         # Intitalize by setting up the parent Dynamics Class
         super().__init__(atoms=atoms, logfile=logfile, trajectory=None)
@@ -106,6 +108,7 @@ class Gcbh(Dynamics):
             "fmax": 0.05,
             "vib_correction": False,
             "initialize": True,
+            "detect_gas": None,
         }
         self.optimizer = optimizer
         if config_file:
@@ -142,6 +145,7 @@ class Gcbh(Dynamics):
         self.structure_modifiers = {}  # Setup empty class to add structure modifiers
         self.vib_correction = {}  # Setup empty class to add specific corrections
         self.c["acc_hist"] = []
+        self.remove_gas_inst = []
         # used for adjusting the temperature of Metropolis algorithm
         # a series of 0 and 1, 0 stands for not accepted, 1 stands for accepted
 
@@ -184,14 +188,13 @@ class Gcbh(Dynamics):
                     )
                     if os.path.isdir(subdir):
                         print(f'Restarting from {self.c["opt_on"]}')
+                        self.logtxt(f'Restarting from {self.c["opt_on"]}')
             else:
-                self.logtxt(
-                    "Cannot restart since ecurrent_status.pkl file is missing !"
-                )
+                self.logtxt("Cannot restart since current_status.pkl file is missing !")
                 self.initialize()
             try:
                 self.atoms = read("local_minima.traj")
-                self.atoms.calc = calc
+                self.atoms.calc = self.calc
             except UnknownFileTypeError as e:
                 print(f"Cannot read local_minima.traj due to {e}")
         else:
@@ -390,8 +393,10 @@ class Gcbh(Dynamics):
     def move(self, name: str) -> Atoms:
         """Move atoms by a random modifier."""
         atoms = self.atoms
+        atoms.wrap()
         self.logtxt(f"Modifier '{name}' formula {atoms.get_chemical_formula()}")
         atoms = self.structure_modifiers[name].get_modified_atoms(atoms)
+        atoms.wrap()
         atoms.center()
         return atoms
 
@@ -517,7 +522,6 @@ class Gcbh(Dynamics):
         if fn < self.c["fe"]:
             accept = True
             modifier_weight_action = "increase"
-
         # Check Probability for acceptance
         elif np.random.uniform() < np.exp(
             -(fn - self.c["fe"]) / self.c["temp"] / units.kB
@@ -527,6 +531,13 @@ class Gcbh(Dynamics):
         else:
             accept = False
             modifier_weight_action = "decrease"
+
+        n = len(newatoms)    
+        if self.remove_gas_inst:
+            newatoms = self.identify_and_delete_gas(newatoms)
+            if n>=len(newatoms):
+                accept = False
+                modifier_weight_action = "decrease"
 
         self.update_modifier_weights(name=modifier_name, action=modifier_weight_action)
 
@@ -562,7 +573,7 @@ class Gcbh(Dynamics):
         """Optimize atoms"""
         optimizer = self.optimizer
         if atoms.calc is None:
-            raise RuntimeError("The atoms object has no calculator")
+            atoms.calc = self.calc
 
         self.logtxt(
             f'{get_current_time()}: Begin structure optimization routine at step {self.c["nsteps"]}'
@@ -624,6 +635,36 @@ class Gcbh(Dynamics):
         else:
             return True
 
+    def add_delete_gas(self, gas_species=None):
+        """
+        Args:
+            gas_species (_type_, optional): _description_. Defaults to None.
+        """
+        if not gas_species:
+            gas_species = self.c["delete_gas"]
+        ss = FlexibleSites(constraints=True)
+        for gas in gas_species:
+            r = Remove(
+                ss,
+                to_del=[gas],
+                max_bond=self.c["max_bond"],
+                max_bond_ratio=self.c["max_bond_ratio"],
+            )
+            self.remove_gas_inst.append(r)
+        return
+
+    def identify_and_delete_gas(self,atoms):
+        """
+        Args:
+            atoms: identify gas species and delete them
+        """
+        for inst in self.remove_gas_inst:
+            ind_to_remove = inst.get_ind_to_remove_list(atoms)
+            flattened_list = [item for sublist in ind_to_remove for item in sublist]
+            if flattened_list:
+                self.logtxt(f"Found {inst.to_del} at {flattened_list}")
+                del atoms[flattened_list]
+        return atoms
 
 class GcbhFlexOpt(Gcbh):
     """
