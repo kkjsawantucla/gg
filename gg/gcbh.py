@@ -109,6 +109,7 @@ class Gcbh(Dynamics):
             "vib_correction": False,
             "initialize": True,
             "detect_gas": None,
+            "graph_method": None,
         }
         self.optimizer = optimizer
         if config_file:
@@ -357,11 +358,21 @@ class Gcbh(Dynamics):
         if self.c["vib_correction"]:
             if len(self.vib_correction) > 0:
                 corr_sum = 0
+                a = atoms.copy()
                 for key, value in self.vib_correction.items():
-                    n = value.get_n(atoms)
-                    corr_value = value.weight
-                    corr_sum += n * corr_value
-                    self.logtxt(f"Adding correction {key}:{n}*{corr_value}")
+                    try:
+                        ind_to_remove = value.get_ind_to_remove_list(a)
+                    except NoReasonableStructureFound:
+                        continue
+                    else:
+                        flattened_list = set(
+                            [item for sublist in ind_to_remove for item in sublist]
+                        )
+                        n = len(ind_to_remove)
+                        corr_value = value.weight
+                        corr_sum += n * corr_value
+                        self.logtxt(f"Adding correction {key}:{n}*{corr_value}")
+                        del a[flattened_list]
                 return corr_sum
             else:
                 return 0
@@ -532,10 +543,10 @@ class Gcbh(Dynamics):
             accept = False
             modifier_weight_action = "decrease"
 
-        n = len(newatoms)    
+        n = len(newatoms)
         if self.remove_gas_inst:
             newatoms = self.identify_and_delete_gas(newatoms)
-            if n>=len(newatoms):
+            if n > len(newatoms):
                 accept = False
                 modifier_weight_action = "decrease"
 
@@ -635,36 +646,43 @@ class Gcbh(Dynamics):
         else:
             return True
 
-    def add_delete_gas(self, gas_species=None):
+    def add_delete_gas(self, gas_species=None, max_bond=2):
         """
         Args:
             gas_species (_type_, optional): _description_. Defaults to None.
         """
         if not gas_species:
             gas_species = self.c["delete_gas"]
-        ss = FlexibleSites(constraints=True)
+        ss = FlexibleSites(constraints=True, max_bond=max_bond)
         for gas in gas_species:
             r = Remove(
                 ss,
-                to_del=[gas],
+                to_del=gas,
                 max_bond=self.c["max_bond"],
                 max_bond_ratio=self.c["max_bond_ratio"],
             )
             self.remove_gas_inst.append(r)
         return
 
-    def identify_and_delete_gas(self,atoms):
+    def identify_and_delete_gas(self, atoms):
         """
         Args:
             atoms: identify gas species and delete them
         """
         for inst in self.remove_gas_inst:
-            ind_to_remove = inst.get_ind_to_remove_list(atoms)
-            flattened_list = [item for sublist in ind_to_remove for item in sublist]
-            if flattened_list:
-                self.logtxt(f"Found {inst.to_del} at {flattened_list}")
-                del atoms[flattened_list]
+            try:
+                ind_to_remove = inst.get_ind_to_remove_list(atoms)
+            except NoReasonableStructureFound:
+                continue
+            else:
+                flattened_list = set(
+                    [item for sublist in ind_to_remove for item in sublist]
+                )
+                if flattened_list:
+                    self.logtxt(f"Found {inst.to_del} at {flattened_list}")
+                    del atoms[flattened_list]
         return atoms
+
 
 class GcbhFlexOpt(Gcbh):
     """
