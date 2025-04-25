@@ -109,7 +109,7 @@ class Gcbh(Dynamics):
             "vib_correction": False,
             "initialize": True,
             "detect_gas": None,
-            "graph_method": None,
+            "graph_method": "fullgraph",
         }
         self.optimizer = optimizer
         if config_file:
@@ -427,7 +427,7 @@ class Gcbh(Dynamics):
             self.c["fe_min"] = self.c["fe"]
             self.c["energy"] = 0
             self.c["nsteps"] += 1
-            self.append_graph(self.atoms)
+            self.append_graph(self.atoms, unique_method=self.c["graph_method"])
             self.dump(self.status_file)
             self.traj.write(self.atoms, energy=0)
             self.lm_trajectory.write(self.atoms, energy=0, accept=1)
@@ -447,7 +447,7 @@ class Gcbh(Dynamics):
         self.c["nsteps"] += 1
         formula = self.atoms.get_chemical_formula()
         en = self.c["energy"]
-        self.append_graph(self.atoms)
+        self.append_graph(self.atoms, unique_method=self.c["graph_method"])
         self.traj.write(self.atoms, energy=en)
         self.lm_trajectory.write(self.atoms, energy=en, accept=1)
         if self.c["area"]:
@@ -495,7 +495,7 @@ class Gcbh(Dynamics):
                         f"{modifier_name} did not find a good structure because {emsg} {type(emsg)}"
                     )
                 else:
-                    if self.append_graph(newatoms):
+                    if self.append_graph(newatoms,unique_method=self.c["graph_method"]):
                         self.c["opt_on"] = self.c["nsteps"]
                         self.logtxt(
                             f"One structure found with modifier {modifier_name}"
@@ -503,7 +503,7 @@ class Gcbh(Dynamics):
                         self.dump(self.status_file)
                         converged_atoms, en = self.optimize(newatoms)
                         self.traj.write(converged_atoms)
-                        self.append_graph(converged_atoms)
+                        self.append_graph(converged_atoms,unique_method=self.c["graph_method"])
                         if self.c["opt_on"] == -1 or en < -100000:
                             self.c["opt_on"] = -1
                             self.c["nsteps"] += 1
