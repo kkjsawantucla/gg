@@ -1,6 +1,9 @@
 """ Utilities for graph manipulation """
 
 from typing import Union
+from concurrent.futures import ProcessPoolExecutor
+from itertools import repeat
+from functools import partial
 import networkx as nx
 from networkx import Graph
 from networkx.algorithms import weisfeiler_lehman_graph_hash
@@ -16,19 +19,12 @@ from ase.build import molecule
 from ase.collections import g2
 from gg.data import adsorbates
 
-
 __author__ = "Kaustubh Sawant"
 
 
 def node_symbol(atom: Atoms) -> str:
-    """
-    Args:
-       atom (Atoms Object): atoms to convert
-
-    Returns:
-       str: "symbol_index"
-    """
-    return f"{atom.symbol}_{atom.index}"
+    """Ensure symbol and index are converted to proper string types."""
+    return f"{str(atom.symbol)}_{int(atom.index)}"
 
 
 def relative_position(atoms: Atoms, neighbor: int, offset: np.array) -> np.array:
@@ -214,11 +210,7 @@ def list_atoms_to_graphs(
     """
     graph_list = []
     for atoms in list_atoms:
-        nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
-        nl.update(atoms)
-        graph_list.append(
-            atoms_to_graph(atoms, nl, max_bond=max_bond, max_bond_ratio=max_bond_ratio)
-        )
+        graph_list.append(_process_single_atoms(atoms, max_bond, max_bond_ratio))
     return graph_list
 
 
@@ -359,7 +351,10 @@ def get_connecting_nodes(graph: Graph, cluster_ind: list, atoms: Atoms) -> list:
     connecting_indices = [graph.nodes[node]["index"] for node in connecting_nodes]
     return connecting_indices
 
-def replace_subgraph_with_node(graph: nx.Graph, subgraph: nx.Graph, new_node_label: str) -> nx.Graph:
+
+def replace_subgraph_with_node(
+    graph: nx.Graph, subgraph: nx.Graph, new_node_label: str
+) -> nx.Graph:
     """
     Find instances of a subgraph and replace them with a single node while preserving connectivity.
 
@@ -373,9 +368,8 @@ def replace_subgraph_with_node(graph: nx.Graph, subgraph: nx.Graph, new_node_lab
     """
     temp_graph = graph.copy()
     matcher = GraphMatcher(temp_graph, subgraph, node_match=node_match)
-
     matched_subgraphs = []
-    
+
     # Step 1: Collect all subgraph matches before making modifications
     for match in matcher.subgraph_isomorphisms_iter():
         matched_subgraphs.append(set(match.keys()))  # Store node sets
@@ -408,6 +402,7 @@ def replace_subgraph_with_node(graph: nx.Graph, subgraph: nx.Graph, new_node_lab
 
     return temp_graph
 
+
 def generate_centered_subgraphs(
     graph: Graph, center_symbol: str, depth: int
 ) -> list[Graph]:
@@ -430,13 +425,15 @@ def generate_centered_subgraphs(
                 raise RuntimeError("Cannot generate graphs")
 
             # Make the ase.NeighborList
-            nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
+            nl = NeighborList(
+                natural_cutoffs(atoms), self_interaction=False, bothways=True
+            )
             nl.update(atoms)
             subgraph = atoms_to_graph(atoms, nl, max_bond_ratio=1.2)
             graph = replace_subgraph_with_node(graph, subgraph, symbol)
 
     center_nodes = [
-    node for node, data in graph.nodes(data=True) if data["symbol"]  in center_symbol
+        node for node, data in graph.nodes(data=True) if data["symbol"] in center_symbol
     ]
     subgraphs = [nx.ego_graph(graph, node, radius=depth) for node in center_nodes]
 
@@ -461,9 +458,7 @@ def compare_subgraph_uniqueness(
         for i, sg2 in enumerate(subgraphs2):
             if (
                 i not in matched
-                and GraphMatcher(
-                    sg1, sg2, node_match=node_match
-                ).is_isomorphic()
+                and GraphMatcher(sg1, sg2, node_match=node_match).is_isomorphic()
             ):
                 matched.add(i)
                 break
@@ -478,6 +473,110 @@ def compare_fullgraph_uniqueness(
 ) -> bool:
     """Compare Full Graphs"""
 
-    return GraphMatcher(
-        graph1, graph2, node_match=node_match
-    ).is_isomorphic()
+    return GraphMatcher(graph1, graph2, node_match=node_match).is_isomorphic()
+
+
+def _process_single_atoms(atoms, max_bond, max_bond_ratio):
+    """Top-level function for parallel processing (must be picklable)."""
+    nl = NeighborList(natural_cutoffs(atoms), self_interaction=False, bothways=True)
+    nl.update(atoms)
+    return atoms_to_graph(atoms, nl, max_bond=max_bond, max_bond_ratio=max_bond_ratio)
+
+
+def list_atoms_to_graphs_parallel(
+    list_atoms: list,
+    max_bond: float = 0,
+    max_bond_ratio: float = 0,
+    num_workers: int = 1,
+) -> list:
+    """Parallel version of atoms-to-graph conversion."""
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        graph_list = list(
+            executor.map(
+                _process_single_atoms,
+                list_atoms,
+                repeat(max_bond),
+                repeat(max_bond_ratio),
+            )
+        )
+    return graph_list
+
+
+def get_unique_atoms_parallel(
+    movie: list,
+    max_bond: float = 0,
+    max_bond_ratio: float = 0,
+    unique_method: str = "fullgraph",
+    depth: int = 3,
+    num_workers: int = 1,
+) -> list:
+    """ """
+    graph_list = list_atoms_to_graphs_parallel(
+        movie, max_bond=max_bond, max_bond_ratio=max_bond_ratio, num_workers=num_workers
+    )
+    unique_indexes = get_unique_graph_indexes_parallel(
+        graph_list, unique_method=unique_method, depth=depth, num_workers=num_workers
+    )
+    return [movie[i] for i in unique_indexes]
+
+
+def get_unique_graph_indexes_parallel(
+    graph_list: list,
+    unique_method: str = "fullgraph",
+    depth: int = 3,
+    num_workers: int = 1,
+) -> list:
+    """Parallelized version using batched hash precomputation and parallel isomorphism checks."""
+    # Validate all graphs have string node keys before processing
+    for g in graph_list:
+        for node in g.nodes():
+            if not isinstance(node, str):
+                raise ValueError(
+                    f"Invalid node key {node} (type {type(node)}) found in graph"
+                )
+
+    # Precompute all graph hashes in parallel
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        graph_hashes = list(executor.map(get_graph_hash, graph_list))
+
+    unique_graphs = []  # Stores (graph, graph_hash) tuples
+    seen_hashes = set()
+    unique_indexes = []
+
+    for index, (graph, gh) in enumerate(zip(graph_list, graph_hashes)):
+        if gh not in seen_hashes:
+            # New unique graph found
+            seen_hashes.add(gh)
+            unique_graphs.append((graph, gh))
+            unique_indexes.append(index)
+        else:
+            # Find all candidates with matching hash
+            candidates = [ug for ug, ug_h in unique_graphs if ug_h == gh]
+            # Parallel isomorphism checks against all candidates
+            with ProcessPoolExecutor(max_workers=num_workers) as executor:
+                checks = list(
+                    executor.map(
+                        _check_isomorphism,
+                        candidates,
+                        repeat(graph),
+                        repeat(unique_method),
+                        repeat(depth),
+                    )
+                )
+                print(checks)
+
+            if not any(checks):
+                # No matches found - add to unique
+                unique_graphs.append((graph, gh))
+                unique_indexes.append(index)
+    return unique_indexes
+
+
+# Worker function for parallel isomorphism checks
+def _check_isomorphism(candidate_graph, current_graph, method, depth):
+    if method == "fullgraph":
+        return compare_fullgraph_uniqueness(current_graph, candidate_graph)
+    else:
+        return compare_subgraph_uniqueness(
+            current_graph, candidate_graph, center_symbol=method, depth=depth
+        )

@@ -284,6 +284,12 @@ class Gcbh(Dynamics):
         if name in self.vib_correction:
             raise RuntimeError(f"Correction: {name} exists already!\n")
         self.vib_correction[name] = instance
+
+        # Update fe
+        if self.c["vib_correction"]:
+            self.logtxt(f"Updating F according to {name}")
+            self.c["fe"] += self.get_vib_correction(self.atoms)
+            self.c["fe_min"] = self.c["fe"]
         return
 
     def update_modifier_weights(self, name: str, action: str):
@@ -372,7 +378,7 @@ class Gcbh(Dynamics):
                         corr_value = value.weight
                         corr_sum += n * corr_value
                         self.logtxt(f"Adding correction {key}:{n}*{corr_value}")
-                        del a[flattened_list]
+                        del a[[int(i) for i in flattened_list]]
                 return corr_sum
             else:
                 return 0
@@ -680,7 +686,7 @@ class Gcbh(Dynamics):
                 )
                 if flattened_list:
                     self.logtxt(f"Found {inst.to_del} at {flattened_list}")
-                    del atoms[flattened_list]
+                    del atoms[[int(i) for i in flattened_list]]
         return atoms
 
 
