@@ -6,6 +6,24 @@ Examples
 
 The only file you need to initialize is `input.yaml <https://github.com/kkjsawantucla/gg/blob/main/examples/Zn_Cu_cluster/input.yaml>`_, which contains information about chemical potential and temperature.
 
+    .. code-block:: yaml
+
+        temp: 550
+        stop_steps: 2000
+        stop_opt: 500 #Max steps for geometry optimization
+        
+        chemical_potential:
+          Cu: -4.10
+          ZnO: -9.10
+          H: -3.43
+          O: -7.51 
+        
+        check_graphs: False #Check graphs can remember unique structures to avoid redundancy
+        vib_correction: False 
+        max_bond_ratio: 1.2
+        initialize: True
+
+
 First, we need to set up the atoms. We are using a model developed by `Kempen et. al. <https://www.nature.com/articles/s41524-024-01507-z>`_ and the interatomic potential developed by the `MACE team <https://github.com/ACEsuit/mace/tree/main?tab=readme-ov-file#pretrained-foundation-models>`_
     .. code-block:: python
 
@@ -17,27 +35,30 @@ First, we need to set up the atoms. We are using a model developed by `Kempen et
         atoms.calc = calc
 
 
-Define possible surface modifications
+Define how to choose the surface atoms for modifications
     .. code-block:: python
 
         #Define surface site class
         from gg.predefined_sites import FlexibleSites
 
         for a in atoms:
-        if a.symbol in ['Zn','O','H']:
-            a.tag=-1
-        FS = FlexibleSites(tag=-1)
-        FS2 = FlexibleSites(constraints=True,com=0.75)
+            if a.symbol in ['Zn','O','H']:
+                a.tag=-1
+        FS = FlexibleSites(tag=-1) #Define adsorbate/cluster
+        FS2 = FlexibleSites(constraints=True,com=0.75) #Get Surface atoms based on z co-ordinate
+
+Define possible surface modifications allowed during basin hopping
+    .. code-block:: python
 
         # Build Modifiers for the system
-        from gg.modifiers import ClusterRotate, ClusterTranslate, Add, Remove, ModifierAdder, Replace
+        from gg.modifiers import Add, Remove, Replace, ModifierAdder, ClusterRotate, ClusterTranslate, 
 
-        #Add,Remove,Swap O
+        #Add, Remove, Swap O
         addO = Add(FS2, "O", surf_coord=[2,3], ads_id = ["O"], surf_sym = ["Cu","Zn"], unique_method = "O")
         remO = Remove(FS, "O", max_bond_ratio = 1.2, unique_method = "O")
         swapO = ModifierAdder([addO,remO],unique_method = "O")
 
-        #Add,Remove,Swap H
+        #Add, Remove, Swap H
         addH = Add(FS2, "H", surf_coord=[1,2,3], ads_id = ["H"], surf_sym = ["Cu","O"], unique_method = "H")
         remH = Remove(FS, "H", max_bond_ratio = 1.2, unique_method = "H")
         swapH = ModifierAdder([addH,remH],unique_method = "H")
@@ -66,8 +87,7 @@ Initialize the GCBH
     .. code-block:: python
 
         from gg.gcbh import Gcbh
-
-        G = Gcbh(atoms,config_file='input.yaml',restart=True)
+        G = Gcbh(atoms,config_file='input.yaml')
         G.add_modifier(addO,'Add O')
         G.add_modifier(remO,'Remove O')
         G.add_modifier(swapO,'Swap O')
