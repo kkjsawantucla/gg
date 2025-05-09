@@ -64,6 +64,7 @@ Define possible surface modifications
 
 Initialize the GCBH
     .. code-block:: python
+
         from gg.gcbh import Gcbh
 
         G = Gcbh(atoms,config_file='input.yaml',restart=True)
@@ -86,10 +87,12 @@ Initialize the GCBH
 
 Sometimes, the simulation can generate gas-phase species, which can skew results
     .. code-block:: python
+
         G.add_delete_gas(gas_species=["H2"])
 
 Finally, run the code
     .. code-block:: python
+
         G.run(steps=1000)
 
 This should generate the following files and folders:
