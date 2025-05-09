@@ -1,0 +1,14 @@
+temp: 550.0
+stop_steps: 2000
+stop_opt: 500
+
+chemical_potential:
+  Cu: -4.10
+  ZnO: -9.10
+  H: -3.43
+  O: -7.51 
+
+check_graphs: False
+vib_correction: False
+max_bond_ratio: 1.2
+initialize: True

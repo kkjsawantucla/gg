@@ -1,54 +1,57 @@
-#! /usr/bin/env python
-"""Example File to use nequip calculator"""
-
+import os
 from ase.io import read
-from ase import Atoms
-from gg.modifiers import Add,Remove,Swap,ModifierAdder
-from gg.gcbh import Gcbh
-from gg.predefined_sites import SurfaceSites
+from ase.optimize import BFGS
 from nequip.ase import NequIPCalculator
 
-#Read Input POSCAR
-atoms = read("POSCAR")
 
-#Define Calculator
-CALC_PATH = './deployed_model.pth'
-atom_dict = {'Si': 'Si', 'H':'H', 'O':'O', 'Al':'Al'}
-calc = NequIPCalculator.from_deployed_model(CALC_PATH,species_to_type_name=atom_dict,device='cuda')
-atoms.calc = calc
+# Function to run ground-state relaxation
+def run_gs(calculator, poscar_path):
+    """
+    Args:
+        calculator (ase.calc):
+        poscar_path (str):
+    """
+    try:
+        atoms = read(poscar_path)
+        atoms.calc = calculator
+        dyn = BFGS(atoms, logfile=os.path.join(os.path.dirname(poscar_path), "out.log"))
+        dyn.run(fmax=0.01, steps=500)
 
-#Define Adsorbates to be used
-adsH = Atoms("H", positions = [(0,0,0)])
-adsOH = Atoms("OH", positions = [(0,0,0),(0.1,0.1,1.0)])
+        energy = atoms.get_potential_energy()
+        print(f"Energy for {poscar_path}: {energy} eV")
 
-#Define Surface Sites
-max_coord = {"Al": 6, "Si": 5, "O": 4, "H": 2}
-ss = SurfaceSites(max_coord, max_bond_ratio=1.2)
+        contcar_path = os.path.join(os.path.dirname(poscar_path), "CONTCAR_mlp")
+        atoms.write(contcar_path, format="vasp")
+    except Exception as e:
+        print(f"Error processing {poscar_path}: {e}")
 
-#Build Add H2O
-addH = Add(ss, adsH, 1, ads_dist=1.0, surf_sym = ["O"], print_movie=False, weight = 1.0)
-addOH = Add(ss, adsOH, 1, ads_dist=1.8, surf_sym = ["Al","Si"],print_movie=False, weight = 1.0)
-addH2O = ModifierAdder(1.0,[addH,addOH])
 
-#Build Remove H2O
-remH = Remove(ss, adsH, max_bond = 2, weight = 1.0)
-remOH = Remove( ss, adsOH, max_bond = 2, weight = 1.0)
-remH2O = ModifierAdder([remH,remOH])
+def find_poscar_files(root_dir):
+    """
+    Args:
+        root_dir (str):
 
-#Build Swap Al and Si Atoms
-swap_al_si = Swap(1.0,ss,["Al","Si"])
+    Returns:
+        (list[str]):
+    """
+    poscar_files = []
+    for dirpath, _, filenames in os.walk(root_dir):
+        if "POSCAR" in filenames and "out.log" not in filenames:
+            poscar_files.append(os.path.join(dirpath, "POSCAR"))
+    return poscar_files
 
-#Build Swap H2O
-swap_H2O = ModifierAdder(1.0,[addH2O,remH2O])
 
-#Initialize a GCBH calculator
-G = Gcbh(atoms,config_file='input.yaml')
+if __name__ == "__main__":
+    CALCPATH = "./deployed_model.pth"
+    atom_dict = {"Si": "Si", "H": "H", "O": "O", "Al": "Al"}
+    calc = NequIPCalculator.from_deployed_model(
+        CALCPATH, species_to_type_name=atom_dict, device="cuda"
+    )
 
-#Attach modifiers to the gcbh calculator
-G.add_modifier(addH2O,'Add_H2O')
-G.add_modifier(remH2O,'Remove_H2O')
-G.add_modifier(swap_al_si,'Swap_Al_Si')
-G.add_modifier(swap_H2O,'Swap_H2O')
+    # Get current directory and search for POSCAR files
+    og_directory = os.getcwd()
+    poscarfiles = find_poscar_files(og_directory)
 
-#Run GCBH
-G.run(steps = 1000)
+    # Process each POSCAR file
+    for poscar in poscarfiles:
+        run_gs(calc, poscar)

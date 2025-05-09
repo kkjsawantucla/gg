@@ -1,51 +1,96 @@
 Examples
 ========
 
-1. Pt using EMT
+1. ZnO/Cu Cluster Using MACE
 --------------------------------
 
-The only file you need to initialize is `input.yaml <https://github.com/kkjsawantucla/gg/blob/main/examples/Pt_emt/input.yaml>`_, which contains information about chemical potential and temperature.
+The only file you need to initialize is `input.yaml <https://github.com/kkjsawantucla/gg/blob/main/examples/Zn_Cu_cluster/input.yaml>`_, which contains information about chemical potential and temperature.
 
-First we ned to setup the atoms. We are using ase to build Pt fcc111
+First we ned to setup the atoms. We are using model developed by `Kempen et. al. <https://www.nature.com/articles/s41524-024-01507-z>` and the interatomic potential developed by the `MACE team <https://github.com/ACEsuit/mace/tree/main?tab=readme-ov-file#pretrained-foundation-models>`
     .. code-block:: python
 
-        from ase import Atoms
-        from ase.build import fcc111
-        from ase.calculators.emt import EMT
+        from ase.io import read
+        atoms = read('POSCAR')
+        
+        from mace.calculators import mace_mp
+        calc = mace_mp(model="medium-mpa-0",default_dtype="float64",device='cuda')
+        atoms.calc = calc
 
-        adsH = Atoms("H", positions = [(0,0,0)])
-        atoms = fcc111("Pt", size=(3, 3, 4), vacuum=10.0)
-        atoms.calc = EMT() #Add a calculator to the atoms object for geometric optimization
 
-Now , we can initialize the Gcbh class
-    .. code-block:: python
-
-        from gg.gcbh import Gcbh
-        G = Gcbh(atoms,config_file='input.yaml')
-
-Attach modifiers to the Gcbh Class
+Define possible surface modifications
     .. code-block:: python
 
         #Define surface site class
-        from gg.predefined_sites import SurfaceSites
-        max_coord = {"Pt": 12, "H": 2}
-        ss = SurfaceSites(max_coord, max_bond_ratio=1.2)
+        from gg.predefined_sites import FlexibleSites
 
-        #Define three modifiers for H adsorption, desoprtion and movement
-        from gg.modifiers import Add,Remove,ModifierAdder
-        addH = Add(ss, adsH, surf_coord=[1,2,3], ads_id=["H"], surf_sym=["Pt"], print_movie=False, weight=1)
-        remH = Remove(ss, adsH, max_bond_ratio=1.2, print_movie=False, weight=1)
-        swapH = ModifierAdder([addH,remH],weight=1)
+        for a in atoms:
+        if a.symbol in ['Zn','O','H']:
+            a.tag=-1
+        FS = FlexibleSites(tag=-1)
+        FS2 = FlexibleSites(constraints=True,com=0.75)
 
-        #Attach the modifiers to the class
-        G.add_modifier(addH,'Add_H')
-        G.add_modifier(remH,'Remove_H')
-        G.add_modifier(swapH,'Swap_H')
+        # Build Modifiers for the system
+        from gg.modifiers import ClusterRotate, ClusterTranslate, Add, Remove, ModifierAdder, Replace
 
-Finally run the code
+        #Add,Remove,Swap O
+        addO = Add(FS2, "O", surf_coord=[2,3], ads_id = ["O"], surf_sym = ["Cu","Zn"], unique_method = "O")
+        remO = Remove(FS, "O", max_bond_ratio = 1.2, unique_method = "O")
+        swapO = ModifierAdder([addO,remO],unique_method = "O")
+
+        #Add,Remove,Swap H
+        addH = Add(FS2, "H", surf_coord=[1,2,3], ads_id = ["H"], surf_sym = ["Cu","O"], unique_method = "H")
+        remH = Remove(FS, "H", max_bond_ratio = 1.2, unique_method = "H")
+        swapH = ModifierAdder([addH,remH],unique_method = "H")
+
+        #Rotate, Translate Clusters
+        clstr_rot = ClusterRotate(FS,contact_error=0.25,rotate_vector=(0,0,1),nmovie=2)
+        clstr_trans = ClusterTranslate(FS,contact_error=0.2,nmovie=2)
+
+        #Add ZnOH
+        adsZnOH = read('POSCAR_ZnOH')
+        addZnOH = Add(FS2, adsZnOH, surf_coord=[2,3], ads_id = ["Zn"], surf_sym = ["Cu"], unique_method = "H")
+
+        #Add, Remove OH
+        addOH = Add(FS2, "OH", surf_coord=[2,3], ads_id = ["O"], surf_sym = ["Cu","Zn"], unique_method = "H")
+        remOH = Remove(FS2, "OH", max_bond_ratio = 1.2, unique_method = "H")
+
+        #Remove H2O
+        remH2O = Remove(FS, "H2O", max_bond_ratio = 1.2, unique_method = "H")
+
+        #Move, Remove Zn
+        repl_Cu = Replace(FS2,to_del="Cu",with_replace="Zn", unique_method = "Zn")
+        remZn = Remove(FS, "Zn", max_bond_ratio = 1.2, unique_method = "Zn")
+        repl_Zn = Replace(FS2,to_del="Zn",with_replace="Cu", unique_method = "Zn")
+
+Intitialize the GCBH
     .. code-block:: python
+        from gg.gcbh import Gcbh
 
-        G.run(steps = 25)
+        G = Gcbh(atoms,config_file='input.yaml',restart=True)
+        G.add_modifier(addO,'Add O')
+        G.add_modifier(remO,'Remove O')
+        G.add_modifier(swapO,'Swap O')
+        G.add_modifier(addH,'Add H')
+        G.add_modifier(remH,'Remove H')
+        G.add_modifier(swapH,'Swap H')
+        G.add_modifier(clstr_trans,'Cluster Translate')
+        G.add_modifier(clstr_rot,'Cluster Rotate')
+        G.add_modifier(repl_Cu,'Replace Cu with Zn')
+        G.add_modifier(repl_Zn,'Replace Zn with Cu')
+        G.add_modifier(remZn,"Remove Zn")
+        G.add_modifier(remOH,"Remove OH")
+        G.add_modifier(addZnOH,"Add ZnOH")
+        G.add_modifier(addOH,"Add OH")
+        G.add_modifier(remH2O,"Rem H2O")
+        G.add_delete_gas(gas_species=["H2"])
+
+Sometimes, the simulation can generate gas phase species, which can skew results.
+    .. code-block:: python
+        G.add_delete_gas(gas_species=["H2"])
+
+Finally, run the code.
+    .. code-block:: python
+        G.run(steps=1000)
 
 This should generate the following files and folders:
 
@@ -59,5 +104,3 @@ This should generate the following files and folders:
  - opt_01
  - ...
 
-2. AluminoSilicates using Nequip
---------------------------------
