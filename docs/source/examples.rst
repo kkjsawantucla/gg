@@ -6,7 +6,7 @@ Examples
 
 The only file you need to initialize is `input.yaml <https://github.com/kkjsawantucla/gg/blob/main/examples/Zn_Cu_cluster/input.yaml>`_, which contains information about chemical potential and temperature.
 
-First, we need to set up the atoms. We are using a model developed by `Kempen et. al. <https://www.nature.com/articles/s41524-024-01507-z>` and the interatomic potential developed by the `MACE team <https://github.com/ACEsuit/mace/tree/main?tab=readme-ov-file#pretrained-foundation-models>`
+First, we need to set up the atoms. We are using a model developed by `Kempen et. al. <https://www.nature.com/articles/s41524-024-01507-z>`_ and the interatomic potential developed by the `MACE team <https://github.com/ACEsuit/mace/tree/main?tab=readme-ov-file#pretrained-foundation-models>`_
     .. code-block:: python
 
         from ase.io import read
