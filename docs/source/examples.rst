@@ -84,11 +84,11 @@ Initialize the GCBH
         G.add_modifier(remH2O,"Rem H2O")
         G.add_delete_gas(gas_species=["H2"])
 
-Sometimes, the simulation can generate gas-phase species, which can skew results.
+Sometimes, the simulation can generate gas-phase species, which can skew results
     .. code-block:: python
         G.add_delete_gas(gas_species=["H2"])
 
-Finally, run the code.
+Finally, run the code
     .. code-block:: python
         G.run(steps=1000)
 
