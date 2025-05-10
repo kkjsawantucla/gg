@@ -117,26 +117,24 @@ def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2"):
         x, y = np.transpose(np.vstack([vertices, vertices[0]]))
         plt.plot(x, y, "k-")
         plt.annotate(
-            entry.entry_id, center, ha="center", va="center", fontsize=20, color="b"
+            entry.enid, center, ha="center", va="center", fontsize=20, color="b"
         ).draggable()
 
     plt.xlim(x_min + 0.01, x_max - 0.01)
     plt.ylim(limits[1][0] + 0.01, limits[1][1] - 0.01)
-    csfont = {"fontname": "Times New Roman"}
     plt.xlabel(
         f"{xlabel} Chemical Potential \u03bc(O) [eV]",
         fontsize=24,
-        **csfont,
+
         labelpad=20,
     )
     plt.ylabel(
         f"{ylabel} Chemical Potential \u03bc(H) [eV]",
         fontsize=24,
-        **csfont,
         labelpad=20,
     )
-    plt.xticks(fontsize=24, **csfont)
-    plt.yticks(fontsize=24, **csfont)
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
     plt.tick_params(direction="in", length=10, width=2, top=True, right=True, pad=10)
     plt.tick_params(
         which="minor", direction="in", length=6, width=1, top=True, right=True
@@ -206,9 +204,9 @@ def get_entries_from_folders(
             ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
             final_energy = energy - ref_sum
             entry_id = os.path.basename(root.replace("/", "_")[:-1])
-
+            print(f"Adding entry: {entry_id} {n1}={n1_slope}, {n2}={n2_slope}")
             entry = Phasediagramentry(
-                enid=entry_id, energy=final_energy, n1=-n1_slope, n2=-n2_slope
+                enid=entry_id, energy=final_energy, n1=n1_slope, n2=n2_slope
             )
             entries.append(entry)
     ref_entry = Phasediagramentry(enid="Reference", energy=0, n1=0, n2=0)
@@ -224,10 +222,12 @@ def plot_phase_diagram_from_run(
     mu_path="./input.yaml",
     file_type=["OSZICAR", "CONTCAR"],
 ):
+    print(f"Generating entries for plotting from {base_folder} folder")
     entries = get_entries_from_folders(
         n1, n2, base_folder=base_folder, mu_path=mu_path, file_type=file_type
     )
     stable_vertices = get_phase_domains(entries, limits=limits)
+    print(f"Plotting with xlabel: {n1} and ylabel: {n2}")
     phase_diagram_plot(stable_vertices, limits=limits, xlabel = n1, ylabel = n2)
 
     return
