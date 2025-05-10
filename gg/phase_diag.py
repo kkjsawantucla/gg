@@ -1,6 +1,8 @@
-"""Plot Phase Diagram"""
+"""Plot Phase Diagram with stoichiometry-based entry filtering"""
 
 import os
+import json
+from dataclasses import dataclass, field, asdict
 from functools import cmp_to_key
 import yaml
 import numpy as np
@@ -15,24 +17,15 @@ from gg.utils import (
 from gg.reference import get_ref_coeff
 
 
-class Phasediagramentry:
-    """_summary_"""
+@dataclass(frozen=True)
+class PhaseEntry:
+    """Entry for phase diagram, with stoichiometry tracking"""
 
-    def __init__(self, enid, energy, n1, n2):
-        """
-        Args:
-            entry (composition): Anentry object
-            ref_entry (composition): Anentry object
-        """
-        self.energy = energy
-        self.enid = enid
-        self.n1 = n1
-        self.n2 = n2
-
-    def __repr__(self):
-        return (
-            f"Entry:{self.enid} with energy={self.energy:.4f}, x={self.n1}, y={self.n2}"
-        )
+    enid: str  # Identifier for the entry
+    energy: float  # Formation energy
+    n1: float  # Slope coefficient for species 1
+    n2: float  # Slope coefficient for species 2
+    stoich: str = field(default=None, compare=False)  # Chemical formula string
 
 
 # From Pymatgen
@@ -105,8 +98,8 @@ def get_phase_domains(entries, limits=None):
 def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2"):
     """
     Args:
-        stable_domain_vertices (dict): 
-        limits (list): 
+        stable_domain_vertices (dict):
+        limits (list):
         xlabel (str, optional): . Defaults to "1".
         ylabel (str, optional): . Defaults to "2".
     """
@@ -125,7 +118,6 @@ def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2"):
     plt.xlabel(
         f"{xlabel} Chemical Potential \u03bc(O) [eV]",
         fontsize=24,
-
         labelpad=20,
     )
     plt.ylabel(
@@ -149,10 +141,10 @@ def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2"):
 def read_chemical_potential(path):
     """
     Args:
-        path (str): 
+        path (str): Path to YAML file containing chemical potentials
 
     Returns:
-        dict: 
+        dict: Mapping species -> chemical potential value
     """
     with open(path, "r", encoding="utf-8") as f:
         input_config = yaml.safe_load(f)
@@ -184,15 +176,31 @@ def get_ref_potential(mu, atoms: Atoms, n1, n2):
 def get_entries_from_folders(
     n1, n2, base_folder="./", mu_path="./input.yaml", file_type=["OSZICAR", "CONTCAR"]
 ):
+    """
+    Walk through subdirectories to collect entries, keeping only one per stoichiometry
+    (lowest energy) plus a reference.
+
+    Args:
+        n1, n2 (str): Labels for chemical potentials
+        base_folder (str): Root directory for VASP runs
+        mu_path (str): Path to YAML file with chemical potentials
+        file_type (list): [energy file, structure file]
+
+    Returns:
+        List[Phasediagramentry]: Filtered entries
+    """
     mu = read_chemical_potential(mu_path)
     entries = []
+
     for root, _, files in os.walk(base_folder):
         if file_type[0] in files and file_type[1] in files:
             contcar_path = os.path.join(root, file_type[1])
             en_path = os.path.join(root, file_type[0])
+
+            # extract energy
             if file_type[0] == "OSZICAR":
                 energy = extract_lowest_energy_from_oszicar(en_path)
-            elif file_type[0] == "out.log":
+            elif file_type[0].endswith(".log"):
                 energy = extract_lowest_energy_from_outlog(en_path)
             else:
                 raise RuntimeError("Unsupported energy file type.")
@@ -203,15 +211,65 @@ def get_entries_from_folders(
             atoms = read(contcar_path, format="vasp")
             ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
             final_energy = energy - ref_sum
-            entry_id = os.path.basename(root.replace("/", "_")[:-1])
-            print(f"Adding entry: {entry_id} {n1}={n1_slope}, {n2}={n2_slope}")
-            entry = Phasediagramentry(
-                enid=entry_id, energy=final_energy, n1=n1_slope, n2=n2_slope
+            entry_id = os.path.basename(root).replace("/", "_")
+            stoich_formula = atoms.get_chemical_formula()
+
+            print(
+                f"Considering entry: {entry_id}, stoich={stoich_formula}, {n1}={n1_slope:.2f}, {n2}={n2_slope:.2f}"
             )
-            entries.append(entry)
-    ref_entry = Phasediagramentry(enid="Reference", energy=0, n1=0, n2=0)
+
+            new_entry = PhaseEntry(
+                enid=entry_id,
+                energy=final_energy,
+                n1=n1_slope,
+                n2=n2_slope,
+                stoich=stoich_formula,
+            )
+
+            # check for existing same stoichiometry
+            replaced = False
+            for idx, existing in enumerate(entries):
+                if existing.stoich == new_entry.stoich:
+                    # keep lower energy
+                    if new_entry.energy < existing.energy:
+                        print(
+                            f"Replacing {existing.enid} with {new_entry.enid} for stoich={new_entry.stoich}"
+                        )
+                        entries[idx] = new_entry
+                    else:
+                        print(
+                            f"Skipping {new_entry.enid} (higher energy than existing {existing.enid})"
+                        )
+                    replaced = True
+                    break
+
+            if not replaced:
+                entries.append(new_entry)
+
+    # always include a zero-energy reference
+    ref_entry = PhaseEntry(enid="Reference", energy=0.0, n1=0.0, n2=0.0)
     entries.append(ref_entry)
+
     return entries
+
+
+# Serialization utilities
+def save_entries(entries, filename: str):
+    """
+    Save a list of PhaseEntry objects to a JSON file.
+    """
+    data = [asdict(entry) for entry in entries]
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def load_entries(filename: str):
+    """
+    Load a list of PhaseEntry objects from a JSON file.
+    """
+    with open(filename, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return [PhaseEntry(**d) for d in data]
 
 
 def plot_phase_diagram_from_run(
@@ -221,13 +279,20 @@ def plot_phase_diagram_from_run(
     base_folder="./",
     mu_path="./input.yaml",
     file_type=["OSZICAR", "CONTCAR"],
+    read_from_file=False,
 ):
     print(f"Generating entries for plotting from {base_folder} folder")
-    entries = get_entries_from_folders(
-        n1, n2, base_folder=base_folder, mu_path=mu_path, file_type=file_type
-    )
+
+    if read_from_file and os.path.isfile(read_from_file):
+        entries = load_entries(read_from_file)
+    else:
+        entries = get_entries_from_folders(
+            n1, n2, base_folder=base_folder, mu_path=mu_path, file_type=file_type
+        )
+        save_entries(entries, f"{base_folder}/{entries.json}")
+    print("Building 2D Hull")
     stable_vertices = get_phase_domains(entries, limits=limits)
-    print(f"Plotting with xlabel: {n1} and ylabel: {n2}")
-    phase_diagram_plot(stable_vertices, limits=limits, xlabel = n1, ylabel = n2)
+    print(f"Plotting with xlabel:{n1} and ylabel:{n2}")
+    phase_diagram_plot(stable_vertices, limits=limits, xlabel=n1, ylabel=n2)
 
     return
