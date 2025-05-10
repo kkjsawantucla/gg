@@ -9,7 +9,7 @@ setup(
     python_requires=">=3.10",
     packages=find_packages(include=["gg", "gg.*"]),
     license="LGPLv2.1+",
-    install_requires=["numpy", "ase", "networkx", "pandas", "PyYAML"],
+    install_requires=["numpy", "ase", "networkx", "pandas", "PyYAML", "scipy"],
     scripts=["bin/add_mono", "bin/add_bi"],
     zip_safe=False,
 )

@@ -18,12 +18,12 @@ FS2 = FlexibleSites(constraints=True,com=0.75)
 #Add,Remove,Swap O
 addO = Add(FS2, "O", surf_coord=[2,3], ads_id = ["O"], surf_sym = ["Cu","Zn"], unique_method = "O")
 remO = Remove(FS, "O", max_bond_ratio = 1.2, unique_method = "O")
-swapO = ModifierAdder([addO,remO],unique_method = "O")
+swapO = ModifierAdder([remO,addO],unique_method = "O")
 
 #Add,Remove,Swap H
 addH = Add(FS2, "H", surf_coord=[1,2,3], ads_id = ["H"], surf_sym = ["Cu","O"], unique_method = "H")
 remH = Remove(FS, "H", max_bond_ratio = 1.2, unique_method = "H")
-swapH = ModifierAdder([addH,remH],unique_method = "H")
+swapH = ModifierAdder([remH,addH],unique_method = "H")
 
 #Rotate, Translate Clusters
 clstr_rot = ClusterRotate(FS,contact_error=0.25,rotate_vector=(0,0,1),nmovie=2)
