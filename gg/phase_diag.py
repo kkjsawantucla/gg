@@ -13,6 +13,7 @@ from ase.io import read
 from gg.utils import (
     extract_lowest_energy_from_oszicar,
     extract_lowest_energy_from_outlog,
+    get_area,
 )
 from gg.reference import get_ref_coeff
 
@@ -95,7 +96,7 @@ def get_phase_domains(entries, limits=None):
 
 
 # Plotting Function
-def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2"):
+def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2",annotate=False):
     """
     Args:
         stable_domain_vertices (dict):
@@ -109,9 +110,10 @@ def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2"):
         center = np.average(vertices, axis=0)
         x, y = np.transpose(np.vstack([vertices, vertices[0]]))
         plt.plot(x, y, "k-")
-        plt.annotate(
-            entry.enid, center, ha="center", va="center", fontsize=20, color="b"
-        ).draggable()
+        if annotate:
+            plt.annotate(
+                entry.enid, center, ha="center", va="center", fontsize=20, color="b"
+            ).draggable()
 
     plt.xlim(x_min + 0.01, x_max - 0.01)
     plt.ylim(limits[1][0] + 0.01, limits[1][1] - 0.01)
@@ -131,10 +133,9 @@ def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2"):
     plt.tick_params(
         which="minor", direction="in", length=6, width=1, top=True, right=True
     )
-    plt.axhline(y=-0.15, color="r", linestyle="--")
     fig = plt.gcf()
     fig.set_size_inches(15, 8)
-    plt.savefig(f"{xlabel}_{ylabel}_fig")
+    plt.savefig(f"{xlabel}_{ylabel}_phase_diag")
     return
 
 
@@ -174,7 +175,12 @@ def get_ref_potential(mu, atoms: Atoms, n1, n2):
 
 
 def get_entries_from_folders(
-    n1, n2, base_folder="./", mu_path="./input.yaml", file_type=["OSZICAR", "CONTCAR"]
+    n1,
+    n2,
+    base_folder="./",
+    mu_path="./input.yaml",
+    file_type=["OSZICAR", "CONTCAR"],
+    reference=None,
 ):
     """
     Walk through subdirectories to collect entries, keeping only one per stoichiometry
@@ -209,15 +215,11 @@ def get_entries_from_folders(
                 continue
 
             atoms = read(contcar_path, format="vasp")
+            area = get_area(atoms)
             ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
-            final_energy = energy - ref_sum
-            entry_id = os.path.basename(root).replace("/", "_")
+            final_energy = (energy - ref_sum)/area
             stoich_formula = atoms.get_chemical_formula()
-
-            print(
-                f"Considering entry: {entry_id}, stoich={stoich_formula}, {n1}={n1_slope:.2f}, {n2}={n2_slope:.2f}"
-            )
-
+            entry_id = os.path.basename(root).replace("/", "_") + '_' + str(stoich_formula)
             new_entry = PhaseEntry(
                 enid=entry_id,
                 energy=final_energy,
@@ -247,18 +249,19 @@ def get_entries_from_folders(
                 entries.append(new_entry)
 
     # always include a zero-energy reference
-    ref_entry = PhaseEntry(enid="Reference", energy=0.0, n1=0.0, n2=0.0)
-    entries.append(ref_entry)
+    if reference:
+        ref_entry = PhaseEntry(enid="Reference", energy=reference, n1=0.0, n2=0.0)
+        entries.append(ref_entry)
 
     return entries
 
 
-# Serialization utilities
 def save_entries(entries, filename: str):
     """
     Save a list of PhaseEntry objects to a JSON file.
     """
     data = [asdict(entry) for entry in entries]
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
@@ -284,12 +287,14 @@ def plot_phase_diagram_from_run(
     print(f"Generating entries for plotting from {base_folder} folder")
 
     if read_from_file and os.path.isfile(read_from_file):
+        print(f"Reading from {read_from_file}")
         entries = load_entries(read_from_file)
     else:
         entries = get_entries_from_folders(
             n1, n2, base_folder=base_folder, mu_path=mu_path, file_type=file_type
         )
-        save_entries(entries, f"{base_folder}/{entries.json}")
+        json_path = os.path.join(base_folder, f"entries_{n1}_{n2}.json")
+        save_entries(entries, json_path)
     print("Building 2D Hull")
     stable_vertices = get_phase_domains(entries, limits=limits)
     print(f"Plotting with xlabel:{n1} and ylabel:{n2}")

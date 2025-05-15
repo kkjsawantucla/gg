@@ -323,7 +323,6 @@ def draw_graph(
             va="center",
             color="black",
         )
-    plt.show()
     return fig
 
 
@@ -436,6 +435,9 @@ def generate_centered_subgraphs(
         node for node, data in graph.nodes(data=True) if data["symbol"] in center_symbol
     ]
     subgraphs = [nx.ego_graph(graph, node, radius=depth) for node in center_nodes]
+
+    if len(subgraphs) == 0:
+        raise RuntimeError("Couldnt make subgraphs")
 
     return subgraphs
 

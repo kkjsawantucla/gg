@@ -97,7 +97,7 @@ for surface_name in args.surface:
     traj = traj + add_atoms
 
 print("Generating Unique Sites")
-add_atoms = get_unique_atoms(traj, max_bond=2, max_bond_ratio=0, unique_method="H")
+add_atoms = get_unique_atoms(traj, max_bond=2, max_bond_ratio=0, unique_method="Si")
 print(f"Found {len(add_atoms)} unique atoms")
 
 i = 1
