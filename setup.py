@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="gg",
     version=0.1,
-    description="GG is an open-source code for building graph based grand canonical basin hopping calculators",
+    description="GG is an open-source code for building graph based modifiers and perform global optimization",
     download_url="https://github.com/kkjsawantucla/gg",
     author="Kaustubh Sawant, Geng Sun",
     python_requires=">=3.10",

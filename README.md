@@ -15,6 +15,7 @@ gg is an open-source code for building graph-based grand canonical basin hopping
 - [networkx](https://networkx.org/)
 - [pandas](https://pandas.pydata.org/)
 - [pyYAML](https://pyyaml.org/)
+- [scipy](https://scipy.org/)
 
 ## Installation
 Clone Directory

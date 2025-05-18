@@ -96,7 +96,9 @@ def get_phase_domains(entries, limits=None):
 
 
 # Plotting Function
-def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2",annotate=False):
+def phase_diagram_plot(
+    stable_domain_vertices, limits, xlabel="1", ylabel="2", annotate=False, mu=None,
+):
     """
     Args:
         stable_domain_vertices (dict):
@@ -133,6 +135,9 @@ def phase_diagram_plot(stable_domain_vertices, limits, xlabel="1", ylabel="2",an
     plt.tick_params(
         which="minor", direction="in", length=6, width=1, top=True, right=True
     )
+    if mu:
+        plt.axhline(y=mu['{n2}'], color='r', linestyle='--')
+        plt.axvline(x=mu['{n1}'], color='r', linestyle='--')
     fig = plt.gcf()
     fig.set_size_inches(15, 8)
     plt.savefig(f"{xlabel}_{ylabel}_phase_diag")
@@ -217,9 +222,11 @@ def get_entries_from_folders(
             atoms = read(contcar_path, format="vasp")
             area = get_area(atoms)
             ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
-            final_energy = (energy - ref_sum)/area
+            final_energy = (energy - ref_sum) / area
             stoich_formula = atoms.get_chemical_formula()
-            entry_id = os.path.basename(root).replace("/", "_") + '_' + str(stoich_formula)
+            entry_id = (
+                os.path.basename(root).replace("/", "_") + "_" + str(stoich_formula)
+            )
             new_entry = PhaseEntry(
                 enid=entry_id,
                 energy=final_energy,
@@ -283,9 +290,12 @@ def plot_phase_diagram_from_run(
     mu_path="./input.yaml",
     file_type=["OSZICAR", "CONTCAR"],
     read_from_file=False,
+    annotate=True,
 ):
     print(f"Generating entries for plotting from {base_folder} folder")
-
+    mu = read_chemical_potential(mu_path)
+    print(f"x-axis is {n1}: {mu[str(n1)]}eV")
+    print(f"y-axis is {n2}: {mu[str(n2)]}eV")
     if read_from_file and os.path.isfile(read_from_file):
         print(f"Reading from {read_from_file}")
         entries = load_entries(read_from_file)
@@ -298,6 +308,8 @@ def plot_phase_diagram_from_run(
     print("Building 2D Hull")
     stable_vertices = get_phase_domains(entries, limits=limits)
     print(f"Plotting with xlabel:{n1} and ylabel:{n2}")
-    phase_diagram_plot(stable_vertices, limits=limits, xlabel=n1, ylabel=n2)
+    phase_diagram_plot(
+        stable_vertices, limits=limits, xlabel=n1, ylabel=n2, annotate=annotate, mu = mu
+    )
 
     return
