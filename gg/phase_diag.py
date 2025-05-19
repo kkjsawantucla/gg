@@ -136,8 +136,8 @@ def phase_diagram_plot(
         which="minor", direction="in", length=6, width=1, top=True, right=True
     )
     if mu:
-        plt.axhline(y=mu['{n2}'], color='r', linestyle='--')
-        plt.axvline(x=mu['{n1}'], color='r', linestyle='--')
+        plt.axhline(y=mu[str(ylabel)], color='r', linestyle='--')
+        plt.axvline(x=mu[str(xlabel)], color='r', linestyle='--')
     fig = plt.gcf()
     fig.set_size_inches(15, 8)
     plt.savefig(f"{xlabel}_{ylabel}_phase_diag")
@@ -223,6 +223,8 @@ def get_entries_from_folders(
             area = get_area(atoms)
             ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
             final_energy = (energy - ref_sum) / area
+            n1_slope = n1_slope/area
+            n2_slope = n2_slope/area
             stoich_formula = atoms.get_chemical_formula()
             entry_id = (
                 os.path.basename(root).replace("/", "_") + "_" + str(stoich_formula)
@@ -259,7 +261,7 @@ def get_entries_from_folders(
     if reference:
         ref_entry = PhaseEntry(enid="Reference", energy=reference, n1=0.0, n2=0.0)
         entries.append(ref_entry)
-
+    print(f"Number of unique entries found: {len(entries)}")
     return entries
 
 
