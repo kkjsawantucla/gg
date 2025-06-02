@@ -95,39 +95,49 @@ def get_phase_domains(entries, limits=None):
     return domain_vertices
 
 
-# Plotting Function
 def phase_diagram_plot(
-    stable_domain_vertices, limits, xlabel="1", ylabel="2", annotate=False, mu=None,
+    stable_domain_vertices,
+    limits,
+    xlabel="1",
+    ylabel="2",
+    annotate=False,
+    mu=None,
+    number_labels=True,  # NEW ─ turn numeric labelling on/off
 ):
     """
     Args:
-        stable_domain_vertices (dict):
-        limits (list):
-        xlabel (str, optional): . Defaults to "1".
-        ylabel (str, optional): . Defaults to "2".
+        stable_domain_vertices (dict): PhaseEntry → list of vertices
+        limits (list): [[xmin,xmax],[ymin,ymax]]
+        xlabel (str): x-axis species
+        ylabel (str): y-axis species
+        annotate (bool): write labels inside the regions
+        mu (dict|None): draw reference lines if given
+        number_labels (bool): when annotate is True, write numbers
+                              instead of full enid and print a legend
     """
-    x_min = limits[0][0]
-    x_max = limits[0][1]
-    for entry, vertices in stable_domain_vertices.items():
+    # --- plot each domain ---------------------------------------------------
+    mapping = []
+    for idx, (entry, vertices) in enumerate(stable_domain_vertices.items(), start=1):
         center = np.average(vertices, axis=0)
         x, y = np.transpose(np.vstack([vertices, vertices[0]]))
         plt.plot(x, y, "k-")
-        if annotate:
-            plt.annotate(
-                entry.enid, center, ha="center", va="center", fontsize=20, color="b"
-            ).draggable()
 
-    plt.xlim(x_min + 0.01, x_max - 0.01)
+        if annotate:
+            label = str(idx) if number_labels else entry.enid
+            plt.annotate(
+                label, center, ha="center", va="center", fontsize=18, color="b"
+            ).draggable()
+        if number_labels:
+            mapping.append(f"{idx}: {entry.enid}")
+
+    # --- axes limits / labels ----------------------------------------------
+    plt.xlim(limits[0][0] + 0.01, limits[0][1] - 0.01)
     plt.ylim(limits[1][0] + 0.01, limits[1][1] - 0.01)
     plt.xlabel(
-        f"{xlabel} Chemical Potential \u03bc(O) [eV]",
-        fontsize=24,
-        labelpad=20,
+        f"{xlabel} chemical potential μ({xlabel}) [eV]", fontsize=24, labelpad=20
     )
     plt.ylabel(
-        f"{ylabel} Chemical Potential \u03bc(H) [eV]",
-        fontsize=24,
-        labelpad=20,
+        f"{ylabel} chemical potential μ({ylabel}) [eV]", fontsize=24, labelpad=20
     )
     plt.xticks(fontsize=24)
     plt.yticks(fontsize=24)
@@ -135,13 +145,21 @@ def phase_diagram_plot(
     plt.tick_params(
         which="minor", direction="in", length=6, width=1, top=True, right=True
     )
+
+    # optional reference lines
     if mu:
-        plt.axhline(y=mu[str(ylabel)], color='r', linestyle='--')
-        plt.axvline(x=mu[str(xlabel)], color='r', linestyle='--')
-    fig = plt.gcf()
-    fig.set_size_inches(15, 8)
+        plt.axhline(y=mu[str(ylabel)], color='r', linestyle="--")
+        plt.axvline(x=mu[str(xlabel)], color='r', linestyle="--")
+
+    # --- print legend of numbers vs enid ------------------------------------
+    if annotate and number_labels and mapping:
+        legend_text = "\n".join(mapping)
+        # place it just below the axes; tweak y-offset as needed
+        plt.gcf().text(0.01, -0.08, legend_text, ha="left", va="top", fontsize=12)
+
+    # --- figure size / save -------------------------------------------------
+    plt.gcf().set_size_inches(15, 8)
     plt.savefig(f"{xlabel}_{ylabel}_phase_diag")
-    return
 
 
 def read_chemical_potential(path):
@@ -182,7 +200,7 @@ def get_ref_potential(mu, atoms: Atoms, n1, n2):
 def get_entries_from_folders(
     n1,
     n2,
-    base_folder="./",
+    base_folders=["./"],
     mu_path="./input.yaml",
     file_type=["OSZICAR", "CONTCAR"],
     reference=None,
@@ -202,60 +220,60 @@ def get_entries_from_folders(
     """
     mu = read_chemical_potential(mu_path)
     entries = []
+    for base_folder in base_folders:
+        for root, _, files in os.walk(base_folder):
+            if file_type[0] in files and file_type[1] in files:
+                contcar_path = os.path.join(root, file_type[1])
+                en_path = os.path.join(root, file_type[0])
 
-    for root, _, files in os.walk(base_folder):
-        if file_type[0] in files and file_type[1] in files:
-            contcar_path = os.path.join(root, file_type[1])
-            en_path = os.path.join(root, file_type[0])
+                # extract energy
+                if file_type[0] == "OSZICAR":
+                    energy = extract_lowest_energy_from_oszicar(en_path)
+                elif file_type[0].endswith(".log"):
+                    energy = extract_lowest_energy_from_outlog(en_path)
+                else:
+                    raise RuntimeError("Unsupported energy file type.")
 
-            # extract energy
-            if file_type[0] == "OSZICAR":
-                energy = extract_lowest_energy_from_oszicar(en_path)
-            elif file_type[0].endswith(".log"):
-                energy = extract_lowest_energy_from_outlog(en_path)
-            else:
-                raise RuntimeError("Unsupported energy file type.")
+                if energy is None:
+                    continue
 
-            if energy is None:
-                continue
+                atoms = read(contcar_path, format="vasp")
+                area = get_area(atoms)
+                ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
+                final_energy = (energy - ref_sum) / area
+                n1_slope = n1_slope / area
+                n2_slope = n2_slope / area
+                stoich_formula = atoms.get_chemical_formula()
+                entry_id = (
+                    os.path.basename(root).replace("/", "_") + "_" + str(stoich_formula)
+                )
+                new_entry = PhaseEntry(
+                    enid=entry_id,
+                    energy=final_energy,
+                    n1=n1_slope,
+                    n2=n2_slope,
+                    stoich=stoich_formula,
+                )
 
-            atoms = read(contcar_path, format="vasp")
-            area = get_area(atoms)
-            ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
-            final_energy = (energy - ref_sum) / area
-            n1_slope = n1_slope/area
-            n2_slope = n2_slope/area
-            stoich_formula = atoms.get_chemical_formula()
-            entry_id = (
-                os.path.basename(root).replace("/", "_") + "_" + str(stoich_formula)
-            )
-            new_entry = PhaseEntry(
-                enid=entry_id,
-                energy=final_energy,
-                n1=n1_slope,
-                n2=n2_slope,
-                stoich=stoich_formula,
-            )
+                # check for existing same stoichiometry
+                replaced = False
+                for idx, existing in enumerate(entries):
+                    if existing.stoich == new_entry.stoich:
+                        # keep lower energy
+                        if new_entry.energy < existing.energy:
+                            print(
+                                f"Replacing {existing.enid} with {new_entry.enid} for stoich={new_entry.stoich}"
+                            )
+                            entries[idx] = new_entry
+                        else:
+                            print(
+                                f"Skipping {new_entry.enid} (higher energy than existing {existing.enid})"
+                            )
+                        replaced = True
+                        break
 
-            # check for existing same stoichiometry
-            replaced = False
-            for idx, existing in enumerate(entries):
-                if existing.stoich == new_entry.stoich:
-                    # keep lower energy
-                    if new_entry.energy < existing.energy:
-                        print(
-                            f"Replacing {existing.enid} with {new_entry.enid} for stoich={new_entry.stoich}"
-                        )
-                        entries[idx] = new_entry
-                    else:
-                        print(
-                            f"Skipping {new_entry.enid} (higher energy than existing {existing.enid})"
-                        )
-                    replaced = True
-                    break
-
-            if not replaced:
-                entries.append(new_entry)
+                if not replaced:
+                    entries.append(new_entry)
 
     # always include a zero-energy reference
     if reference:
@@ -288,13 +306,14 @@ def plot_phase_diagram_from_run(
     n1,
     n2,
     limits=[[-3.5, -1.5], [-1, 0.5]],
-    base_folder="./",
+    base_folders=["./"],
     mu_path="./input.yaml",
     file_type=["OSZICAR", "CONTCAR"],
     read_from_file=False,
     annotate=True,
+    number_labels=True,
 ):
-    print(f"Generating entries for plotting from {base_folder} folder")
+    print(f"Generating entries for plotting from {base_folders} folder")
     mu = read_chemical_potential(mu_path)
     print(f"x-axis is {n1}: {mu[str(n1)]}eV")
     print(f"y-axis is {n2}: {mu[str(n2)]}eV")
@@ -303,15 +322,21 @@ def plot_phase_diagram_from_run(
         entries = load_entries(read_from_file)
     else:
         entries = get_entries_from_folders(
-            n1, n2, base_folder=base_folder, mu_path=mu_path, file_type=file_type
+            n1, n2, base_folders=base_folders, mu_path=mu_path, file_type=file_type
         )
-        json_path = os.path.join(base_folder, f"entries_{n1}_{n2}.json")
+        json_path = os.path.join("./", f"entries_{n1}_{n2}.json")
         save_entries(entries, json_path)
     print("Building 2D Hull")
     stable_vertices = get_phase_domains(entries, limits=limits)
     print(f"Plotting with xlabel:{n1} and ylabel:{n2}")
     phase_diagram_plot(
-        stable_vertices, limits=limits, xlabel=n1, ylabel=n2, annotate=annotate, mu = mu
+        stable_vertices,
+        limits=limits,
+        xlabel=n1,
+        ylabel=n2,
+        annotate=annotate,
+        mu=mu,
+        number_labels=number_labels,
     )
 
     return
