@@ -249,6 +249,6 @@ adsorbate_names = {
     "imidogen": adsorbates["NH2"],
     "methyl": adsorbates["CH3"],
     "methylene": adsorbates["CH2"],
-    "methylyidyne": adsorbates["CH"],
+    "methylidyne": adsorbates["CH"],
     "formate": adsorbates["HCOO"],
 }
