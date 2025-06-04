@@ -53,9 +53,9 @@ Base: :ref:`Add Bidentate`
    * - -max_bond / -mb
      - float
      - Fixed allowable bond distance
-   * - ---add_ads_error / -ads_err
+   * - --add_ads_error / -ads_err
      - float
      - Allowable distance between two sites for adsorption
-   * - ---norm_method / -norm_method
+   * - --norm_method / -norm_method
      - str
      - Method to calculate normals
