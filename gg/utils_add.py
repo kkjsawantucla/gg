@@ -231,7 +231,7 @@ def generate_add_bi(
                     and len(cycle_2) != 1
                 ):
                     continue
-                offset_2 += ad_dist[1] * unit_normal_1
+                offset_2 += ad_dist[1] * unit_normal_2
         if abs(diff - diff_og) > 0.001:
             target_vector = minimum_image_distance(
                 offset_1, offset_2, cell, get_norm=False
@@ -402,7 +402,7 @@ def rotate_atoms_bi_along_vector(
         # Rotate along the target vector
         rotation_angle = angle_between(positions, new_norm)
         cross_product = np.cross(positions, new_norm)
-        if norm(cross_product) < 0:
+        if np.dot(cross_product, target_vector) < 0:
             rotation_angle = 360 - rotation_angle
         atoms.rotate(rotation_angle, target_vector)
 
