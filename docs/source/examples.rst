@@ -131,7 +131,7 @@ This should generate the following files and folders:
 2. Adding H2O to ASA Surface
 -----------------------------
 
-The adding of dissociative water on aluminosilicate surfaces can achieved with a simple few lines of code.
+The addition of dissociative water on complex aluminosilicate surfaces can be achieved with just a few lines of code.
 
 Defining the surface
     .. code-block:: python
