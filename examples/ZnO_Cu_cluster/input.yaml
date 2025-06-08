@@ -6,7 +6,8 @@ chemical_potential:
   Cu: -4.10
   ZnO: -9.10
   H: -3.43
-  O: -7.51 
+  O: -7.51
+  CO2: -22.35
 
 check_graphs: False
 vib_correction: False
