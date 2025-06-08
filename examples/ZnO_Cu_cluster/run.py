@@ -1,8 +1,10 @@
-from ase.io import read
-from mace.calculators import mace_mp
 from gg.gcbh import Gcbh
 from gg.predefined_sites import FlexibleSites
-from gg.modifiers import ClusterRotate, ClusterTranslate, Add, Remove, ModifierAdder, Replace
+from ase import Atoms
+from ase.io import read, write
+import numpy as np
+from mace.calculators import mace_mp
+from ase.calculators.emt import EMT
 
 calc = mace_mp(model="medium-mpa-0",default_dtype="float64",device='cuda')
 atoms = read('POSCAR')
@@ -15,15 +17,18 @@ for a in atoms:
 FS = FlexibleSites(tag=-1)
 FS2 = FlexibleSites(constraints=True,com=0.75)
 
+# Build Modifiers for the system
+from gg.modifiers import ClusterRotate, ClusterTranslate, Add, Remove, ModifierAdder, Replace
+
 #Add,Remove,Swap O
 addO = Add(FS2, "O", surf_coord=[2,3], ads_id = ["O"], surf_sym = ["Cu","Zn"], unique_method = "O")
 remO = Remove(FS, "O", max_bond_ratio = 1.2, unique_method = "O")
-swapO = ModifierAdder([remO,addO],unique_method = "O")
+swapO = ModifierAdder([addO,remO],unique_method = "O")
 
 #Add,Remove,Swap H
 addH = Add(FS2, "H", surf_coord=[1,2,3], ads_id = ["H"], surf_sym = ["Cu","O"], unique_method = "H")
 remH = Remove(FS, "H", max_bond_ratio = 1.2, unique_method = "H")
-swapH = ModifierAdder([remH,addH],unique_method = "H")
+swapH = ModifierAdder([addH,remH],unique_method = "H")
 
 #Rotate, Translate Clusters
 clstr_rot = ClusterRotate(FS,contact_error=0.25,rotate_vector=(0,0,1),nmovie=2)
@@ -39,6 +44,11 @@ remOH = Remove(FS2, "OH", max_bond_ratio = 1.2, unique_method = "H")
 
 #Remove H2O
 remH2O = Remove(FS, "H2O", max_bond_ratio = 1.2, unique_method = "H")
+
+#Add, Remove, Swap Formate
+addHCOO = Add(FS2, "HCOO", surf_coord=[1,2,3], ads_id = ["O"], surf_sym = ["Cu","Zn"], unique_method = "C")
+remHCOO = Remove(FS, "HCOO", max_bond_ratio = 1.2, unique_method = "C")
+swapHCOO = ModifierAdder([addHCOO,remHCOO],unique_method = "C")
 
 #Move, Remove Zn
 repl_Cu = Replace(FS2,to_del="Cu",with_replace="Zn", unique_method = "Zn")
@@ -62,5 +72,8 @@ G.add_modifier(addZnOH,"Add ZnOH")
 G.add_modifier(addOH,"Add OH")
 G.add_modifier(remH2O,"Rem H2O")
 G.add_delete_gas(gas_species=["H2"])
+G.add_modifier(addHCOO,'Add HCOO')
+G.add_modifier(remHCOO,'Remove HCOO')
+G.add_modifier(swapHCOO,'Swap HCOO')
 
 G.run(steps = 1000)
