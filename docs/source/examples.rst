@@ -127,3 +127,43 @@ This should generate the following files and folders:
  - opt_01
  - ...
 
+
+2. Adding H2O to ASA Surface
+-----------------------------
+
+The adding of dissociative water on aluminosilicate surfaces can achieved with a simple few lines of code.
+
+Defining the surface
+    .. code-block:: python
+
+        from gg.sites import RuleSites, get_com_sites, get_surface_sites_by_coordination
+
+        #Define maximum co-odrination each species can have
+        max_coord = {"Al": 6, "Si": 4, "O": 4, "H": 1}
+
+        ss = RuleSites(
+            index_parsers=[
+                lambda atoms: get_com_sites(atoms, fraction=0.50, direction="above"),
+                lambda atoms: get_surface_sites_by_coordination(
+                    atoms, max_coord, max_bond=2,
+                ),
+            ],
+            combine_rules="intersection",
+        )
+
+Defining the addH2O modifier
+    .. code-block:: python
+
+        from gg.modifiers import Add, ModifierAdder
+
+        addH = Add(ss,"H",1,ads_id="H",surf_sym=["O"],print_movie=True,unique=True,unique_method="H")
+        addOH = Add(ss,"OH",1,ads_id="O",surf_sym=["Al", "Si"],print_movie=True,unique=True,unique_method="H")
+        addH2O = ModifierAdder([addOH, addH],print_movie=True,unique=True,max_bond=2,unique_method="H")
+
+Reading POSCAR and applying add modifier
+    .. code-block:: python
+
+        from ase.io import read
+
+        atoms = read("POSCAR")
+        add_atoms = addH2O.get_modified_atoms(atoms)
