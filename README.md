@@ -36,3 +36,6 @@ export PYTHONPATH=$PYTHONPATH:"<path_to_gg>"
 
 ## Usage
 For usage check https://graph-gcbh.readthedocs.io/en/latest/index.html
+
+## Cite
+K. J. Sawant, P. Sautet, 2025, DOI 10.26434/chemrxiv-2025-t71bx
