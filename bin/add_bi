@@ -149,7 +149,6 @@ if args.surface and args.adsorbate:
                 ads=adsorbate,
                 surf_coord=args.surf_coord,
                 surf_sym=args.surf_sym,
-                ads_dist=None,
                 ads_id=args.ads_atom,
                 print_movie=True,
                 unique=args.unique,
@@ -160,7 +159,7 @@ if args.surface and args.adsorbate:
                 unique_depth=args.un_deg,
             )
 
-            ads_formula = a.ads.get_chemical_formula()
+            ads_formula = f"{adsorbate}"
             FILENAME = f"{ads_formula}_{surface.get_chemical_formula()}.traj"
             new_modified_atoms = a.get_modified_atoms(surface)
             print(f"\nUniqueness is {args.unique}")
