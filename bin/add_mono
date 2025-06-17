@@ -1,10 +1,12 @@
 #! /usr/bin/env python
 
 """Add monodentate adsorbate/ligand"""
+import os
 import argparse
+from ase.io import read, write
 from gg.modifiers import Add
 from gg.predefined_sites import FlexibleSites
-from ase.io import read, write
+
 
 parser = argparse.ArgumentParser(description="Command line utilities")
 parser.add_argument(
@@ -21,7 +23,7 @@ parser.add_argument(
     "-a",
     type=str,
     nargs="+",
-    help="Path to adsorbate atoms objects to process",
+    help="Adsorbate name or path to atoms object",
 )
 parser.add_argument(
     "--surf_sym",
@@ -118,7 +120,10 @@ if args.surface and args.adsorbate:
     for surface_name in args.surface:
         for adsorbate_name in args.adsorbate:
             surface = read(surface_name)
-            adsorbate = read(adsorbate_name)
+            if os.path.isfile(adsorbate_name):
+                adsorbate = read(adsorbate_name)
+            else:
+                adsorbate = adsorbate_name
 
             FS = FlexibleSites(
                 constraints=True,
@@ -143,12 +148,13 @@ if args.surface and args.adsorbate:
                 unique_depth=args.un_deg,
             )
 
-            filename = f"{adsorbate.get_chemical_formula()}_{surface.get_chemical_formula()}.traj"
+            ads_formula = a.ads.get_chemical_formula()
+            FILENAME = f"{ads_formula}_{surface.get_chemical_formula()}.traj"
             new_modified_atoms = a.get_modified_atoms(surface)
             print(f"\nUniqueness is {args.unique}")
             print(f"Found {len(new_modified_atoms)} structures")
-            print(f"Writing Structures to {filename}")
+            print(f"Writing Structures to {FILENAME}")
             print("--------------------------------------------")
-            write(filename=filename, images=new_modified_atoms, format="traj")
+            write(filename=FILENAME, images=new_modified_atoms, format="traj")
 else:
     raise RuntimeError("Input is empty")

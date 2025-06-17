@@ -9,10 +9,10 @@ Base: :ref:`Add Monodentate`
 
 .. code-block:: bash
 
-   add_mono -s <path_to_surface> -a <path_to_adsorbate> -sc <surface coordination> -aa <adsorbate identity>
+   add_mono -s <path_to_surface> -a <adsorbate|path> -sc <surface coordination> -aa <adsorbate identity>
    
    # Example
-   add_mono -s POSCAR_Pt -a OH.POSCAR -sc 1 2 3 -aa O
+   add_mono -s POSCAR_Pt -a OH -sc 1 2 3 -aa O
 
 Add Bi
 ------
@@ -20,10 +20,10 @@ Base: :ref:`Add Bidentate`
 
 .. code-block:: bash
 
-   add_bi -s <path_to_surface> -a <path_to_adsorbate> -sc <surface coordination> -aa <adsorbate identity>
-   
-   # Example
-   add_bi -s POSCAR_Pt -a OCHO.POSCAR -sc 1 2 3 -aa O
+   add_bi -s <path_to_surface> -a <adsorbate|path> -sc <surface coordination> -aa <adsorbate identity>
+
+   # Example using a name
+   add_bi -s POSCAR_Pt -a HCOO -sc 1 2 3 -aa O
 
 .. list-table:: Args for add_bi
    :widths: 20 10 70
@@ -34,7 +34,7 @@ Base: :ref:`Add Bidentate`
      - Path to surface atoms objects to adsorb
    * - -adsorbate / -a
      - str
-     - Path to adsorbate atoms objects to process
+     - Adsorbate name or path to atoms object
    * - -ads_atom / -aa
      - str
      - Atom through which the adsorbate attaches to the surface
