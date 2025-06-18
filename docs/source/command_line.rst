@@ -11,7 +11,7 @@ Base: :ref:`Add Monodentate`
 
    add_mono -s <path_to_surface> -a <adsorbate|path> -sc <surface coordination> -aa <adsorbate identity>
    
-   # Example
+   # Example: Only unconstrained atoms are used as surface atoms. For complex surface determination, use py API
    add_mono -s POSCAR_Pt -a OH -sc 1 2 3 -aa O
 
 Add Bi
@@ -22,7 +22,7 @@ Base: :ref:`Add Bidentate`
 
    add_bi -s <path_to_surface> -a <adsorbate|path> -sc <surface coordination> -aa <adsorbate identity>
 
-   # Example using a name
+   # Example: Only unconstrained atoms are used as surface atoms. For complex surface determination, use py API
    add_bi -s POSCAR_Pt -a HCOO -sc 1 2 3 -aa O
 
 .. list-table:: Args for add_bi
