@@ -79,7 +79,7 @@ parser.add_argument(
     "-add_ads_error",
     "-ads_err",
     type=float,
-    default=0.5,
+    default=0.25,
     help="Allowable distance between two sites for adsorption",
 )
 
