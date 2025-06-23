@@ -30,7 +30,7 @@ args = parser.parse_args()
 
 adsSi = Atoms("Si", positions=[(0, 0, 0)])
 adsO = Atoms("O", positions=[(0, 0, 0)])
-max_coord = {"Al": 6, "Si": 4, "O": 3, "H": 1}
+max_coord = {"Al": 6, "Si": 4, "O": 4, "H": 1}
 
 ss = RuleSites(
     index_parsers=[
