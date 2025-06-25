@@ -106,6 +106,7 @@ class Gcbh(Dynamics):
             "check_graphs": True,
             "area": False,
             "fmax": 0.05,
+            "opt_traj": False,
             "vib_correction": False,
             "initialize": True,
             "detect_gas": None,
@@ -495,7 +496,9 @@ class Gcbh(Dynamics):
                         f"{modifier_name} did not find a good structure because {emsg} {type(emsg)}"
                     )
                 else:
-                    if self.append_graph(newatoms,unique_method=self.c["graph_method"]):
+                    if self.append_graph(
+                        newatoms, unique_method=self.c["graph_method"]
+                    ):
                         self.c["opt_on"] = self.c["nsteps"]
                         self.logtxt(
                             f"One structure found with modifier {modifier_name}"
@@ -503,7 +506,9 @@ class Gcbh(Dynamics):
                         self.dump(self.status_file)
                         converged_atoms, en = self.optimize(newatoms)
                         self.traj.write(converged_atoms)
-                        self.append_graph(converged_atoms,unique_method=self.c["graph_method"])
+                        self.append_graph(
+                            converged_atoms, unique_method=self.c["graph_method"]
+                        )
                         if self.c["opt_on"] == -1 or en < -100000:
                             self.c["opt_on"] = -1
                             self.c["nsteps"] += 1
@@ -605,7 +610,11 @@ class Gcbh(Dynamics):
             en = atoms.get_potential_energy()
         else:
             atoms.write("POSCAR", format="vasp")
-            dyn = optimizer(atoms, trajectory="opt.traj", logfile="opt.log")
+            dyn = optimizer(atoms, logfile="opt.log")
+            if self.c["opt_traj"]:
+                traj = Trajectory("opt.traj", "w", atoms)
+                dyn.attach(traj.write, interval=self.c["opt_traj"])
+
             dyn.run(fmax=self.c["fmax"], steps=self.c["stop_opt"])
             if dyn.nsteps == self.c["stop_opt"]:
                 self.logtxt(
