@@ -121,23 +121,27 @@ def get_normals(
 
     v = np.array(normals)
     # Find the direction that best represents the empty space around the adsorption cluster
-    _, s, vt = np.linalg.svd(v, full_matrices=False)
-    rank = np.sum(s > 1e-8)
+    try:
+        _, s, vt = np.linalg.svd(v, full_matrices=False)
+    except np.linalg.LinAlgError:
+        return np.array([0, 0, 1]), ads_pos_sum + atoms[initial].position
+    else:
+        rank = np.sum(s > 1e-8)
 
-    if rank < 3 or method == "svd":
-        vt = vt[-1]
-    elif method == "mean":
-        vt = np.mean(v, axis=0)
+        if rank < 3 or method == "svd":
+            vt = vt[-1]
+        elif method == "mean":
+            vt = np.mean(v, axis=0)
 
-    # The best normal could be +Vt or -Vt
-    matrix1 = np.array([vt, -vt])
-    dot_products = np.dot(matrix1, v.T)
-    sums_per_vector = np.sum(dot_products, axis=1)
-    max_index = np.argmax(sums_per_vector)
-    vector_with_smallest_sum = matrix1[max_index]
-    # Return the vector direction and position from where to start
-    ref_pos = ads_pos_sum + atoms[initial].position
-    return vector_with_smallest_sum, ref_pos
+        # The best normal could be +Vt or -Vt
+        matrix1 = np.array([vt, -vt])
+        dot_products = np.dot(matrix1, v.T)
+        sums_per_vector = np.sum(dot_products, axis=1)
+        max_index = np.argmax(sums_per_vector)
+        vector_with_smallest_sum = matrix1[max_index]
+        # Return the vector direction and position from where to start
+        ref_pos = ads_pos_sum + atoms[initial].position
+        return vector_with_smallest_sum, ref_pos
 
 
 def move_along_normal(index: int, atoms: Atoms, g: nx.Graph) -> Atoms:
