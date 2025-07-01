@@ -278,12 +278,14 @@ def get_surface_sites_by_coordination(
 
     # Convert to DataFrame for easier filtering
     df = DataFrame(sites)
+    if df.empty:
+        return []
+    else:
+        # Sort by coordination number and z-coordinate
+        df = df.sort_values(by=["coord", "z_coord"])
 
-    # Sort by coordination number and z-coordinate
-    df = df.sort_values(by=["coord", "z_coord"])
-
-    # Return the list of indices
-    return df["ind"].to_list()
+        # Return the list of indices
+        return df["ind"].to_list()
 
 
 def get_surface_sites_by_voronoi_pbc(

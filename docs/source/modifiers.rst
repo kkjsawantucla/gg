@@ -166,3 +166,28 @@ Make sure to tag the cluster atoms using atom.tag = -1
   :members: get_modified_atoms
   :undoc-members:
   :show-inheritance:
+
+Modifier Adder
+-----------------------
+
+Combine multiple modifiers into a single sequential modifier. The following example shows how two add modifiers can be combined to create a new dissociatively H2O adsorption modifier.
+
+.. code-block:: python
+
+  from gg.modifiers import Add, ModifierAdder
+  from gg.predefined_sites import FlexibleSites
+  from ase.build import fcc111
+
+  atoms = fcc111("Pt", size=(3, 3 , 4), vacuum=10.0)
+
+  FS = FlexibleSites(max_bond_ratio=1.2,com=0.5)
+  add_H = Add(FS, ads="H", surf_coord=[1], ads_id=["H"], surf_sym=["Pt","O"],print_movie=True)
+  add_OH = Add(FS, ads="OH", surf_coord=[1], ads_id=["O"], surf_sym=["Pt"],print_movie=True)
+  add_H2O = ModifierAdder([add_OH, add_H], print_movie=True, unique=True)
+
+  modified_atoms = add_H2O.get_modified_atoms(atoms)
+
+.. autoclass:: gg.modifiers.modifiers.ModifierAdder
+  :members: get_modified_atoms
+  :undoc-members:
+  :show-inheritance:
