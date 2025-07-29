@@ -14,6 +14,7 @@ from gg.utils import (
     extract_lowest_energy_from_oszicar,
     extract_lowest_energy_from_outlog,
     get_area,
+    NoReasonableStructureFound,
 )
 from gg.reference import get_ref_coeff
 
@@ -197,6 +198,34 @@ def get_ref_potential(mu, atoms: Atoms, n1, n2):
     return ref_sum, n1_slope, n2_slope
 
 
+def get_vib_correction(atoms: Atoms, vib_corrections: dict) -> float:
+    """Calculate vibration correction for an Atoms object.
+
+    Args:
+        atoms (ase.Atoms): Structure to analyse.
+        vib_corrections (dict): Mapping of modifier name to modifier instance.
+
+    Returns:
+        float: Total correction energy.
+    """
+
+    if not vib_corrections:
+        return 0.0
+
+    corr_sum = 0.0
+    a = atoms.copy()
+    for _, modifier in vib_corrections.items():
+        try:
+            ind_to_remove = modifier.get_ind_to_remove_list(a)
+        except NoReasonableStructureFound:
+            continue
+        flattened = {idx for sub in ind_to_remove for idx in sub}
+        corr_sum += len(ind_to_remove) * modifier.weight
+        del a[[int(i) for i in flattened]]
+
+    return corr_sum
+
+
 def get_entries_from_folders(
     n1,
     n2,
@@ -204,6 +233,7 @@ def get_entries_from_folders(
     mu_path="./input.yaml",
     file_type=["OSZICAR", "CONTCAR"],
     reference=None,
+    vib_corrections=None,
 ):
     """
     Walk through subdirectories to collect entries, keeping only one per stoichiometry
@@ -214,6 +244,7 @@ def get_entries_from_folders(
         base_folder (str): Root directory for VASP runs
         mu_path (str): Path to YAML file with chemical potentials
         file_type (list): [energy file, structure file]
+        vib_corrections (dict|None): Optional vibration correction modifiers.
 
     Returns:
         List[Phasediagramentry]: Filtered entries
@@ -240,7 +271,8 @@ def get_entries_from_folders(
                 atoms = read(contcar_path, format="vasp")
                 area = get_area(atoms)
                 ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
-                final_energy = (energy - ref_sum) / area
+                vib_corr = get_vib_correction(atoms, vib_corrections)
+                final_energy = (energy - ref_sum + vib_corr) / area
                 n1_slope = n1_slope / area
                 n2_slope = n2_slope / area
                 stoich_formula = atoms.get_chemical_formula()
@@ -312,7 +344,10 @@ def plot_phase_diagram_from_run(
     read_from_file=False,
     annotate=True,
     number_labels=True,
+    vib_corrections=None,
 ):
+    """Generate and plot a phase diagram from relaxed structures."""
+
     print(f"Generating entries for plotting from {base_folders} folder")
     mu = read_chemical_potential(mu_path)
     print(f"x-axis is {n1}: {mu[str(n1)]}eV")
@@ -322,7 +357,12 @@ def plot_phase_diagram_from_run(
         entries = load_entries(read_from_file)
     else:
         entries = get_entries_from_folders(
-            n1, n2, base_folders=base_folders, mu_path=mu_path, file_type=file_type
+            n1,
+            n2,
+            base_folders=base_folders,
+            mu_path=mu_path,
+            file_type=file_type,
+            vib_corrections=vib_corrections,
         )
         json_path = os.path.join("./", f"entries_{n1}_{n2}.json")
         save_entries(entries, json_path)
