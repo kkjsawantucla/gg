@@ -336,3 +336,26 @@ def extract_lowest_energy_from_outlog(file_path):
 
     df = read_fwf(file_path)
     return float(df["Energy"].iloc[-1])
+
+
+def sort_atoms(atoms):
+    """Return atoms in sorted symbol list"""
+    #makes initial atom list
+    symbols = []
+    for atom in atoms:
+        if atom.symbol not in symbols:
+            symbols.append(atom.symbol)
+
+    #Using the list above sorts the ase atom object
+    sort = []
+    for symbol in symbols:
+        for m, atom in enumerate(atoms):
+            if atom.symbol == symbol:
+                sort.append(m)
+
+    resort = list(range(len(sort)))
+    for n in range(len(resort)):
+        resort[sort[n]] = n
+
+    atoms_sorted = atoms[sort]
+    return atoms_sorted

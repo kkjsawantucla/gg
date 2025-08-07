@@ -19,7 +19,7 @@ from ase.neighborlist import NeighborList, natural_cutoffs
 from gg.reference import get_ref_coeff
 from gg.utils import (
     NoReasonableStructureFound,
-    get_area,
+    get_area, sort_atoms,
     extract_lowest_energy_from_oszicar,
     extract_lowest_energy_from_outlog,
 )
@@ -416,6 +416,7 @@ class Gcbh(Dynamics):
         atoms = self.structure_modifiers[name].get_modified_atoms(atoms)
         atoms.wrap()
         atoms.center()
+        atoms = sort_atoms(atoms)
         return atoms
 
     def initialize(self):
