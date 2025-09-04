@@ -183,20 +183,25 @@ class Gcbh(Dynamics):
                         "Cannot restart since energy,fe or fe_min value is missing !"
                     )
                     self.initialize()
+                else:
+                    if self.c["opt_on"] > 0:
+                        subdir = os.path.join(
+                            os.getcwd(), self.opt_folder, f'opt_{self.c["opt_on"]}'
+                        )
+                        if os.path.isdir(subdir):
+                            print(f'Restarting from {self.c["opt_on"]}')
+                            self.logtxt(f'Restarting from {self.c["opt_on"]}')
 
-                elif self.c["opt_on"] > 0:
-                    subdir = os.path.join(
-                        os.getcwd(), self.opt_folder, f'opt_{self.c["opt_on"]}'
-                    )
-                    if os.path.isdir(subdir):
-                        print(f'Restarting from {self.c["opt_on"]}')
-                        self.logtxt(f'Restarting from {self.c["opt_on"]}')
+                    else:
+                        self.logtxt(f'Starting a clean restart from {self.c["nsteps"]+1}')
+                        self.logtxt(f'Best F: {self.c["fe_min"]:.2f}')
             else:
                 self.logtxt("Cannot restart since current_status.pkl file is missing !")
                 self.initialize()
             try:
                 self.atoms = read("local_minima.traj")
                 self.atoms.calc = self.calc
+                self.logtxt(f'Current best structure is {self.atoms}')
             except UnknownFileTypeError as e:
                 print(f"Cannot read local_minima.traj due to {e}")
         else:
