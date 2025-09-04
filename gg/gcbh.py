@@ -612,28 +612,36 @@ class Gcbh(Dynamics):
         if not os.path.isdir(subdir):
             os.makedirs(subdir)
         os.chdir(subdir)
-        if self.c["vasp_opt"]:
-            en = atoms.get_potential_energy()
-        else:
-            atoms.write("POSCAR", format="vasp")
-            dyn = optimizer(atoms, logfile="opt.log")
-            if self.c["opt_traj"]:
-                traj = Trajectory("opt.traj", "w", atoms)
-                dyn.attach(traj.write, interval=self.c["opt_traj"])
-
-            dyn.run(fmax=self.c["fmax"], steps=self.c["stop_opt"])
-            if dyn.nsteps == self.c["stop_opt"]:
-                self.logtxt(
-                    f'Opt is incomplete in {self.c["stop_opt"]} steps, ignore gcbh {self.c["nsteps"]} step'
-                )
-                self.c["opt_on"] = -1
+        try:
+            if self.c["vasp_opt"]:
+                en = atoms.get_potential_energy()
             else:
-                atoms.write("CONTCAR", format="vasp")
-                self.logtxt(
-                    f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
-                )
-            en = atoms.get_potential_energy()
-        os.chdir(topdir)
+                atoms.write("POSCAR", format="vasp")
+                dyn = optimizer(atoms, logfile="opt.log")
+                if self.c["opt_traj"]:
+                    traj = Trajectory("opt.traj", "w", atoms)
+                    dyn.attach(traj.write, interval=self.c["opt_traj"])
+
+                dyn.run(fmax=self.c["fmax"], steps=self.c["stop_opt"])
+                if dyn.nsteps == self.c["stop_opt"]:
+                    self.logtxt(
+                        f'Opt is incomplete in {self.c["stop_opt"]} steps, ignore gcbh {self.c["nsteps"]} step'
+                    )
+                    self.c["opt_on"] = -1
+                else:
+                    atoms.write("CONTCAR", format="vasp")
+                    self.logtxt(
+                        f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
+                    )
+                en = atoms.get_potential_energy()
+        except Exception as exc:  # pragma: no cover - safety net for optimizer failures
+            self.logtxt(
+                f'Optimization failed at step {self.c["nsteps"]} because {exc}'
+            )
+            self.c["opt_on"] = -1
+            en = -1e6
+        finally:
+            os.chdir(topdir)
         return atoms, en
 
     def append_graph(self, atoms, unique_method="fullgraph"):
