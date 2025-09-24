@@ -19,7 +19,9 @@ from ase.neighborlist import NeighborList, natural_cutoffs
 from gg.reference import get_ref_coeff
 from gg.utils import (
     NoReasonableStructureFound,
-    get_area, sort_atoms,
+    check_contact,
+    get_area,
+    sort_atoms,
     extract_lowest_energy_from_oszicar,
     extract_lowest_energy_from_outlog,
 )
@@ -597,6 +599,17 @@ class Gcbh(Dynamics):
         self.dump(self.status_file)
         self.logtxt("-------------------------------------------------------")
 
+    def _reject_touching_atoms(self, atoms: Atoms) -> bool:
+        """Return True if atoms are touching and log the rejection."""
+
+        if check_contact(atoms):
+            self.logtxt(
+                f'{get_current_time()}: Atoms touching after optimization at step {self.c["nsteps"]}. Rejecting structure.'
+            )
+            self.c["opt_on"] = -1
+            return True
+        return False
+
     def optimize(self, atoms: Atoms):
         """Optimize atoms"""
         optimizer = self.optimizer
@@ -615,6 +628,8 @@ class Gcbh(Dynamics):
         try:
             if self.c["vasp_opt"]:
                 en = atoms.get_potential_energy()
+                if self._reject_touching_atoms(atoms):
+                    en = -1e6
             else:
                 atoms.write("POSCAR", format="vasp")
                 dyn = optimizer(atoms, logfile="opt.log")
@@ -634,6 +649,8 @@ class Gcbh(Dynamics):
                         f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
                     )
                 en = atoms.get_potential_energy()
+                if self._reject_touching_atoms(atoms):
+                    en = -1e6
         except Exception as exc:  # pragma: no cover - safety net for optimizer failures
             self.logtxt(
                 f'Optimization failed at step {self.c["nsteps"]} because {exc}'
@@ -791,6 +808,8 @@ class GcbhFlexOpt(Gcbh):
         finally:
             os.chdir(topdir)
         en = atoms.get_potential_energy()
+        if self._reject_touching_atoms(atoms):
+            en = -1e6
         return atoms, en
 
     def generate_all(self, traj=None):
