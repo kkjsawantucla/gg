@@ -445,6 +445,8 @@ class Gcbh(Dynamics):
 
         self.c["opt_on"] = 0
         self.atoms, en = self.optimize(self.atoms)
+        if self.c["opt_on"] == -1 or en < -100000:
+            raise RuntimeError("Initial atoms touching")
         self.dump(self.status_file)
         self.c["energy"] = en
         ref = self.get_ref_potential(self.atoms)
@@ -810,7 +812,7 @@ class GcbhFlexOpt(Gcbh):
             os.chdir(topdir)
         en = atoms.get_potential_energy()
         if self._reject_touching_atoms(atoms):
-            en = -1e6
+            en = 1e6
         return atoms, en
 
     def generate_all(self, traj=None):
