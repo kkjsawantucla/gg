@@ -113,6 +113,7 @@ class Gcbh(Dynamics):
             "initialize": True,
             "detect_gas": None,
             "graph_method": "fullgraph",
+            "check_contact_error": 0.5,
         }
         self.optimizer = optimizer
         if config_file:
@@ -602,7 +603,7 @@ class Gcbh(Dynamics):
     def _reject_touching_atoms(self, atoms: Atoms) -> bool:
         """Return True if atoms are touching and log the rejection."""
 
-        if check_contact(atoms):
+        if check_contact(atoms,error=self.c["check_contact_error"]):
             self.logtxt(
                 f'{get_current_time()}: Atoms touching after optimization at step {self.c["nsteps"]}. Rejecting structure.'
             )
