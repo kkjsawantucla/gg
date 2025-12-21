@@ -1,7 +1,7 @@
 """Import Modules for basic functioning"""
 
 import random
-from typing import Union
+from typing import Iterable, Optional, Union
 from itertools import product
 import numpy as np
 from ase.io import read as read_atoms
@@ -254,6 +254,8 @@ class Remove(
         to_del: Union[Atoms, str],
         max_bond_ratio: float = 1.2,
         max_bond: float = 0,
+        allow_external_symbols: Optional[Iterable[str]] = None,
+        max_external_neighbors: Optional[int] = None,
         print_movie: bool = False,
         unique: bool = False,
         unique_method: str = "fullgraph",
@@ -273,6 +275,12 @@ class Remove(
             max_bond (int, optional): Max bond ratio to make graph of atoms to delete.
             Defaults to 0.
 
+            allow_external_symbols (Iterable[str], optional): Symbols allowed to be bonded
+            to the target subgraph but not part of it. Defaults to None.
+
+            max_external_neighbors (int, optional): Maximum number of external neighbors
+            allowed for the target subgraph. Defaults to None.
+
             print_movie (bool, optional): Return a movie of all sites or one random site.
             Defaults to False.
 
@@ -290,6 +298,10 @@ class Remove(
             self.to_del, max_bond_ratio=max_bond_ratio, max_bond=max_bond
         )
         self.ss = surface_sites
+        self.allow_external_symbols = (
+            set(allow_external_symbols) if allow_external_symbols is not None else None
+        )
+        self.max_external_neighbors = max_external_neighbors
         self.print_movie = print_movie
         self.unique = unique
         self.unique_method = unique_method
@@ -329,6 +341,23 @@ class Remove(
         for mapping in all_isomorphisms:
             matched_nodes = list(mapping.keys())
             ind_to_remove = [atoms_g.nodes[node]["index"] for node in matched_nodes]
+            if self.allow_external_symbols is not None or self.max_external_neighbors is not None:
+                external_neighbors = set()
+                for node in matched_nodes:
+                    for neighbor in atoms_g.neighbors(node):
+                        if neighbor not in matched_nodes:
+                            external_neighbors.add(neighbor)
+                if self.allow_external_symbols is not None:
+                    if any(
+                        atoms_g.nodes[node]["symbol"] not in self.allow_external_symbols
+                        for node in external_neighbors
+                    ):
+                        continue
+                if (
+                    self.max_external_neighbors is not None
+                    and len(external_neighbors) > self.max_external_neighbors
+                ):
+                    continue
             if all(element in df_ind for element in ind_to_remove):
                 ind_to_remove_list.append(ind_to_remove)
             else:

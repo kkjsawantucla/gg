@@ -698,17 +698,38 @@ class Gcbh(Dynamics):
     def add_delete_gas(self, gas_species=None, max_bond=2):
         """
         Args:
-            gas_species (_type_, optional): _description_. Defaults to None.
+            gas_species (list, optional): List of gas species or dict configs to remove.
+            Defaults to None.
+
+            Dict config supports:
+                - species/formula: gas identifier string (e.g. "CO2")
+                - allow_external_symbols: list of symbols allowed to bond to the gas
+                  subgraph (e.g. ["Pt"] to only allow surface bonds)
+                - max_external_neighbors: maximum number of external neighbors allowed
+
+            Example:
+                gcbh.add_delete_gas([
+                    {"species": "CO2", "allow_external_symbols": ["Pt"], "max_external_neighbors": 2},
+                    "CO",
+                ])
         """
         if not gas_species:
             gas_species = self.c["delete_gas"]
         ss = FlexibleSites(constraints=True, max_bond=max_bond)
         for gas in gas_species:
+            gas_config = {}
+            if isinstance(gas, dict):
+                gas_config = gas
+                gas = gas_config.get("species") or gas_config.get("formula")
+            allow_external_symbols = gas_config.get("allow_external_symbols")
+            max_external_neighbors = gas_config.get("max_external_neighbors")
             r = Remove(
                 ss,
                 to_del=gas,
                 max_bond=self.c["max_bond"],
                 max_bond_ratio=self.c["max_bond_ratio"],
+                allow_external_symbols=allow_external_symbols,
+                max_external_neighbors=max_external_neighbors,
             )
             self.remove_gas_inst.append(r)
         return
