@@ -57,6 +57,38 @@ Modifiers operate on `ase.Atoms` and return a list of modified structures:
 
 Each modifier exposes `get_modified_atoms(atoms)`.
 
+### Predefined adsorbate atoms and IDs
+When using `Add`/`AddBi`, define adsorbates with:
+- **`ads_id`**: list of atom symbols in the adsorbate (e.g., `["O"]`, `["C", "O"]`).
+- **`ads_num`** (if used): how many of each adsorbate atom to place (kept in the
+  same order as `ads_id`).
+- **`ads_atoms`** (if used): explicit `ase.Atoms` for the adsorbate geometry.
+
+Common predefined choices (typical conventions):
+- **Monoatomic**: `["H"]`, `["O"]`, `["N"]`, `["C"]`.
+- **Diatomic**: `["O", "O"]` (O₂), `["N", "N"]` (N₂), `["C", "O"]` (CO).
+- **Triatomic**: `["O", "H"]` with `AddBi` for OH, or `["C", "O", "O"]` for CO₂.
+
+Tip: if you need a specific geometry (e.g., bent vs linear), pass `ads_atoms`
+explicitly so the modifier preserves internal coordinates.
+
+### `gg/data.py` reference (predefined adsorbates + coordination defaults)
+`gg/data.py` contains shared data for common adsorbates and coordination limits:
+- **`adsorbates`**: dict mapping keys like `"H2"`, `"O2"`, `"OH"`, `"CO"` to
+  `ase.Atoms` objects with approximate geometries.
+- **`adsorbate_names`**: human-friendly aliases (e.g., `"water"`, `"hydroxyl"`)
+  that map to entries in `adsorbates`.
+- **`max_coord_arr`**: per-element default max coordination numbers used in
+  site-selection heuristics; `MISS` marks undefined values.
+
+If you want to reuse these geometries, import them directly:
+```python
+from gg.data import adsorbates, adsorbate_names
+
+oh = adsorbates["OH"]
+water = adsorbate_names["water"]
+```
+
 ## Typical workflow (Python)
 ```python
 from ase.io import read
