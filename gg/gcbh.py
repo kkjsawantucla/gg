@@ -446,7 +446,7 @@ class Gcbh(Dynamics):
         self.c["opt_on"] = 0
         self.atoms, en = self.optimize(self.atoms)
         if self.c["opt_on"] == -1 or en < -100000:
-            raise RuntimeError("Initial atoms touching")
+            raise RuntimeError("The initial optimization failed, check logs")
         self.dump(self.status_file)
         self.c["energy"] = en
         ref = self.get_ref_potential(self.atoms)
