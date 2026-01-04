@@ -174,16 +174,21 @@ def get_tagged_sites(atoms: Atoms, tag: int = -1) -> list:
 
 
 def get_com_sites(
-    atoms: Atoms, fraction: float = 1.0, direction: str = "above"
+    atoms: Atoms,
+    fraction: float = 1.0,
+    direction: str = "above",
+    axis: Union[str, int] = "z",
 ) -> list:
     """
 
     Args:
         atoms (Atoms): The ASE Atoms object.
-        fraction (float, optional): Fraction of the z-distance from the COM to consider.
+        fraction (float, optional): Fraction of the axis-distance from the COM to consider.
                                     Must be between 0 and 1. Defaults to 1.0.
         direction (str, optional): Whether to return atoms "above", "below", or "both".
-                                   Defaults to "above".
+            Above/below are evaluated along the selected axis, i.e., above corresponds
+            to the +axis direction relative to the COM and below to -axis. Defaults to "above".
+        axis (str or int, optional): Axis to use: "x", "y", "z" or 0, 1, 2. Defaults to "z".
 
     Returns:
         list: A list of atom indices based on the specified direction.
@@ -192,26 +197,41 @@ def get_com_sites(
         raise ValueError("Fraction must be between 0 and 1.")
     if direction not in ["above", "below", "both"]:
         raise ValueError("Direction must be 'above', 'below', or 'both'.")
+    axis_map = {"x": 0, "y": 1, "z": 2}
+    if isinstance(axis, str):
+        if axis not in axis_map:
+            raise ValueError("Axis must be one of 'x', 'y', 'z', 0, 1, or 2.")
+        axis_index = axis_map[axis]
+    elif isinstance(axis, int):
+        if axis not in axis_map.values():
+            raise ValueError("Axis must be one of 'x', 'y', 'z', 0, 1, or 2.")
+        axis_index = axis
+    else:
+        raise ValueError("Axis must be one of 'x', 'y', 'z', 0, 1, or 2.")
 
     if len(atoms) == 0:
         return []
 
-    # Get the center of mass (COM) z-coordinate
-    com_z = atoms.get_center_of_mass()[2]
+    # Get the center of mass (COM) coordinate for the chosen axis
+    com_axis = atoms.get_center_of_mass()[axis_index]
 
-    # Get the z-coordinates of all atoms
-    z_values = atoms.get_positions()[:, 2]
+    # Get the axis-coordinates of all atoms
+    axis_values = atoms.get_positions()[:, axis_index]
 
-    # Compute max and min z-values
-    z_max = max(z_values)
-    z_min = min(z_values)
+    # Compute max and min axis-values
+    axis_max = max(axis_values)
+    axis_min = min(axis_values)
 
-    # Calculate z-thresholds for above and below
-    threshold_z_above = com_z + (1 - fraction) * (z_max - com_z)
-    threshold_z_below = com_z - (1 - fraction) * (com_z - z_min)
+    # Calculate axis-thresholds for above and below
+    threshold_axis_above = com_axis + (1 - fraction) * (axis_max - com_axis)
+    threshold_axis_below = com_axis - (1 - fraction) * (com_axis - axis_min)
 
-    above_indices = {i for i, z in enumerate(z_values) if z > threshold_z_above}
-    below_indices = {i for i, z in enumerate(z_values) if z < threshold_z_below}
+    above_indices = {
+        i for i, axis_value in enumerate(axis_values) if axis_value > threshold_axis_above
+    }
+    below_indices = {
+        i for i, axis_value in enumerate(axis_values) if axis_value < threshold_axis_below
+    }
 
     if direction == "above":
         return list(above_indices)
