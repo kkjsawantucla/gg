@@ -4,6 +4,7 @@ import os
 import argparse
 import pandas as pd
 from ase.io import read
+from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn
 
 import sys
 sys.path.insert(0, "/jet/home/ksawant/apps/gg")
@@ -49,45 +50,56 @@ def collect_energies(
     """
     mu = read_chemical_potential(mu_path)
     rows = []
+    candidates = []
 
     for base in base_folders:
         for root, _, files in os.walk(base):
             if energy_file in files and structure_file in files:
                 en_path = os.path.join(root, energy_file)
                 struct_path = os.path.join(root, structure_file)
+                candidates.append((root, en_path, struct_path))
 
-                # raw electronic energy
-                if energy_file == "OSZICAR":
-                    energy = extract_lowest_energy_from_oszicar(en_path)
-                elif energy_file.endswith(".log"):
-                    energy = extract_lowest_energy_from_outlog(en_path)
-                else:
-                    # Unsupported energy type; skip
-                    continue
-                if energy is None:
-                    continue
+    with Progress(
+        TextColumn("{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total}"),
+        TimeElapsedColumn(),
+    ) as progress:
+        task = progress.add_task("Processing structures", total=len(candidates))
+        for root, en_path, struct_path in candidates:
+            # raw electronic energy
+            if energy_file == "OSZICAR":
+                energy = extract_lowest_energy_from_oszicar(en_path)
+            elif energy_file.endswith(".log"):
+                energy = extract_lowest_energy_from_outlog(en_path)
+            else:
+                progress.advance(task)
+                continue
+            if energy is None:
+                progress.advance(task)
+                continue
 
-                # structure + area + stoichiometry
-                atoms = read(struct_path, format="vasp")
-                area = get_area(atoms)
-                stoich = atoms.get_chemical_formula()
+            # structure + area + stoichiometry
+            atoms = read(struct_path, format="vasp")
+            area = get_area(atoms)
+            stoich = atoms.get_chemical_formula()
 
-                # reference + vib corrections (same logic as in your PD code)
-                ref_sum = get_ref_potential(mu, atoms)
-                vib_corr = get_vib_correction(atoms, vib_corrections)
+            # reference + vib corrections (same logic as in your PD code)
+            ref_sum = get_ref_potential(mu, atoms)
+            vib_corr = get_vib_correction(atoms, vib_corrections)
 
-                # fe: formation energy per surface area, consistent with your plotting workflow
-                fe = (energy - ref_sum + vib_corr) / area
+            # fe: formation energy per surface area, consistent with your plotting workflow
+            fe = (energy - ref_sum + vib_corr) / area
 
-                rows.append(
-                    {
-                        "path": root,
-                        "energy": energy,
-                        "fe": fe,
-                        "stoichiometry": stoich,
-                    }
-                )
-                print(root,fe)
+            rows.append(
+                {
+                    "path": root,
+                    "energy": energy,
+                    "fe": fe,
+                    "stoichiometry": stoich,
+                }
+            )
+            progress.advance(task)
 
     df = pd.DataFrame(rows).sort_values(["fe"]).reset_index(drop=True)
     return df
@@ -110,9 +122,7 @@ def main():
         vib_corrections=None,  # plug your dict if you use it
     )
     df.to_csv(args.csv, index=False)
-    print(f"Wrote {len(df)} rows to {args.csv}")
 
 
 if __name__ == "__main__":
     main()
-
