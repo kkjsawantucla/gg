@@ -169,7 +169,8 @@ def _score(query: str, text: str) -> int:
 
 
 def retrieve_gg_docs(query: str, top_k: int = 6) -> List[Dict[str, str]]:
-    root = Path(os.environ.get("GG_DOC_ROOT", ".")).resolve()
+    root_env = os.environ.get("GG_DOC_ROOT") or "."
+    root = Path(root_env).resolve()
     candidates: List[Tuple[str, str]] = []
 
     for sub, exts in [
@@ -341,7 +342,7 @@ def compile_plan(plan: Dict[str, Any]) -> str:
             lines.append(f"# {comment}")
 
         if op == "ModifierAdder":
-            seq = step["sequence"]
+            seq = step["modifier_instances"]
             kwargs = step.get("kwargs", {})
             seq_vars = [name_to_var[s] for s in seq]
             lines.append(
@@ -411,7 +412,10 @@ def run_nl_to_code(
     End-to-end NL -> Plan -> gg code. `atoms_code` must define a variable named `atoms`
     (ASE Atoms) that gg modifiers can operate on.
     """
-    client = OpenAI()
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY must be set to use the OpenAI client.")
+    client = OpenAI(api_key=api_key)
 
     snippets = retrieve_gg_docs(query=nl_request, top_k=6)
     plan = emit_plan(client=client, model=model, nl_request=nl_request, snippets=snippets)
