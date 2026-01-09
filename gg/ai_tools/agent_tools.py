@@ -3,15 +3,14 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import subprocess
 import tempfile
 import textwrap
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
-from urllib.request import urlopen
 from openai import OpenAI
+from .modifier_schema import MODIFIER_SCHEMA
 from .plan_contract import validate_plan
 
 LOGGER = logging.getLogger(__name__)
@@ -132,25 +131,29 @@ TOOLS: List[Dict[str, Any]] = [
 ]
 
 # 2) Retrieval (modifiers RAG)
-MODIFIERS_RAG_URL = "https://graph-gcbh.readthedocs.io/en/latest/modifiers.html"
-
-
-def _strip_html(value: str) -> str:
-    no_script = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", value)
-    no_tags = re.sub(r"(?is)<[^>]+>", " ", no_script)
-    cleaned = re.sub(r"\s+", " ", no_tags)
-    return cleaned.strip()
+MODIFIERS_RAG_PATH = (
+    Path(__file__).resolve().parents[2] / "docs" / "source" / "modifiers.rst"
+)
 
 
 @lru_cache(maxsize=1)
 def _load_modifiers_rag() -> str:
-    with urlopen(MODIFIERS_RAG_URL) as response:
-        html = response.read().decode("utf-8", errors="ignore")
-    return _strip_html(html)
+    try:
+        return MODIFIERS_RAG_PATH.read_text(encoding="utf-8")
+    except OSError as exc:
+        LOGGER.warning("Failed to load modifiers RAG from %s: %s", MODIFIERS_RAG_PATH, exc)
+        return ""
 
 
 def get_modifiers_rag_snippets() -> List[Dict[str, str]]:
-    return [{"source": MODIFIERS_RAG_URL, "text": _load_modifiers_rag()}]
+    schema_snippet = {
+        "source": "gg.ai_tools.modifier_schema",
+        "text": json.dumps(MODIFIER_SCHEMA, indent=2),
+    }
+    text = _load_modifiers_rag()
+    if not text:
+        return [schema_snippet]
+    return [{"source": str(MODIFIERS_RAG_PATH), "text": text}, schema_snippet]
 
 # 3) emit_plan + revise
 SYSTEM_PLANNER = """You translate natural language catalyst-surface modification requests into a STRICT PlanJSON.
@@ -179,6 +182,7 @@ def emit_plan(
 
     resp = client.responses.create(
         model=model,
+        response_format={"type": "json_object"},
         input=[
             {"role": "system", "content": SYSTEM_PLANNER},
             {"role": "user", "content": json.dumps(user_payload)},
