@@ -7,11 +7,12 @@ import re
 import subprocess
 import tempfile
 import textwrap
-from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
+from urllib.request import urlopen
 from openai import OpenAI
-from .plan_contract import plan_json_schema, validate_plan
+from .plan_contract import validate_plan
 
 LOGGER = logging.getLogger(__name__)
 
@@ -27,32 +28,6 @@ def _log_llm_call(phase: str, model: str, payload: Dict[str, Any], output_text: 
 
 # 1) Tool Specs (what you pass to the model)
 TOOLS: List[Dict[str, Any]] = [
-    {
-        "type": "function",
-        "function": {
-            "name": "retrieve_gg_docs",
-            "description": (
-                "Search local gg docs/examples and return relevant API snippets "
-                "(signatures/examples)."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Search query, e.g. 'AddBi formate bidentate'",
-                    },
-                    "top_k": {
-                        "type": "integer",
-                        "description": "How many snippets to return",
-                        "default": 6,
-                    },
-                },
-                "required": ["query"],
-                "additionalProperties": False,
-            },
-        },
-    },
     {
         "type": "function",
         "function": {
@@ -156,73 +131,31 @@ TOOLS: List[Dict[str, Any]] = [
     },
 ]
 
-# 2) Retrieval (retrieve_gg_docs)
-@dataclass
-class Snippet:
-    source: str
-    text: str
-
-def _load_text_files(root: Path, exts: Tuple[str, ...]) -> List[Tuple[str, str]]:
-    items: List[Tuple[str, str]] = []
-    for p in root.rglob("*"):
-        if not (p.is_file() and p.suffix.lower() in exts):
-            continue
-        try:
-            txt = p.read_text(encoding="utf-8", errors="ignore")
-        except (OSError, UnicodeError):
-            continue
-        items.append((str(p), txt))
-    return items
+# 2) Retrieval (modifiers RAG)
+MODIFIERS_RAG_URL = "https://graph-gcbh.readthedocs.io/en/latest/modifiers.html"
 
 
-def _score(query: str, text: str) -> int:
-    q = re.findall(r"[A-Za-z0-9_]+", query.lower())
-    t = text.lower()
-    return sum(t.count(w) for w in q)
+def _strip_html(value: str) -> str:
+    no_script = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", value)
+    no_tags = re.sub(r"(?is)<[^>]+>", " ", no_script)
+    cleaned = re.sub(r"\s+", " ", no_tags)
+    return cleaned.strip()
 
 
-def retrieve_gg_docs(query: str, top_k: int = 6) -> List[Dict[str, str]]:
-    root_env = os.environ.get("GG_DOC_ROOT") or "."
-    root = Path(root_env).resolve()
-    candidates: List[Tuple[str, str]] = []
+@lru_cache(maxsize=1)
+def _load_modifiers_rag() -> str:
+    with urlopen(MODIFIERS_RAG_URL) as response:
+        html = response.read().decode("utf-8", errors="ignore")
+    return _strip_html(html)
 
-    for sub, exts in [
-        ("docs", (".md", ".rst", ".txt", ".py")),
-        ("examples", (".py", ".md")),
-        ("gg", (".py",)),
-        ("tests", (".py",)),
-        ("bin", (".py", ".sh", ".bash")),
-    ]:
-        d = root / sub
-        if d.is_dir():
-            candidates += _load_text_files(d, exts)
 
-    for f in ("README.md", "RAG.md"):
-        p = root / f
-        if p.is_file():
-            candidates.append((str(p), p.read_text(encoding="utf-8", errors="ignore")))
+def get_modifiers_rag_snippets() -> List[Dict[str, str]]:
+    return [{"source": MODIFIERS_RAG_URL, "text": _load_modifiers_rag()}]
 
-    scored = [(s, src, txt) for (src, txt) in candidates if (s := _score(query, txt)) > 0]
-    scored.sort(key=lambda x: x[0], reverse=True)
-
-    focus = (re.findall(r"[A-Za-z0-9_]+", query.lower()) or [""])[0]
-    out: List[Snippet] = []
-    for _, src, txt in scored[:top_k]:
-        i = txt.lower().find(focus) if focus else 0
-        i = 0 if i < 0 else i
-        out.append(Snippet(src, txt[max(0, i - 600) : min(len(txt), i + 1000)].strip()))
-
-    return [{"source": s.source, "text": s.text} for s in out]
-
-# 3) emit_plan + revise (Structured Outputs via Responses API)
-PLAN_JSON_SCHEMA: Dict[str, Any] = {
-    "name": "gg_plan",
-    "schema": plan_json_schema(),
-}
-
+# 3) emit_plan + revise
 SYSTEM_PLANNER = """You translate natural language catalyst-surface modification requests into a STRICT PlanJSON.
 Rules:
-- Output MUST conform exactly to the provided JSON schema.
+- Output MUST be a JSON object with `sites` and `steps`.
 - Only use supported gg primitives (Sites: FlexibleSites/SurfaceSites/RuleSites; Modifiers: Add/AddBi/Remove/Replace/Swap/Rattle/Translate/ClusterRotate/ClusterTranslate/ModifierAdder).
 - Do not invent kwargs. Prefer kwargs visible in the snippets.
 - Make step names valid python identifiers and unique.
@@ -242,7 +175,6 @@ def emit_plan(
             {"role": "system", "content": SYSTEM_PLANNER},
             {"role": "user", "content": json.dumps(user_payload)},
         ],
-        "response_format": PLAN_JSON_SCHEMA.get("name", "gg_plan"),
     }
 
     resp = client.responses.create(
@@ -251,14 +183,6 @@ def emit_plan(
             {"role": "system", "content": SYSTEM_PLANNER},
             {"role": "user", "content": json.dumps(user_payload)},
         ],
-        text={
-            "format": {
-                "type": "json_schema",
-                "strict": True,
-                "name": PLAN_JSON_SCHEMA.get("name", "gg_plan"),
-                "schema": PLAN_JSON_SCHEMA["schema"],
-            }
-        },
     )
     out = resp.output_text
     _log_llm_call("emit_plan", model, log_payload, out)
@@ -284,7 +208,6 @@ def revise(
             {"role": "system", "content": SYSTEM_PLANNER},
             {"role": "user", "content": json.dumps(user_payload)},
         ],
-        "response_format": PLAN_JSON_SCHEMA.get("name", "gg_plan"),
     }
     resp = client.responses.create(
         model=model,
@@ -292,14 +215,6 @@ def revise(
             {"role": "system", "content": SYSTEM_PLANNER},
             {"role": "user", "content": json.dumps(user_payload)},
         ],
-        text={
-            "format": {
-                "type": "json_schema",
-                "strict": True,
-                "name": PLAN_JSON_SCHEMA.get("name", "gg_plan"),
-                "schema": PLAN_JSON_SCHEMA["schema"],
-            }
-        },
     )
     out = resp.output_text
     _log_llm_call("revise", model, log_payload, out)
@@ -432,7 +347,7 @@ def dry_run(python_code: str, timeout_s: int = 30) -> Dict[str, Any]:
                 "stderr": f"Timeout after {timeout_s}s: {exc}",
             }
 
-# 6) Simple orchestrator loop (retrieve -> emit -> compile -> dry_run -> revise)
+# 6) Simple orchestrator loop (RAG -> emit -> compile -> dry_run -> revise)
 def run_nl_to_code(
     nl_request: str,
     atoms_code: str,                 # <-- user-provided python that defines `atoms`
@@ -451,7 +366,7 @@ def run_nl_to_code(
         raise ValueError("OPENAI_API_KEY must be set to use the OpenAI client.")
     client = OpenAI(api_key=api_key)
 
-    snippets = retrieve_gg_docs(query=nl_request, top_k=6)
+    snippets = get_modifiers_rag_snippets()
     plan = emit_plan(client=client, model=model, nl_request=nl_request, snippets=snippets)
 
     code_with_atoms = ""
