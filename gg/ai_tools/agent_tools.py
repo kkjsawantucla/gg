@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import subprocess
@@ -10,7 +11,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from openai import OpenAI
-from plan_contract import plan_json_schema, validate_plan
+from .plan_contract import plan_json_schema, validate_plan
+
+LOGGER = logging.getLogger(__name__)
+
+
+def _log_llm_call(phase: str, model: str, payload: Dict[str, Any], output_text: str) -> None:
+    LOGGER.info(
+        "LLM %s call model=%s input=%s output=%s",
+        phase,
+        model,
+        json.dumps(payload, ensure_ascii=False),
+        output_text,
+    )
 
 # 1) Tool Specs (what you pass to the model)
 TOOLS: List[Dict[str, Any]] = [
@@ -223,6 +236,14 @@ def emit_plan(
         "snippets": snippets,
         "instructions": "Return a single PlanJSON that is valid and minimal (no extra steps).",
     }
+    log_payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PLANNER},
+            {"role": "user", "content": json.dumps(user_payload)},
+        ],
+        "response_format": PLAN_JSON_SCHEMA.get("name", "gg_plan"),
+    }
 
     resp = client.responses.create(
         model=model,
@@ -240,6 +261,7 @@ def emit_plan(
         },
     )
     out = resp.output_text
+    _log_llm_call("emit_plan", model, log_payload, out)
     return json.loads(out)
 
 
@@ -256,6 +278,14 @@ def revise(
         "snippets": snippets,
         "instructions": "Fix the plan so it validates and avoids the runtime error. Keep changes minimal.",
     }
+    log_payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PLANNER},
+            {"role": "user", "content": json.dumps(user_payload)},
+        ],
+        "response_format": PLAN_JSON_SCHEMA.get("name", "gg_plan"),
+    }
     resp = client.responses.create(
         model=model,
         input=[
@@ -271,7 +301,9 @@ def revise(
             }
         },
     )
-    return json.loads(resp.output_text)
+    out = resp.output_text
+    _log_llm_call("revise", model, log_payload, out)
+    return json.loads(out)
 
 # 4) compile_plan (deterministic codegen)
 def _py(obj: Any) -> str:
@@ -412,6 +444,8 @@ def run_nl_to_code(
     End-to-end NL -> Plan -> gg code. `atoms_code` must define a variable named `atoms`
     (ASE Atoms) that gg modifiers can operate on.
     """
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.INFO)
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("OPENAI_API_KEY must be set to use the OpenAI client.")
