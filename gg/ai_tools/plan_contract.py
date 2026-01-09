@@ -267,9 +267,42 @@ def validate_plan(plan_dict: dict) -> Plan:
     except ValidationError as exc:
         raise ValueError(f"Invalid plan: {exc}") from exc
 
+def _enforce_required_properties(schema: object) -> object:
+    if isinstance(schema, dict):
+        if schema.get("type") == "object" and "properties" in schema:
+            properties = schema.get("properties", {})
+            required = schema.get("required", [])
+            if isinstance(properties, dict):
+                required_keys = set(properties.keys())
+                existing = set(required) if isinstance(required, list) else set()
+                schema["required"] = sorted(required_keys | existing)
+        for key in ("allOf", "anyOf", "oneOf"):
+            items = schema.get(key)
+            if isinstance(items, list):
+                for item in items:
+                    _enforce_required_properties(item)
+        items = schema.get("items")
+        if items is not None:
+            _enforce_required_properties(items)
+        prefix_items = schema.get("prefixItems")
+        if isinstance(prefix_items, list):
+            for item in prefix_items:
+                _enforce_required_properties(item)
+        for defs_key in ("$defs", "definitions"):
+            defs = schema.get(defs_key)
+            if isinstance(defs, dict):
+                for item in defs.values():
+                    _enforce_required_properties(item)
+    elif isinstance(schema, list):
+        for item in schema:
+            _enforce_required_properties(item)
+    return schema
+
+
 def plan_json_schema() -> dict:
     """Return the JSON Schema for the Plan contract."""
-    return Plan.model_json_schema(mode="validation")
+    schema = Plan.model_json_schema(mode="validation")
+    return _enforce_required_properties(schema)
 
 # Minimal tests (run as script)
 def _tests() -> None:
