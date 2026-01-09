@@ -154,25 +154,27 @@ class SwapKwargs(CommonModifierKwargs):
 
 class ClusterRotateKwargs(CommonModifierKwargs):
     max_angle: float | int | None = 180
-    rotate_vector: tuple[float, float, float] | None = None
+    rotate_vector: Annotated[list[float], Field(min_length=3, max_length=3)] | None = None
     contact_error: float | None = 0.2
     nmovie: int | None = 1
 
 class ClusterTranslateKwargs(CommonModifierKwargs):
     max_displace: float | None = 5.0
-    allowed_direction: tuple[bool, bool, bool] | list[bool] | None = (True, True, False)
+    allowed_direction: Annotated[list[bool], Field(min_length=3, max_length=3)] | None = [True, True, False]
     contact_error: float | None = 0.2
     nmovie: int | None = 1
 
     @model_validator(mode="after")
     def _validate_allowed_direction(self) -> "ClusterTranslateKwargs":
-        if isinstance(self.allowed_direction, list):
+        if self.allowed_direction is not None:
             if len(self.allowed_direction) != 3:
                 raise ValueError(
-                    "ClusterTranslate.allowed_direction must have length 3 if provided as a list.")
-            self.allowed_direction = (bool(self.allowed_direction[0]),
-                                      bool(self.allowed_direction[1]),
-                                      bool(self.allowed_direction[2]))
+                    "ClusterTranslate.allowed_direction must have length 3 if provided.")
+            self.allowed_direction = [
+                bool(self.allowed_direction[0]),
+                bool(self.allowed_direction[1]),
+                bool(self.allowed_direction[2]),
+            ]
         return self
 
 
@@ -298,11 +300,39 @@ def _enforce_required_properties(schema: object) -> object:
             _enforce_required_properties(item)
     return schema
 
+def _ensure_array_items(schema: object) -> object:
+    if isinstance(schema, dict):
+        if schema.get("type") == "array":
+            if "items" not in schema and "prefixItems" not in schema:
+                schema["items"] = {}
+        for key in ("allOf", "anyOf", "oneOf"):
+            items = schema.get(key)
+            if isinstance(items, list):
+                for item in items:
+                    _ensure_array_items(item)
+        items = schema.get("items")
+        if items is not None:
+            _ensure_array_items(items)
+        prefix_items = schema.get("prefixItems")
+        if isinstance(prefix_items, list):
+            for item in prefix_items:
+                _ensure_array_items(item)
+        for defs_key in ("$defs", "definitions"):
+            defs = schema.get(defs_key)
+            if isinstance(defs, dict):
+                for item in defs.values():
+                    _ensure_array_items(item)
+    elif isinstance(schema, list):
+        for item in schema:
+            _ensure_array_items(item)
+    return schema
+
 
 def plan_json_schema() -> dict:
     """Return the JSON Schema for the Plan contract."""
     schema = Plan.model_json_schema(mode="validation")
-    return _enforce_required_properties(schema)
+    schema = _enforce_required_properties(schema)
+    return _ensure_array_items(schema)
 
 # Minimal tests (run as script)
 def _tests() -> None:
