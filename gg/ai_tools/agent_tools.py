@@ -1,403 +1,226 @@
-from __future__ import annotations
-
-import json
-import logging
 import os
 import subprocess
 import tempfile
-import textwrap
-from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Tuple
+
 from openai import OpenAI
-from .modifier_schema import MODIFIER_SCHEMA
-from .plan_contract import validate_plan
 
-LOGGER = logging.getLogger(__name__)
+SYSTEM_CODER = """
+You are a Python Code Generator for the 'gg' computational catalysis library.
+Your goal is to translate user requests into executable Python scripts using the 'gg' library.
 
+### Library Context (gg)
+- **Sites**: Use `FlexibleSites`, `RuleSites`, or `SurfaceSites` to define where atoms go.
+- **Modifiers**: Use `Add`, `Remove`, `Replace`, `Swap` to change the structure.
+- **Data**: Use `ase.build` for surfaces (fcc111, etc.) unless a file is provided.
 
-def _log_llm_call(phase: str, model: str, payload: Dict[str, Any], output_text: str) -> None:
-    LOGGER.info(
-        "LLM %s call model=%s input=%s output=%s",
-        phase,
-        model,
-        json.dumps(payload, ensure_ascii=False),
-        output_text,
-    )
+### Strict Output Rules
+1. Return **ONLY** valid Python code. No markdown, no explanations, no `python` tags.
+2. Always include necessary imports (e.g., `from gg.modifiers import ...`, `from ase.build import ...`).
+3. Follow the user's style: define sites, define the modifier, and call `.get_modified_atoms()`.
 
-# 1) Tool Specs (what you pass to the model)
-TOOLS: List[Dict[str, Any]] = [
-    {
-        "type": "function",
-        "function": {
-            "name": "emit_plan",
-            "description": (
-                "Create a PlanJSON that conforms to the gg contract, given a "
-                "natural-language request and doc snippets."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "nl_request": {"type": "string"},
-                    "snippets": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "source": {"type": "string"},
-                                "text": {"type": "string"},
-                            },
-                            "required": ["source", "text"],
-                            "additionalProperties": False,
-                        },
-                    },
-                },
-                "required": ["nl_request", "snippets"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "compile_plan",
-            "description": (
-                "Compile a validated PlanJSON into deterministic python code "
-                "that uses gg primitives."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "plan": {
-                        "type": "object",
-                        "description": "PlanJSON object matching the contract",
-                    },
-                },
-                "required": ["plan"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "dry_run",
-            "description": (
-                "Execute compiled python code in a subprocess and return pass/fail "
-                "+ traceback."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "python_code": {"type": "string"},
-                    "timeout_s": {"type": "integer", "default": 30},
-                },
-                "required": ["python_code"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "revise",
-            "description": (
-                "Revise a PlanJSON to fix validation/runtime errors, returning "
-                "an updated PlanJSON."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "plan": {"type": "object"},
-                    "errors": {"type": "string"},
-                    "snippets": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "source": {"type": "string"},
-                                "text": {"type": "string"},
-                            },
-                            "required": ["source", "text"],
-                            "additionalProperties": False,
-                        },
-                    },
-                },
-                "required": ["plan", "errors", "snippets"],
-                "additionalProperties": False,
-            },
-        },
-    },
-]
+### Few-Shot Examples
 
-# 2) Retrieval (modifiers RAG)
-MODIFIERS_RAG_PATH = (
-    Path(__file__).resolve().parents[2] / "docs" / "source" / "modifiers.rst"
+User: "Add OH to Pt(111) atoms"
+Assistant:
+from gg.modifiers import Add
+from gg.predefined_sites import FlexibleSites
+from ase.build import fcc111
+
+atoms = fcc111("Pt", size=(3, 3 , 4), vacuum=10.0)
+FS = FlexibleSites(constraints=True, max_bond_ratio=1.2) 
+
+# Define class to figure out surface
+add_OH = Add(
+    FS, 
+    ads="OH", 
+    surf_coord=[1,2,3],   # 3-fold hollow site preference
+    ads_id=["O"],         # Bonding atom in adsorbate
+    surf_sym=["Pt"],
 )
 
-
-@lru_cache(maxsize=1)
-def _load_modifiers_rag() -> str:
-    try:
-        return MODIFIERS_RAG_PATH.read_text(encoding="utf-8")
-    except OSError as exc:
-        LOGGER.warning("Failed to load modifiers RAG from %s: %s", MODIFIERS_RAG_PATH, exc)
-        return ""
-
-
-def get_modifiers_rag_snippets() -> List[Dict[str, str]]:
-    schema_snippet = {
-        "source": "gg.ai_tools.modifier_schema",
-        "text": json.dumps(MODIFIER_SCHEMA, indent=2),
-    }
-    text = _load_modifiers_rag()
-    if not text:
-        return [schema_snippet]
-    return [{"source": str(MODIFIERS_RAG_PATH), "text": text}, schema_snippet]
-
-# 3) emit_plan + revise
-SYSTEM_PLANNER = """You translate natural language catalyst-surface modification requests into a STRICT PlanJSON.
-Rules:
-- Output MUST be a JSON object with `sites` and `steps`.
-- Only use supported gg primitives (Sites: FlexibleSites/SurfaceSites/RuleSites; Modifiers: Add/AddBi/Remove/Replace/Swap/Rattle/Translate/ClusterRotate/ClusterTranslate/ModifierAdder).
-- Do not invent kwargs. Prefer kwargs visible in the snippets.
-- Make step names valid python identifiers and unique.
+modified_atoms = add_OH.get_modified_atoms(atoms)
 """
 
-def emit_plan(
-    client: OpenAI, model: str, nl_request: str, snippets: List[Dict[str, str]]
-) -> Dict[str, Any]:
-    user_payload = {
-        "nl_request": nl_request,
-        "snippets": snippets,
-        "instructions": "Return a single PlanJSON that is valid and minimal (no extra steps).",
-    }
-    log_payload = {
+SYSTEM_REPAIR = """
+You are a Python Code Debugger for the 'gg' computational catalysis library.
+
+You will be given:
+- the user's original request
+- a previous Python script you generated
+- the runtime error (traceback / stderr) produced when running that script
+
+Your job:
+- Return ONLY corrected, executable Python code that satisfies the user's original request.
+- Preserve the user's intent and use the 'gg' library idioms (sites, modifiers, etc.).
+- Fix imports, missing variables, wrong API calls, and any runtime issues.
+- Do NOT include markdown or explanations. Output must be only Python code.
+"""
+
+VECTOR_STORE_ID = "vs_6963443265b481919b82d51c2841850f"
+
+# 1. Configuration
+api_key = os.environ.get("OPENAI_API_KEY")
+if not api_key:
+    raise ValueError("OPENAI_API_KEY must be set to use the OpenAI client.")
+client = OpenAI(api_key=api_key)
+
+
+def generate_gg_code(
+    user_prompt: str,
+    *,
+    model: str = "gpt-4.1-mini",
+    instructions: str = SYSTEM_CODER,
+    include_retrieval: bool = True,
+) -> str:
+    """Generate gg-based Python code from a natural-language prompt."""
+    kwargs: Dict[str, Any] = {
         "model": model,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PLANNER},
-            {"role": "user", "content": json.dumps(user_payload)},
+        "instructions": instructions,
+        "input": user_prompt,
+        "tools": [
+            {
+                "type": "file_search",
+                "vector_store_ids": [VECTOR_STORE_ID],
+            }
         ],
     }
+    if include_retrieval:
+        # Helpful for debugging what got retrieved
+        kwargs["include"] = ["file_search_call.results"]
 
-    resp = client.responses.create(
-        model=model,
-        response_format={"type": "json_object"},
-        input=[
-            {"role": "system", "content": SYSTEM_PLANNER},
-            {"role": "user", "content": json.dumps(user_payload)},
-        ],
-    )
-    out = resp.output_text
-    _log_llm_call("emit_plan", model, log_payload, out)
-    return json.loads(out)
+    response = client.responses.create(**kwargs)
+    return response.output_text
 
 
-def revise(
-    client: OpenAI,
-    model: str,
-    plan: Dict[str, Any],
-    errors: str,
-    snippets: List[Dict[str, str]],
-) -> Dict[str, Any]:
-    user_payload = {
-        "current_plan": plan,
-        "errors": errors,
-        "snippets": snippets,
-        "instructions": "Fix the plan so it validates and avoids the runtime error. Keep changes minimal.",
-    }
-    log_payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PLANNER},
-            {"role": "user", "content": json.dumps(user_payload)},
-        ],
-    }
-    resp = client.responses.create(
-        model=model,
-        input=[
-            {"role": "system", "content": SYSTEM_PLANNER},
-            {"role": "user", "content": json.dumps(user_payload)},
-        ],
-    )
-    out = resp.output_text
-    _log_llm_call("revise", model, log_payload, out)
-    return json.loads(out)
-
-# 4) compile_plan (deterministic codegen)
-def _py(obj: Any) -> str:
-    """Render python literal deterministically."""
-    return (
-        json.dumps(obj)
-        .replace("true", "True")
-        .replace("false", "False")
-        .replace("null", "None")
-    )
-
-def _rule_parser_expr(rule: Dict[str, Any]) -> str:
-    name = rule["name"]
-    kwargs = rule.get("kwargs", {}) or {}
-    kwargs_expr = _py(kwargs)
-    return f"lambda atoms: {name}(atoms, **{kwargs_expr})"
-
-def compile_plan(plan: Dict[str, Any]) -> str:
-    """
-    Deterministic codegen: plan -> python code using gg.
-    Assumes plan matches your contract.
-    """
-    validate_plan(plan)
-
-    sites = plan["sites"]
-    steps = plan["steps"]
-
-    lines: List[str] = []
-    lines += [
-        "from gg.predefined_sites import FlexibleSites, SurfaceSites",
-        "from gg.sites import RuleSites, get_com_sites, get_surface_sites_by_coordination, get_tagged_sites, get_unconstrained_sites",
-        "from gg.modifiers import Add, AddBi, Remove, Replace, Swap, Rattle, Translate, ClusterRotate, ClusterTranslate, ModifierAdder",
-        "",
-        "# NOTE: you must supply `atoms` (ASE Atoms) before running modifiers.",
-        "# e.g., from ase.build import fcc111; atoms = fcc111('Pt', size=(3,3,4), vacuum=10.0)",
-        "",
-    ]
-
-    stype = sites["type"]
-    skw = sites.get("kwargs", {})
-    if stype == "FlexibleSites":
-        lines.append(f"FS = FlexibleSites(**{_py(skw)})")
-        sites_var = "FS"
-    elif stype == "SurfaceSites":
-        lines.append(f"SS = SurfaceSites(**{_py(skw)})")
-        sites_var = "SS"
-    elif stype == "RuleSites":
-        rule_parsers = [
-            _rule_parser_expr(rule) for rule in skw.get("index_parsers", [])
-        ]
-        rule_parsers_expr = "[" + ", ".join(rule_parsers) + "]"
-        rule_kwargs = {
-            key: value for key, value in skw.items() if key != "index_parsers"
-        }
-        lines.append(f"RS = RuleSites(index_parsers={rule_parsers_expr}, **{_py(rule_kwargs)})")
-        sites_var = "RS"
-    else:
-        raise ValueError(f"Unsupported sites type: {stype}")
-    lines.append("")
-
-    name_to_var: Dict[str, str] = {}
-
-    for step in steps:
-        op = step["op"]
-        name = step["name"]
-        comment = step.get("comment")
-        if comment:
-            lines.append(f"# {comment}")
-
-        if op == "ModifierAdder":
-            seq = step["modifier_instances"]
-            kwargs = step.get("kwargs", {})
-            seq_vars = [name_to_var[s] for s in seq]
-            lines.append(
-                f"{name} = ModifierAdder([{', '.join(seq_vars)}], **{_py(kwargs)})"
-            )
-            name_to_var[name] = name
-            lines.append("")
-            continue
-
-        kwargs = step.get("kwargs", {})
-        ctor = op
-        lines.append(f"{name} = {ctor}({sites_var}, **{_py(kwargs)})")
-        name_to_var[name] = name
-        lines.append("")
-
-    lines += [
-        "# Example execution:",
-        "# modified = " + steps[-1]["name"] + ".get_modified_atoms(atoms)",
-        "",
-    ]
-
-    return "\n".join(lines)
-
-
-# 5) dry_run (subprocess exec, capture tracebacks)
-def dry_run(python_code: str, timeout_s: int = 30) -> Dict[str, Any]:
+def dry_run(python_code: str, *, timeout_s: int = 30) -> Dict[str, Any]:
     """
     Runs python_code in a fresh interpreter process.
-    Expects the environment to have gg + ase installed, and your code to define atoms if needed.
+
+    Returns a dict with:
+      ok (bool), returncode (int), stdout (str), stderr (str)
     """
     with tempfile.TemporaryDirectory() as td:
-        path = Path(td) / "run.py"
-        path.write_text(python_code, encoding="utf-8")
+        run_path = Path(td) / "run.py"
+        run_path.write_text(python_code, encoding="utf-8")
 
-        try:
-            proc = subprocess.run(
-                ["python", str(path)],
-                capture_output=True,
-                text=True,
-                timeout=timeout_s,
-                check=False,
-            )
-            ok = proc.returncode == 0
-            return {
-                "ok": ok,
-                "returncode": proc.returncode,
-                "stdout": proc.stdout[-4000:],
-                "stderr": proc.stderr[-8000:],
-            }
-        except subprocess.TimeoutExpired as exc:
-            return {
-                "ok": False,
-                "returncode": None,
-                "stdout": "",
-                "stderr": f"Timeout after {timeout_s}s: {exc}",
-            }
+        proc = subprocess.run(
+            ["python", str(run_path)],
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            check=False,
+        )
 
-# 6) Simple orchestrator loop (RAG -> emit -> compile -> dry_run -> revise)
-def run_nl_to_code(
-    nl_request: str,
-    atoms_code: str,                 # <-- user-provided python that defines `atoms`
-    model: str = "gpt-4o-mini",
+        return {
+            "ok": proc.returncode == 0,
+            "returncode": proc.returncode,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+        }
+
+
+def _compose_repair_prompt(
+    *,
+    original_request: str,
+    previous_prompt: str,
+    previous_code: str,
+    run_result: Dict[str, Any],
+    iter_idx: int,
+) -> str:
+    stdout = (run_result.get("stdout") or "").strip()
+    stderr = (run_result.get("stderr") or "").strip()
+    rc = run_result.get("returncode")
+
+    # Keep the prompt reasonably sized; still include enough context to fix the issue.
+    max_code_chars = 10000
+    code_snippet = previous_code if len(previous_code) <= max_code_chars else previous_code[:max_code_chars] + "\n# ... (truncated) ...\n"
+
+    return (
+        "ORIGINAL REQUEST:\n"
+        f"{original_request}\n\n"
+        f"ITERATION: {iter_idx}\n\n"
+        "PREVIOUS PROMPT USED (for context):\n"
+        f"{previous_prompt}\n\n"
+        "THE PREVIOUSLY GENERATED CODE (that failed):\n"
+        "```\n"
+        f"{code_snippet}\n"
+        "```\n\n"
+        "RUNTIME RESULT WHEN EXECUTED (python run.py):\n"
+        f"Return code: {rc}\n\n"
+        "STDOUT:\n"
+        f"{stdout if stdout else '(empty)'}\n\n"
+        "STDERR / TRACEBACK:\n"
+        f"{stderr if stderr else '(empty)'}\n\n"
+        "TASK:\n"
+        "Fix the code so it runs successfully and still satisfies the ORIGINAL REQUEST. "
+        "Return ONLY corrected Python code."
+    )
+
+
+def iterative_generate_gg_code(
+    user_prompt: str,
+    *,
     max_iters: int = 3,
+    model: str = "gpt-4.1-mini",
     timeout_s: int = 30,
-) -> Dict[str, Any]:
+    include_retrieval: bool = True,
+    run_check: bool = True,
+) -> Tuple[str, Dict[str, Any]]:
     """
-    End-to-end NL -> Plan -> gg code. `atoms_code` must define a variable named `atoms`
-    (ASE Atoms) that gg modifiers can operate on.
+    Loop through: prompt -> code -> error -> new_prompt -> new_code
+
+    - max_iters is user-defined.
+    - If run_check=False, the function will generate once and skip execution.
+
+    Returns (final_code, metadata).
     """
-    if not logging.getLogger().handlers:
-        logging.basicConfig(level=logging.INFO)
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY must be set to use the OpenAI client.")
-    client = OpenAI(api_key=api_key)
+    if max_iters < 1:
+        raise ValueError("max_iters must be >= 1")
 
-    snippets = get_modifiers_rag_snippets()
-    plan = emit_plan(client=client, model=model, nl_request=nl_request, snippets=snippets)
+    prompt = user_prompt
+    last_code = ""
+    last_run: Dict[str, Any] = {}
 
-    code_with_atoms = ""
-    result: Dict[str, Any] = {}
+    for i in range(1, max_iters + 1):
+        instructions = SYSTEM_CODER if i == 1 else SYSTEM_REPAIR
+        code_temp = generate_gg_code(
+            prompt,
+            model=model,
+            instructions=instructions,
+            include_retrieval=include_retrieval,
+        )
+        last_code = code_temp
 
-    for i in range(max_iters):
-        validate_plan(plan)
+        if not run_check:
+            return code_temp, {
+                "ok": True,
+                "iterations": i,
+                "note": "run_check=False (skipped execution).",
+                "last_run": {},
+            }
 
-        code = compile_plan(plan)
+        last_run = dry_run(code_temp, timeout_s=timeout_s)
+        if last_run.get("ok"):
+            return code_temp, {
+                "ok": True,
+                "iterations": i,
+                "last_run": last_run,
+            }
 
-        code_with_atoms = (
-            textwrap.dedent(atoms_code).rstrip()
-            + "\n\n"
-            + code
-            + "\n\n"
-            + f"{plan['steps'][-1]['name']}.get_modified_atoms(atoms)\n"
+        # Build the next prompt using the error
+        prompt = _compose_repair_prompt(
+            original_request=user_prompt,
+            previous_prompt=prompt,
+            previous_code=code_temp,
+            run_result=last_run,
+            iter_idx=i,
         )
 
-        result = dry_run(code_with_atoms, timeout_s=timeout_s)
-
-        if result["ok"]:
-            return {"ok": True, "plan": plan, "python_code": code_with_atoms, "dry_run": result}
-
-        errors = (
-            f"dry_run failed (iter {i+1}/{max_iters}). stderr:\n{result['stderr']}\n"
-            f"stdout:\n{result['stdout']}"
-        )
-        plan = revise(client=client, model=model, plan=plan, errors=errors, snippets=snippets)
-
-    return {"ok": False, "plan": plan, "python_code": code_with_atoms, "dry_run": result}
+    return last_code, {
+        "ok": False,
+        "iterations": max_iters,
+        "last_run": last_run,
+        "note": "Reached max_iters without a successful run. Consider increasing max_iters or improving the initial prompt.",
+    }

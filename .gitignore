@@ -2,4 +2,5 @@ gg/__pycache__/
 gg.egg-info/
 gg/modifiers/__pycache__
 gg/tests/__pycache__
+gg/ai_tools/__pycache__
 .vscode

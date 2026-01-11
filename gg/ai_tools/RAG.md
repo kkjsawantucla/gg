@@ -67,7 +67,7 @@ When using `Add`/`AddBi`, define adsorbates with:
 Common predefined choices (typical conventions):
 - **Monoatomic**: `["H"]`, `["O"]`, `["N"]`, `["C"]`.
 - **Diatomic**: `["O", "O"]` (O₂), `["N", "N"]` (N₂), `["C", "O"]` (CO).
-- **Triatomic**: `["O", "H"]` with `AddBi` for OH, or `["C", "O", "O"]` for CO₂.
+- **Triatomic**: `["O", "H"]` with `AddBi` for OH, or `["C", "O", "O"]` for CO2.
 
 Tip: if you need a specific geometry (e.g., bent vs linear), pass `ads_atoms`
 explicitly so the modifier preserves internal coordinates.
