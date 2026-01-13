@@ -303,13 +303,39 @@ def get_ref_pos_index(index: list, atoms: Atoms, g: nx.Graph) -> np.array:
     return ads_pos_sum + atoms[initial].position
 
 
-def get_area(atoms: Atoms) -> float:
-    """Return xy area of ase.Atoms"""
-    a = np.array(
-        [[atoms.cell[0][0], atoms.cell[0][1]], [atoms.cell[1][0], atoms.cell[1][1]]]
-    )
-    area = abs(np.linalg.det(a))
-    return area
+def get_area(atoms: Atoms, plane: str = "xy") -> float:
+    """
+    Compute the surface area (Å^2) of the unit-cell face corresponding to `plane`.
+
+    Parameters
+    ----------
+    atoms : ase.Atoms
+        Structure with a defined cell.
+    plane : str
+        One of: "xy", "yx", "yz", "zy", "xz", "zx".
+        This selects which pair of lattice vectors to cross:
+          - "xy"/"yx": |a x b|
+          - "yz"/"zy": |b x c|
+          - "xz"/"zx": |a x c|
+
+    Returns
+    -------
+    float
+        Area in Å^2.
+    """
+    a_vec, b_vec, c_vec = atoms.cell[0], atoms.cell[1], atoms.cell[2]
+    plane_key = plane.lower()
+    if plane_key in {"xy", "yx"}:
+        vec1, vec2 = a_vec, b_vec
+    elif plane_key in {"yz", "zy"}:
+        vec1, vec2 = b_vec, c_vec
+    elif plane_key in {"xz", "zx"}:
+        vec1, vec2 = a_vec, c_vec
+    else:
+        raise ValueError(
+            f'Invalid plane "{plane}". Expected one of "xy", "yx", "yz", "zy", "xz", "zx".'
+        )
+    return float(np.linalg.norm(np.cross(vec1, vec2)))
 
 
 def extract_lowest_energy_from_oszicar(file_path):
