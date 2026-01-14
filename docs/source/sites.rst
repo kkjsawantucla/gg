@@ -42,3 +42,31 @@ This class uses co-ordination number to determine the surface sites. However, we
     :members: 
     :undoc-members:
     :show-inheritance:
+
+
+RuleSites
+------------
+
+This class can define complex Sites based on user defined rules.
+
+    .. code-block:: python
+
+        from gg.sites import RuleSites, get_com_sites, get_surface_sites_by_coordination
+
+        #Define maximum co-odrination each species can have
+        max_coord = {"Al": 6, "Si": 4, "O": 4, "H": 1}
+
+        ss = RuleSites(
+            index_parsers=[
+                lambda atoms: get_com_sites(atoms, fraction=0.50, direction="above"),
+                lambda atoms: get_surface_sites_by_coordination(
+                    atoms, max_coord, max_bond=2,
+                ),
+            ],
+            combine_rules="intersection",
+        )
+
+    .. autoclass:: gg.sites.RuleSites
+    :members: 
+    :undoc-members:
+    :show-inheritance:

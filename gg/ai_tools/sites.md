@@ -7,7 +7,7 @@ The `Sites` class helps make graphs for modifiers to work on and also determines
 This is a simple sites class which returns either atoms which aren't constrained as surface sites, or you can specify specific indices. Hardcoding of indices isn't advisable as the atoms object changes during GCBH runs.
 
 ```python
-from gg.sites import FlexibleSites
+from gg.predefined_sites import FlexibleSites
 
 FS = FlexibleSites(constraints=True, max_bond_ratio=1.2) # Define class to figure out surface
 
@@ -42,9 +42,9 @@ list_sites = FS.get_sites(atoms)
 This class uses coordination number to determine the surface sites. However, we need to specify the maximum coordination allowed for each atom.
 
 ```python
-from gg.sites import SurfaceSites
+from gg.predefined_sites import SurfaceSites
 
-max_coord = {'Pt': 12, 'O': 4, 'H': 2}
+max_coord = {'Pt': 12, 'O': 4, 'H': 2} #Every atom in the POSCAR should be defined
 SS = SurfaceSites(max_coord=max_coord, max_bond_ratio=1.2) # Define class to figure out surface
 
 atoms = read('POSCAR')

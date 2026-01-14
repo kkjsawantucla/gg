@@ -231,3 +231,65 @@ modified_atoms = swap.get_modified_atoms(atoms) #Atoms with the adsorbate
 
 * `ase.Atoms` if `print_movie = True`
 * `list[ase.Atoms]` if `print_movie = False`
+
+## ModifierAdder
+
+Combine multiple modifiers into a single **sequential** modifier. This is useful when you want a *single move* in GCBH to perform a multi-step surface event (e.g., dissociative adsorption: add OH **then** add H).
+
+### Example: dissociative H₂O adsorption (OH* + H*)
+
+```python
+from gg.modifiers import Add, ModifierAdder
+from gg.predefined_sites import FlexibleSites
+from ase.build import fcc111
+
+atoms = fcc111("Pt", size=(3, 3, 4), vacuum=10.0)
+
+FS = FlexibleSites(max_bond_ratio=1.2, com=0.5)
+
+add_H  = Add(FS, ads="H",  surf_coord=[1], ads_id=["H"], surf_sym=["Pt","O"], print_movie=True)
+add_OH = Add(FS, ads="OH", surf_coord=[1], ads_id=["O"], surf_sym=["Pt"], print_movie=True)
+
+# Apply add_OH first, then add_H
+add_H2O = ModifierAdder([add_OH, add_H], print_movie=True, unique=True)
+
+modified_atoms = add_H2O.get_modified_atoms(atoms)
+```
+
+---
+
+### API
+
+```python
+class gg.modifiers.modifiers.ModifierAdder(
+    modifier_instances: list[ParentModifier],
+    max_bond_ratio: float = 1.2,
+    max_bond: float = 0,
+    print_movie: bool = False,
+    unique: bool = True,
+    unique_method: str = "fullgraph",
+    unique_depth: int = 3,
+    weight: float = 1,
+)
+```
+
+**Bases:** `ParentModifier`
+
+#### Args
+
+* `modifier_instances` (`list[gg.ParentModifier]`): **Required.** List of modifier instances to apply sequentially.
+* `max_bond_ratio` (`float`, optional): Max bond ratio used to build the atom graph (e.g., for deletion/neighbor logic). Default `1.2`.
+* `max_bond` (`int`, optional): Max bond cutoff override. Default `0`.
+* `print_movie` (`bool`, optional): Save/return a movie of all sites or one random site. Default `False`.
+* `unique` (`bool`, optional): Return only unique modified structures. Default `True`.
+* `unique_method` (`str | list[str]`): How uniqueness is computed. Can be `"fullgraph"` or a list like `["C"]` to build subgraphs around selected species. Default `"fullgraph"`.
+* `unique_depth` (`int`): Subgraph depth for uniqueness (ignored if `unique_method="fullgraph"`). Default `3`.
+* `weight` (`float`): Weight for GCBH move selection. Default `1`.
+
+#### Method
+
+```python
+get_modified_atoms(atoms: Atoms) -> Atoms
+```
+
+**Returns:** `ase.Atoms`
