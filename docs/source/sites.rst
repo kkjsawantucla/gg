@@ -15,8 +15,15 @@ Hardcoding of indexes isnt advisable as the atoms object changes during gcbh run
 
     FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
 
-    atoms = read('POSCAR')
+    atoms = read("POSCAR")
     list_sites = FS.get_sites(atoms)
+
+Common usage patterns
+^^^^^^^^^^^^^^^^^^^^^
+
+* Use ``constraints=True`` when the slab is fixed with ``ase.constraints.FixAtoms``.
+* Use ``tag``/``opp_tag`` to include or exclude atoms with a specific tag (e.g., tag surface atoms in your input file).
+* Use ``com`` (e.g., ``com=0.6``) to focus on atoms above the center of mass for clusters or slabs.
 
 .. autoclass:: gg.predefined_sites.FlexibleSites
     :members: 
@@ -32,11 +39,17 @@ This class uses co-ordination number to determine the surface sites. However, we
 
     from gg.predefined_sites import SurfaceSites
 
-    max_coord = {'Pt': 12, 'O': 4, 'H': 2}
+    max_coord = {"Pt": 12, "O": 4, "H": 2}
     SS = SurfaceSites(max_coord=max_coord,max_bond_ratio=1.2) #Define class to figure out surface
 
-    atoms = read('POSCAR')
-    list_sites = FS.get_sites(atoms)
+    atoms = read("POSCAR")
+    list_sites = SS.get_sites(atoms)
+
+Notes
+^^^^^
+
+* ``com`` expects a fraction (e.g., ``0.1`` keeps atoms above the COM by 10% of the z-range).
+* Set ``com=None`` to keep all atoms regardless of height.
 
 .. autoclass:: gg.predefined_sites.SurfaceSites
     :members: 

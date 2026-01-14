@@ -11,12 +11,11 @@ from gg.predefined_sites import FlexibleSites
 
 FS = FlexibleSites(constraints=True, max_bond_ratio=1.2) # Define class to figure out surface
 
-atoms = read('POSCAR')
+atoms = read("POSCAR")
 list_sites = FS.get_sites(atoms)
-
 ```
 
-### `class gg.sites.FlexibleSites(constraints: bool = False, index: list = None, max_bond_ratio: float | None = 1.2, max_bond: float | None = 0, contact_error: float | None = 0.2)`
+### `class gg.predefined_sites.FlexibleSites(constraints: bool = False, index: list | None = None, tag: int | None = None, opp_tag: bool = False, com: float | None = None, max_bond_ratio: float | None = 1.2, max_bond: float | None = 0, contact_error: float | None = 0.3)`
 
 **Bases:** `Sites`
 
@@ -24,6 +23,19 @@ list_sites = FS.get_sites(atoms)
 
 * **`constraints`** (`bool`, optional): If true, only atoms which aren't constrained are considered. Defaults to `False`.
 * **`index`** (`list`, optional): If a list of indices is given, it will be used as it is. Defaults to `None`.
+* **`tag`** (`int`, optional): Only atoms with this tag are considered. Defaults to `None`.
+* **`opp_tag`** (`bool`, optional): If true, exclude atoms with `tag` instead. Defaults to `False`.
+* **`com`** (`float`, optional): When set, keep atoms above the COM by this fractional cutoff. Defaults to `None`.
+* **`max_bond_ratio`** (`float`, optional): Tolerance in the sum of covalent radii between two atoms to be considered a bond. Defaults to `1.2`.
+* **`max_bond`** (`float`, optional): Maximum distance of a bond allowed; ignored if equal to zero. Defaults to `0`.
+* **`contact_error`** (`float`, optional): To ensure atoms aren't too close, the fraction of tolerance allowed. Defaults to `0.3`.
+
+**Note:** You must set at least one of `constraints`, `index`, `tag`, or `com`, or the class raises a `RuntimeError`.
+
+**Common usage patterns**
+* Use `constraints=True` when the slab is fixed with `ase.constraints.FixAtoms`.
+* Use `tag`/`opp_tag` to include or exclude atoms with a specific tag (e.g., tag surface atoms in your input file).
+* Use `com` (e.g., `com=0.6`) to focus on atoms above the center of mass for clusters or slabs.
 
 #### `get_sites(atoms: Atoms) → list`
 
@@ -44,15 +56,14 @@ This class uses coordination number to determine the surface sites. However, we 
 ```python
 from gg.predefined_sites import SurfaceSites
 
-max_coord = {'Pt': 12, 'O': 4, 'H': 2} #Every atom in the POSCAR should be defined
+max_coord = {"Pt": 12, "O": 4, "H": 2} # Every atom in the POSCAR should be defined
 SS = SurfaceSites(max_coord=max_coord, max_bond_ratio=1.2) # Define class to figure out surface
 
-atoms = read('POSCAR')
-list_sites = FS.get_sites(atoms)
-
+atoms = read("POSCAR")
+list_sites = SS.get_sites(atoms)
 ```
 
-### `class gg.sites.SurfaceSites(max_coord: dict, max_bond_ratio: float | None = 1.2, max_bond: float | None = 0, contact_error: float | None = 0.2, com: bool | None = True)`
+### `class gg.predefined_sites.SurfaceSites(max_coord: dict, max_bond_ratio: float | None = 1.2, max_bond: float | None = 0, contact_error: float | None = 0.3, com: float | None = 0.1)`
 
 **Bases:** `Sites`
 
@@ -61,8 +72,12 @@ list_sites = FS.get_sites(atoms)
 * **`max_coord`** (`dict`): Dictionary of the maximum coordination of each element used. Only atoms with coordination less than this value will be considered.
 * **`max_bond_ratio`** (`float`): Tolerance in the sum of covalent radii between two atoms to be considered a bond. Defaults to `1.2`.
 * **`max_bond`** (`float`): Maximum distance of a bond allowed; ignored if equal to zero. Defaults to `0`.
-* **`contact_error`** (`float`): To ensure atoms aren't too close to each other, the fraction of tolerance allowed. Defaults to `0.2`.
-* **`com`** (`Optional[bool]`, optional): If true, atoms below the center of mass are ignored. Defaults to `True`.
+* **`contact_error`** (`float`): To ensure atoms aren't too close to each other, the fraction of tolerance allowed. Defaults to `0.3`.
+* **`com`** (`float | None`, optional): If set, only atoms above the COM fraction are included. Defaults to `0.1`.
+
+**Notes**
+* `com` expects a fraction (e.g., `0.1` keeps atoms above the COM by 10% of the z-range).
+* Set `com=None` to keep all atoms regardless of height.
 
 #### `get_sites(atoms: Atoms, self_interaction: bool = False, bothways: bool = True) → list`
 
