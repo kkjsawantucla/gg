@@ -1,5 +1,3 @@
-### **modifiers.md**
-
 # Modifiers
 
 The modifiers form the building block of the code. They determine how the atoms are modified during each basin hopping step. The code provides basic modifiers as building blocks for more complex modifiers.
@@ -10,7 +8,7 @@ The modifier can add a monodentate adsorbate, or moiety at specific sites on the
 
 ```python
 from gg.modifiers import Add
-from gg.sites import FlexibleSites
+from gg.predefined_sites import FlexibleSites
 from ase.io import read
 
 FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
@@ -37,6 +35,8 @@ modified_atoms = add_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 * `print_movie` (**bool**, optional): Return a movie of all sites or one random site. Defaults to `False`.
 * `unique` (**bool**, optional): Return only unique sites. Defaults to `True`.
 * `weight` (**float**): Weight for gcbh. Defaults to `1`.
+* `unique_method` (**str | list[str]**, optional): How uniqueness is computed (e.g., `"fullgraph"` or `["C"]`). Defaults to `"fullgraph"`.
+* `unique_depth` (**int**, optional): Subgraph depth for uniqueness when `unique_method` is not `"fullgraph"`. Defaults to `3`.
 
 #### `Add.get_modified_atoms(atoms: Atoms) → Atoms`
 
@@ -57,7 +57,7 @@ The modifier can add a bidentate adsorbate, or moiety at specific sites on the p
 
 ```python
 from gg.modifiers import AddBi
-from gg.sites import FlexibleSites
+from gg.predefined_sites import FlexibleSites
 from ase.io import read
 
 FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
@@ -85,6 +85,8 @@ modified_atoms = add_formate.get_modified_atoms(atoms) #Atoms with the adsorbate
 * `unique` (**bool**, optional): Return only unique sites. Defaults to `True`.
 * `ads_rotate` (**bool**, optional): Rotate atoms such that they point in +z direction. Defaults to `True`.
 * `weight` (**float**): Weight for gcbh. Defaults to `1`.
+* `unique_method` (**str | list[str]**, optional): How uniqueness is computed (e.g., `"fullgraph"` or `["C"]`). Defaults to `"fullgraph"`.
+* `unique_depth` (**int**, optional): Subgraph depth for uniqueness when `unique_method` is not `"fullgraph"`. Defaults to `3`.
 
 #### `AddBi.get_modified_atoms(atoms: Atoms) → Atoms`
 
@@ -105,7 +107,7 @@ Remove an adsorbate from the surface.
 
 ```python
 from gg.modifiers import Remove
-from gg.sites import FlexibleSites
+from gg.predefined_sites import FlexibleSites
 from ase.io import read
 
 FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
@@ -130,6 +132,8 @@ modified_atoms = remove_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 * `print_movie` (**bool**, optional): Return a movie of all sites or one random site. Defaults to `False`.
 * `unique` (**bool**, optional): Return only unique sites.
 * `weight` (**float**): Weight for gcbh. Defaults to `1`.
+* `unique_method` (**str | list[str]**, optional): How uniqueness is computed (e.g., `"fullgraph"` or `["C"]`). Defaults to `"fullgraph"`.
+* `unique_depth` (**int**, optional): Subgraph depth for uniqueness when `unique_method` is not `"fullgraph"`. Defaults to `3`.
 
 #### `Remove.get_modified_atoms(atoms: Atoms) → Atoms`
 
@@ -150,7 +154,7 @@ Remove an adsorbate from the surface and replace it.
 
 ```python
 from gg.modifiers import Replace
-from gg.sites import FlexibleSites
+from gg.predefined_sites import FlexibleSites
 from ase.io import read
 
 FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
@@ -177,6 +181,8 @@ modified_atoms = remove_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 * `print_movie` (**bool**, optional): Return a movie of all sites or one random site. Defaults to `False`.
 * `unique` (**bool**, optional): Return only unique sites.
 * `weight` (**float**): Weight for gcbh. Defaults to `1`.
+* `unique_method` (**str | list[str]**, optional): How uniqueness is computed (e.g., `"fullgraph"` or `["C"]`). Defaults to `"fullgraph"`.
+* `unique_depth` (**int**, optional): Subgraph depth for uniqueness when `unique_method` is not `"fullgraph"`. Defaults to `3`.
 
 #### `Replace.get_modified_atoms(atoms: Atoms) → Atoms`
 
@@ -197,7 +203,7 @@ Swap two atoms on the surface.
 
 ```python
 from gg.modifiers import Swap
-from gg.sites import FlexibleSites
+from gg.predefined_sites import FlexibleSites
 from ase.io import read
 
 FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
@@ -219,6 +225,46 @@ modified_atoms = swap.get_modified_atoms(atoms) #Atoms with the adsorbate
 * `swap_ind` (**list**): List of indices to swap. Default to `None`.
 * `print_movie` (**bool**, optional): Return a movie of all sites or one random site. Defaults to `False`.
 * `unique` (**bool**, optional): Return only unique sites. Defaults to `True`.
+* `weight` (**float**): Weight for gcbh. Defaults to `1`.
+* `unique_method` (**str | list[str]**, optional): How uniqueness is computed (e.g., `"fullgraph"` or `["C"]`). Defaults to `"fullgraph"`.
+* `unique_depth` (**int**, optional): Subgraph depth for uniqueness when `unique_method` is not `"fullgraph"`. Defaults to `3`.
+
+---
+
+## Cluster modifiers
+
+Cluster modifiers operate on free clusters rather than slabs. They are useful for exploring alternative cluster orientations or positions.
+
+### `gg.modifiers.cluster.ClusterRotate`
+
+Rotates a cluster of atoms around a surface normal determined from tagged sites.
+
+**Args:**
+* `surface_sites` (**gg.Sites**): Class that figures out surface sites.
+* `max_angle` (**float**, optional): Maximum rotation angle allowed (degrees). Defaults to `180`.
+* `rotate_vector` (**tuple[float, float, float] | None**, optional): Vector along which atoms are rotated. If `None`, the surface normal is used. Defaults to `None`.
+* `contact_error` (**float**, optional): Allowable tolerance in atoms touching. Defaults to `0.2`.
+* `nmovie` (**int**, optional): Number of rotation attempts to generate. Defaults to `1`.
+* `print_movie` (**bool**, optional): Return a movie of all rotations or one random rotation. Defaults to `False`.
+* `unique` (**bool**, optional): Return only unique structures. Defaults to `True`.
+* `unique_method` (**str | list[str]**, optional): How uniqueness is computed (e.g., `"fullgraph"` or `["C"]`). Defaults to `"fullgraph"`.
+* `unique_depth` (**int**, optional): Subgraph depth for uniqueness when `unique_method` is not `"fullgraph"`. Defaults to `3`.
+* `weight` (**float**): Weight for gcbh. Defaults to `1`.
+
+### `gg.modifiers.cluster.ClusterTranslate`
+
+Translates a cluster by a random displacement vector subject to allowed directions.
+
+**Args:**
+* `surface_sites` (**gg.Sites**): Class that figures out surface sites.
+* `max_displace` (**float**, optional): Maximum displacement allowed (angstrom). Defaults to `5`.
+* `allowed_direction` (**tuple[bool, bool, bool]**, optional): Allow displacement in x/y/z. Defaults to `(True, True, False)`.
+* `contact_error` (**float**, optional): Allowable tolerance in atoms touching. Defaults to `0.2`.
+* `nmovie` (**int**, optional): Number of translation attempts to generate. Defaults to `1`.
+* `print_movie` (**bool**, optional): Return a movie of all translations or one random translation. Defaults to `False`.
+* `unique` (**bool**, optional): Return only unique structures. Defaults to `True`.
+* `unique_method` (**str | list[str]**, optional): How uniqueness is computed (e.g., `"fullgraph"` or `["C"]`). Defaults to `"fullgraph"`.
+* `unique_depth` (**int**, optional): Subgraph depth for uniqueness when `unique_method` is not `"fullgraph"`. Defaults to `3`.
 * `weight` (**float**): Weight for gcbh. Defaults to `1`.
 
 #### `Swap.get_modified_atoms(atoms: Atoms) → Atoms`

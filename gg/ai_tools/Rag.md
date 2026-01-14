@@ -224,10 +224,10 @@ Typical outputs for `G.run(...)`:
 - `examples/`
 
 ## Updating this RAG on GitHub
-- The RAG file lives at the repo root: `RAG.md`.
+- The RAG file lives at `gg/ai_tools/Rag.md`.
 - To edit via GitHub’s web UI, open the file in the repository and use the
   “Edit” (pencil) icon, then commit the change in a branch/PR.
-- Direct URL pattern: `https://github.com/<org>/<repo>/blob/<branch>/RAG.md`
+- Direct URL pattern: `https://github.com/<org>/<repo>/blob/<branch>/gg/ai_tools/Rag.md`
   (replace org/repo/branch). For this repository, use the main branch.
 
 ## Pointers for LLMs
