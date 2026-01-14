@@ -93,25 +93,105 @@ def generate_gg_code(
     model: str = "gpt-4.1-mini",
     instructions: str = SYSTEM_CODER,
     include_retrieval: bool = True,
+    use_search_tool: bool = True,
 ) -> str:
     """Generate gg-based Python code from a natural-language prompt."""
     kwargs: Dict[str, Any] = {
         "model": model,
         "instructions": instructions,
         "input": user_prompt,
-        "tools": [
+    }
+    if use_search_tool:
+        kwargs["tools"] = [
             {
                 "type": "file_search",
                 "vector_store_ids": [VECTOR_STORE_ID],
             }
-        ],
-    }
-    if include_retrieval:
+        ]
+    if include_retrieval and use_search_tool:
         # Helpful for debugging what got retrieved
         kwargs["include"] = ["file_search_call.results"]
 
     response = client.responses.create(**kwargs)
     return response.output_text
+
+
+def _load_ai_tools_context() -> str:
+    ai_tools_dir = Path(__file__).resolve().parent
+    context_parts = []
+    for doc_name in ("modifiers.md", "sites.md"):
+        doc_path = ai_tools_dir / doc_name
+        context_parts.append(f"## {doc_name}\n{doc_path.read_text(encoding='utf-8')}")
+    return "\n\n".join(context_parts)
+
+
+def iterative_generate_gg_code_with_local_docs(
+    user_query: str,
+    *,
+    model: str = "gpt-4.1-mini",
+    num_iterations: int = 3,
+    timeout_s: int = 30,
+    run_check: bool = True,
+) -> Tuple[str, Dict[str, Any]]:
+    """
+    Loop through: prompt -> code -> error -> new_prompt -> new_code
+
+    Uses local modifiers.md and sites.md appended to the system planner.
+    Skips the search tool entirely.
+    """
+    if not user_query:
+        raise ValueError("user_query must be provided")
+    if num_iterations < 1:
+        raise ValueError("num_iterations must be >= 1")
+
+    local_context = _load_ai_tools_context()
+    system_planner = f"{SYSTEM_CODER}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}"
+    repair_planner = f"{SYSTEM_REPAIR}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}"
+    prompt = user_query
+    last_code = ""
+    last_run: Dict[str, Any] = {}
+
+    for i in range(1, num_iterations + 1):
+        instructions = system_planner if i == 1 else repair_planner
+        code_temp = generate_gg_code(
+            prompt,
+            model=model,
+            instructions=instructions,
+            include_retrieval=False,
+            use_search_tool=False,
+        )
+        last_code = code_temp
+
+        if not run_check:
+            return code_temp, {
+                "ok": True,
+                "iterations": i,
+                "note": "run_check=False (skipped execution).",
+                "last_run": {},
+            }
+
+        last_run = dry_run(code_temp, timeout_s=timeout_s)
+        if last_run.get("ok"):
+            return code_temp, {
+                "ok": True,
+                "iterations": i,
+                "last_run": last_run,
+            }
+
+        prompt = _compose_repair_prompt(
+            original_request=user_query,
+            previous_prompt=prompt,
+            previous_code=code_temp,
+            run_result=last_run,
+            iter_idx=i,
+        )
+
+    return last_code, {
+        "ok": False,
+        "iterations": num_iterations,
+        "last_run": last_run,
+        "note": "Reached num_iterations without a successful run. Consider increasing num_iterations or improving the initial prompt.",
+    }
 
 
 def dry_run(python_code: str, *, timeout_s: int = 30) -> Dict[str, Any]:
