@@ -78,7 +78,7 @@ Your job:
 - Do NOT include markdown or explanations. Output must be only Python code.
 """
 
-VECTOR_STORE_ID = "vs_6963443265b481919b82d51c2841850f"
+VECTOR_STORE_ID = "vs_6966fc692edc8191b14d5899006ca850"
 
 # 1. Configuration
 api_key = os.environ.get("OPENAI_API_KEY")
@@ -126,10 +126,10 @@ def _load_ai_tools_context() -> str:
 
 
 def iterative_generate_gg_code_with_local_docs(
-    user_query: str,
+    user_prompt: str,
     *,
     model: str = "gpt-4.1-mini",
-    num_iterations: int = 3,
+    max_iters: int = 3,
     timeout_s: int = 30,
     run_check: bool = True,
 ) -> Tuple[str, Dict[str, Any]]:
@@ -139,19 +139,19 @@ def iterative_generate_gg_code_with_local_docs(
     Uses local modifiers.md and sites.md appended to the system planner.
     Skips the search tool entirely.
     """
-    if not user_query:
+    if not user_prompt:
         raise ValueError("user_query must be provided")
-    if num_iterations < 1:
+    if max_iters < 1:
         raise ValueError("num_iterations must be >= 1")
 
     local_context = _load_ai_tools_context()
     system_planner = f"{SYSTEM_CODER}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}"
     repair_planner = f"{SYSTEM_REPAIR}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}"
-    prompt = user_query
+    prompt = user_prompt
     last_code = ""
     last_run: Dict[str, Any] = {}
 
-    for i in range(1, num_iterations + 1):
+    for i in range(1, max_iters + 1):
         instructions = system_planner if i == 1 else repair_planner
         code_temp = generate_gg_code(
             prompt,
@@ -179,7 +179,7 @@ def iterative_generate_gg_code_with_local_docs(
             }
 
         prompt = _compose_repair_prompt(
-            original_request=user_query,
+            original_request=user_prompt,
             previous_prompt=prompt,
             previous_code=code_temp,
             run_result=last_run,
@@ -188,7 +188,7 @@ def iterative_generate_gg_code_with_local_docs(
 
     return last_code, {
         "ok": False,
-        "iterations": num_iterations,
+        "iterations": max_iters,
         "last_run": last_run,
         "note": "Reached num_iterations without a successful run. Consider increasing num_iterations or improving the initial prompt.",
     }
