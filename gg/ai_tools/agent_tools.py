@@ -1,8 +1,6 @@
 import os
-import subprocess
-import tempfile
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 from openai import OpenAI
 
@@ -125,202 +123,18 @@ def _load_ai_tools_context() -> str:
     return "\n\n".join(context_parts)
 
 
-def iterative_generate_gg_code_with_local_docs(
+def generate_gg_code_with_local_docs(
     user_prompt: str,
     *,
     model: str = "gpt-4.1-mini",
-    max_iters: int = 3,
-    timeout_s: int = 30,
-    run_check: bool = True,
-) -> Tuple[str, Dict[str, Any]]:
-    """
-    Loop through: prompt -> code -> error -> new_prompt -> new_code
-
-    Uses local modifiers.md and sites.md appended to the system planner.
-    Skips the search tool entirely.
-    """
-    if not user_prompt:
-        raise ValueError("user_query must be provided")
-    if max_iters < 1:
-        raise ValueError("num_iterations must be >= 1")
-
-    local_context = _load_ai_tools_context()
-    system_planner = f"{SYSTEM_CODER}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}"
-    repair_planner = f"{SYSTEM_REPAIR}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}"
-    prompt = user_prompt
-    last_code = ""
-    last_run: Dict[str, Any] = {}
-
-    for i in range(1, max_iters + 1):
-        instructions = system_planner if i == 1 else repair_planner
-        code_temp = generate_gg_code(
-            prompt,
-            model=model,
-            instructions=instructions,
-            include_retrieval=False,
-            use_search_tool=False,
-        )
-        last_code = code_temp
-
-        if not run_check:
-            return code_temp, {
-                "ok": True,
-                "iterations": i,
-                "note": "run_check=False (skipped execution).",
-                "last_run": {},
-            }
-
-        last_run = dry_run(code_temp, timeout_s=timeout_s)
-        if last_run.get("ok"):
-            return code_temp, {
-                "ok": True,
-                "iterations": i,
-                "last_run": last_run,
-            }
-
-        prompt = _compose_repair_prompt(
-            original_request=user_prompt,
-            previous_prompt=prompt,
-            previous_code=code_temp,
-            run_result=last_run,
-            iter_idx=i,
-        )
-
-    return last_code, {
-        "ok": False,
-        "iterations": max_iters,
-        "last_run": last_run,
-        "note": "Reached num_iterations without a successful run. Consider increasing num_iterations or improving the initial prompt.",
-    }
-
-
-def dry_run(python_code: str, *, timeout_s: int = 30) -> Dict[str, Any]:
-    """
-    Runs python_code in a fresh interpreter process.
-
-    Returns a dict with:
-      ok (bool), returncode (int), stdout (str), stderr (str)
-    """
-    with tempfile.TemporaryDirectory() as td:
-        run_path = Path(td) / "run.py"
-        run_path.write_text(python_code, encoding="utf-8")
-
-        proc = subprocess.run(
-            ["python", str(run_path)],
-            capture_output=True,
-            text=True,
-            timeout=timeout_s,
-            check=False,
-        )
-
-        return {
-            "ok": proc.returncode == 0,
-            "returncode": proc.returncode,
-            "stdout": proc.stdout,
-            "stderr": proc.stderr,
-        }
-
-
-def _compose_repair_prompt(
-    *,
-    original_request: str,
-    previous_prompt: str,
-    previous_code: str,
-    run_result: Dict[str, Any],
-    iter_idx: int,
 ) -> str:
-    stdout = (run_result.get("stdout") or "").strip()
-    stderr = (run_result.get("stderr") or "").strip()
-    rc = run_result.get("returncode")
-
-    # Keep the prompt reasonably sized; still include enough context to fix the issue.
-    max_code_chars = 10000
-    code_snippet = previous_code if len(previous_code) <= max_code_chars else previous_code[:max_code_chars] + "\n# ... (truncated) ...\n"
-
-    return (
-        "ORIGINAL REQUEST:\n"
-        f"{original_request}\n\n"
-        f"ITERATION: {iter_idx}\n\n"
-        "PREVIOUS PROMPT USED (for context):\n"
-        f"{previous_prompt}\n\n"
-        "THE PREVIOUSLY GENERATED CODE (that failed):\n"
-        "```\n"
-        f"{code_snippet}\n"
-        "```\n\n"
-        "RUNTIME RESULT WHEN EXECUTED (python run.py):\n"
-        f"Return code: {rc}\n\n"
-        "STDOUT:\n"
-        f"{stdout if stdout else '(empty)'}\n\n"
-        "STDERR / TRACEBACK:\n"
-        f"{stderr if stderr else '(empty)'}\n\n"
-        "TASK:\n"
-        "Fix the code so it runs successfully and still satisfies the ORIGINAL REQUEST. "
-        "Return ONLY corrected Python code."
+    """Generate gg-based Python code using local docs for context."""
+    local_context = _load_ai_tools_context()
+    instructions = f"{SYSTEM_CODER}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}"
+    return generate_gg_code(
+        user_prompt,
+        model=model,
+        instructions=instructions,
+        include_retrieval=False,
+        use_search_tool=False,
     )
-
-
-def iterative_generate_gg_code(
-    user_prompt: str,
-    *,
-    max_iters: int = 3,
-    model: str = "gpt-4.1-mini",
-    timeout_s: int = 30,
-    include_retrieval: bool = True,
-    run_check: bool = True,
-) -> Tuple[str, Dict[str, Any]]:
-    """
-    Loop through: prompt -> code -> error -> new_prompt -> new_code
-
-    - max_iters is user-defined.
-    - If run_check=False, the function will generate once and skip execution.
-
-    Returns (final_code, metadata).
-    """
-    if max_iters < 1:
-        raise ValueError("max_iters must be >= 1")
-
-    prompt = user_prompt
-    last_code = ""
-    last_run: Dict[str, Any] = {}
-
-    for i in range(1, max_iters + 1):
-        instructions = SYSTEM_CODER if i == 1 else SYSTEM_REPAIR
-        code_temp = generate_gg_code(
-            prompt,
-            model=model,
-            instructions=instructions,
-            include_retrieval=include_retrieval,
-        )
-        last_code = code_temp
-
-        if not run_check:
-            return code_temp, {
-                "ok": True,
-                "iterations": i,
-                "note": "run_check=False (skipped execution).",
-                "last_run": {},
-            }
-
-        last_run = dry_run(code_temp, timeout_s=timeout_s)
-        if last_run.get("ok"):
-            return code_temp, {
-                "ok": True,
-                "iterations": i,
-                "last_run": last_run,
-            }
-
-        # Build the next prompt using the error
-        prompt = _compose_repair_prompt(
-            original_request=user_prompt,
-            previous_prompt=prompt,
-            previous_code=code_temp,
-            run_result=last_run,
-            iter_idx=i,
-        )
-
-    return last_code, {
-        "ok": False,
-        "iterations": max_iters,
-        "last_run": last_run,
-        "note": "Reached max_iters without a successful run. Consider increasing max_iters or improving the initial prompt.",
-    }
