@@ -1,7 +1,10 @@
 import os
 from pathlib import Path
 from typing import Any, Dict
+from collections import Counter
 
+import numpy as np
+from ase.io import read
 from openai import OpenAI
 
 SYSTEM_CODER = """
@@ -90,10 +93,13 @@ def generate_gg_code(
     *,
     model: str = "gpt-4.1-mini",
     instructions: str = SYSTEM_CODER,
+    structure_path: Path | None = None,
     include_retrieval: bool = True,
     use_search_tool: bool = True,
 ) -> str:
     """Generate gg-based Python code from a natural-language prompt."""
+    if structure_path is not None:
+        instructions = f"{instructions}\n\n{attach_structure_context(structure_path)}"
     kwargs: Dict[str, Any] = {
         "model": model,
         "instructions": instructions,
@@ -125,12 +131,18 @@ def _load_ai_tools_context() -> str:
 
 def generate_gg_code_with_local_docs(
     user_prompt: str,
-    *,
     model: str = "gpt-4.1-mini",
+    structure_path: Path | None = None,
 ) -> str:
     """Generate gg-based Python code using local docs for context."""
     local_context = _load_ai_tools_context()
-    instructions = f"{SYSTEM_CODER}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}"
+    structure_context = ""
+    if structure_path is not None:
+        structure_context = attach_structure_context(structure_path)
+    if structure_context:
+        instructions = f"{SYSTEM_CODER}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}\n\n{structure_context}"
+    else:
+        instructions = f"{SYSTEM_CODER}\n\nSYSTEM PLANNER CONTEXT:\n{local_context}"
     return generate_gg_code(
         user_prompt,
         model=model,
@@ -138,3 +150,42 @@ def generate_gg_code_with_local_docs(
         include_retrieval=False,
         use_search_tool=False,
     )
+
+
+def attach_structure_context(poscar_path: Path) -> str:
+    if not poscar_path.exists():
+        raise FileNotFoundError(f"Structure file not found: {poscar_path}")
+
+    atoms = read(str(poscar_path))
+    total_atoms = len(atoms)
+    counts = Counter(atoms.get_chemical_symbols())
+    composition = ", ".join(f"{element}:{counts[element]}" for element in sorted(counts))
+    pbc = atoms.get_pbc()
+    pbc_str = f"{bool(pbc[0])},{bool(pbc[1])},{bool(pbc[2])}"
+    cell = atoms.get_cell().array
+    cell_str = "; ".join(
+        ",".join(f"{value:.3f}" for value in vector) for vector in cell
+    )
+    center_of_mass = atoms.get_center_of_mass()
+    com_str = ",".join(f"{value:.3f}" for value in center_of_mass)
+    z_positions = atoms.get_positions()[:, 2]
+    z_min = float(np.min(z_positions))
+    z_max = float(np.max(z_positions))
+    z_range_str = f"{z_min:.3f},{z_max:.3f}"
+
+    filename = poscar_path.name
+    lines = [
+        "Structure context (ASE-parsed):",
+        f"Total atoms: {total_atoms}",
+        f"Composition: {composition}",
+        f"PBC (x,y,z): {pbc_str}",
+        f"Cell vectors (A): {cell_str}",
+        f"Center of mass (A): {com_str}",
+        f"Z range (A): {z_range_str}",
+        "Instructions:",
+        "Structure already parsed with ASE.",
+        f'Generated code MUST load structure using ase.io.read("{filename}").',
+        "Do NOT build surfaces using ase.build.",
+        "Apply all gg modifiers directly to the loaded atoms.",
+    ]
+    return "\n".join(lines)
