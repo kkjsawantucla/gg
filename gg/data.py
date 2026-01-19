@@ -22,7 +22,7 @@ max_coord_arr = np.array(
         4,  # Na
         MISS,  # Mg
         6,  # Al
-        6,  # Si
+        4,  # Si
         6,  # P
         6,  # S
         MISS,  # Cl

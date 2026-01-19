@@ -7,77 +7,79 @@ import numpy as np
 from ase.io import read
 from openai import OpenAI
 
+
 SYSTEM_CODER = """
 You are a Python Code Generator for the 'gg' computational catalysis library.
-Your goal is to translate user requests into executable Python scripts using the 'gg' library.
+Your job is to translate the users request into a single, executable Python script that uses the gg library to build/modify atomic structures.
 
-### Library Context (gg)
-- **Sites**: Use `FlexibleSites`, `RuleSites`, or `SurfaceSites` to define where atoms go.
-- **Modifiers**: Use `Add`, `Remove`, `Replace`, `Swap` to change the structure.
-- **Data**: Use `ase.build` for surfaces (fcc111, etc.) unless a file is provided.
+### Core gg Concepts
+
+* **Sites**: Use `FlexibleSites`, `RuleSites`, or `SurfaceSites` to define adsorption/substitution sites.
+* **Modifiers**: Use `Add`, `Remove`, `Replace`, `Swap`, `Cluster Translate`, `Cluster Rotate` and combinators like `ModifierAdder` when needed.
+* **Structures / Data**:
+
+  * If the user requests a surface and provides no file, build it using `ase.build` (e.g., `fcc111`, `fcc100`, etc.).
+  * If the user does not specify a surface, infer a reasonable default only when clearly implied; otherwise choose a minimal valid structure.
+
+### Script Requirements
+
+* The script must be runnable end-to-end as provided.
+* Always include:
+
+  1. necessary imports
+  2. creation/loading of `atoms`
+  3. site definition (FS/RS/SS)
+  4. modifier definition(s)
+  5. application via `.get_modified_atoms(atoms)` (or the correct gg call signature if required by the modifier)
+  6. a clear final variable name like `modified_atoms` holding the result
+* If the user asks for movies/uniqueness/sampling, set `print_movie=True`, `unique=True`, and other relevant flags.
+* Prefer `FlexibleSites` unless the user explicitly requests another sites class.
 
 ### Strict Output Rules
-1. Return **ONLY** valid Python code. No markdown, no explanations, no `python` tags.
-2. Always include necessary imports (e.g., `from gg.modifiers import ...`, `from ase.build import ...`).
-3. Follow the user's style: define sites, define the modifier, and call `.get_modified_atoms()`.
 
-### Few-Shot Examples
+1. Return ONLY valid Python code. No markdown. No explanations. No prose.
+2. Always include necessary imports (e.g., `from gg.modifiers import ...`, `from gg.predefined_sites import ...`, `from ase.build import ...`).
+3. Follow the users style: define sites, define the modifier(s), and call `.get_modified_atoms()`.
 
-User: "Add OH to Pt(111) atoms at hollow sites"
-Assistant:
-from gg.modifiers import Add
-from gg.predefined_sites import FlexibleSites
-
-FS = FlexibleSites(constraints=True, max_bond_ratio=1.2) 
-add_OH = Add(
-    FS, 
-    ads="OH",
-    surf_coord=[3],
-    ads_id=["O"],
-    surf_sym=["Pt"],
-    print_movie=True,
-    unique=True
-)
+### Example
 
 User: "Dissociatively add H2O to Pt(111) surface atoms at top sites"
 Assistant:
 from gg.modifiers import Add, ModifierAdder
 from gg.predefined_sites import FlexibleSites
+from ase.build import fcc111
 
-FS = FlexibleSites(max_bond_ratio=1.2,com=0.5)
+atoms = fcc111("Pt", size=(3,3,4), vacuum=10.0)
+
+FS = FlexibleSites(max_bond_ratio=1.2, com=0.5)
+
 add_H = Add(
-    FS,
-    ads="H",
-    surf_coord=[1],
-    ads_id=["H"],
-    surf_sym=["Pt","O"]
-    )
+FS,
+ads="H",
+surf_coord=[1],
+ads_id=["H"],
+surf_sym=["Pt","O"],
+print_movie=True
+)
+
 add_OH = Add(
-    FS,
-    ads="OH",
-    surf_coord=[1],
-    ads_id=["O"],
-    surf_sym=["Pt"],print_movie=True)
+FS,
+ads="OH",
+surf_coord=[1],
+ads_id=["O"],
+surf_sym=["Pt"],
+print_movie=True
+)
+
 add_H2O = ModifierAdder(
-    [add_OH, add_H],
-    print_movie=True,
-    unique=True)
+[add_OH, add_H],
+print_movie=True,
+unique=True
+)
+
+modified_atoms = add_H2O.get_modified_atoms(atoms)
 """
 
-SYSTEM_REPAIR = """
-You are a Python Code Debugger for the 'gg' computational catalysis library.
-
-You will be given:
-- the user's original request
-- a previous Python script you generated
-- the runtime error (traceback / stderr) produced when running that script
-
-Your job:
-- Return ONLY corrected, executable Python code that satisfies the user's original request.
-- Preserve the user's intent and use the 'gg' library idioms (sites, modifiers, etc.).
-- Fix imports, missing variables, wrong API calls, and any runtime issues.
-- Do NOT include markdown or explanations. Output must be only Python code.
-"""
 
 VECTOR_STORE_ID = "vs_6966fc692edc8191b14d5899006ca850"
 
@@ -87,10 +89,18 @@ if not api_key:
     raise ValueError("OPENAI_API_KEY must be set to use the OpenAI client.")
 client = OpenAI(api_key=api_key)
 
+def extract_final_text(response) -> str:
+    """Python SDK returns typed objects, not dicts"""
+    for item in reversed(response.output):
+        if getattr(item, "type", None) == "message":
+            for content in getattr(item, "content", []) or []:
+                if getattr(content, "type", None) == "output_text":
+                    return content.text
+    return ""
+
 
 def generate_gg_code(
     user_prompt: str,
-    *,
     model: str = "gpt-4.1-mini",
     instructions: str = SYSTEM_CODER,
     structure_path: Path | None = None,
@@ -117,7 +127,9 @@ def generate_gg_code(
         kwargs["include"] = ["file_search_call.results"]
 
     response = client.responses.create(**kwargs)
-    return response.output_text
+    code = extract_final_text(response)
+    assert code.strip(), "Model returned no code"
+    return code
 
 
 def _load_ai_tools_context() -> str:
@@ -153,6 +165,8 @@ def generate_gg_code_with_local_docs(
 
 
 def attach_structure_context(poscar_path: Path) -> str:
+    """_summary_"""
+    poscar_path = Path(poscar_path)
     if not poscar_path.exists():
         raise FileNotFoundError(f"Structure file not found: {poscar_path}")
 
@@ -187,5 +201,6 @@ def attach_structure_context(poscar_path: Path) -> str:
         f'Generated code MUST load structure using ase.io.read("{filename}").',
         "Do NOT build surfaces using ase.build.",
         "Apply all gg modifiers directly to the loaded atoms.",
+        "If using SurfaceSites(max_coord=...), max_coord MUST be a dict covering ALL elements in atoms.",
     ]
     return "\n".join(lines)
