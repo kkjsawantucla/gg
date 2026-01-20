@@ -24,6 +24,7 @@ Your job is to translate the users request into a single, executable Python scri
 ### Script Requirements
 
 * The script must be runnable end-to-end as provided.
+* When defining adsorbates, check if the adsorbate exists in `gg.data` or is predefined using ASE. If not, add a code comment noting the missing adsorbate definition.
 * Always include:
 
   1. necessary imports
