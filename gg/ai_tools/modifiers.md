@@ -9,13 +9,13 @@ The modifier can add a monodentate adsorbate, or moiety at specific sites on the
 ```python
 from gg.modifiers import Add
 from gg.predefined_sites import FlexibleSites
-from ase.io import read
+from ase.build import fcc111
+
+atoms = fcc111("Pt", size=(3, 3 , 4), vacuum=10.0)
 
 FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
-ads_OH = read("OH.POSCAR") #adsorbate to be added
-add_OH = Add(FS, ads=ads_OH, surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"],print_movie=True)
+add_OH = Add(FS, ads="OH", surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"], print_movie=True, unique=True)
 
-atoms = read('POSCAR') #The atoms object that will adsorb
 modified_atoms = add_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 
 ```
@@ -28,7 +28,7 @@ modified_atoms = add_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 
 * `surface_sites` (**gg.Sites**): Class that figures out surface sites.
 * `ads` (**str** or **ase.Atoms**): Adsorbate to add.
-* `surf_coord` (**list[int]**): How many bonds the adsorbate will make with the surface.
+* `surf_coord` (**list[int]**): How many bonds the adsorbing atom will make with the surface.
 * `surf_sym` (**list[str]**): Surface elements where adsorbate can add.
 * `ads_id` (**list[float]**): Strings denoting chemical symbol of adsorbate atom. Defaults to `None`.
 * `ads_dist` (**str**, optional): Distance of adsorbate from surface site. If `ads_id` is mentioned, this variable is ignored. Defaults to `1.8`.
@@ -56,15 +56,22 @@ modified_atoms = add_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 The modifier can add a bidentate adsorbate, or moiety at specific sites on the parent atoms object.
 
 ```python
+#Example for Adding Formate as Bidentate Molecule
 from gg.modifiers import AddBi
 from gg.predefined_sites import FlexibleSites
-from ase.io import read
+from ase.build import fcc111
+
+atoms = fcc111("Pt", size=(3, 3 , 4), vacuum=10.0)
 
 FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
-ads_formate = read("OCHO.POSCAR") #adsorbate to be added (formate)
-add_formate = AddBi(FS, ads=ads_formate, surf_coord=[1,2,3], ads_id=["O"], surf_sym=["Pt"], print_movie=True)
+add_formate = AddBi(FS, 
+    ads="HCOO", #Read adsorbate from database
+    surf_coord=[1,2,3], #Co-ordination of surface sites
+    ads_id=["O"], #The symbol in adsorbate which can attach to surface
+    surf_sym=["Pt"], 
+    print_movie=True, 
+    unique=True)
 
-atoms = read('POSCAR') #The atoms object that will adsorb
 modified_atoms = add_formate.get_modified_atoms(atoms) #Atoms with the adsorbate
 
 ```
@@ -77,7 +84,7 @@ modified_atoms = add_formate.get_modified_atoms(atoms) #Atoms with the adsorbate
 
 * `surface_sites` (**gg.Sites**): Class that figures out surface sites.
 * `ads` (**str** or **ase.Atoms**): Adsorbate to add.
-* `surf_coord` (**list[int]**): How many bonds the adsorbate will make with the surface.
+* `surf_coord` (**list[int]**): How many bonds the adsorbing atom will make with the surface.
 * `surf_sym` (**list[str]**): Surface elements where adsorbate can add.
 * `ads_id` (**list** of **[int or str]**): Strings denoting chemical symbol of adsorbate atom.
 * `ads_dist` (**list** of **[float or str]**, optional): Distance of adsorbate from surface site. If it is a string denoting the chemical symbol of an adsorbate atom, then distance is set by atomic radii. Defaults to covalent radii of atoms mentioned in `ads_id`.
@@ -106,15 +113,14 @@ modified_atoms = add_formate.get_modified_atoms(atoms) #Atoms with the adsorbate
 Remove an adsorbate from the surface.
 
 ```python
+#Example for removing OH from the surface
 from gg.modifiers import Remove
 from gg.predefined_sites import FlexibleSites
-from ase.io import read
 
 FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
-ads_OH = read("OH.POSCAR") #adsorbate to be removed
-remove_OH = Remove(FS, to_del=ads_OH, print_movie=True)
+remove_OH = Remove(FS, to_del="OH", print_movie=True)
 
-atoms = read('POSCAR_with_OH') #The atoms object that has OHs to be removed
+atoms = read("POSCAR_with_OH") #The atoms object that has OHs to be removed
 modified_atoms = remove_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 
 ```
@@ -153,17 +159,16 @@ modified_atoms = remove_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
 Remove an adsorbate from the surface and replace it.
 
 ```python
+#Example for replacing surface OH with surface NO
 from gg.modifiers import Replace
 from gg.predefined_sites import FlexibleSites
 from ase.io import read
 
-FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface
-adsorbate_OH = read("OH.POSCAR") #adsorbate to be removed
-adsorbate_NO = read("NO.POSCAR") #adsorbate to be replaced with
-remove_OH = Replace(FS, to_del=adsorbate_OH, with_replace=adsorbate_NO, print_movie=True)
+FS = FlexibleSites(constraints=True,max_bond_ratio=1.2) #Define class to figure out surface sites
+remove_OH = Replace(FS, to_del="OH", with_replace="NO", print_movie=True)
 
-atoms = read('POSCAR_with_OH') #The atoms object that has OHs to be removed
-modified_atoms = remove_OH.get_modified_atoms(atoms) #Atoms with the adsorbate
+atoms = read("POSCAR_with_OH") #The atoms object that has OHs to be replaced
+modified_atoms = remove_OH.get_modified_atoms(atoms) #Atoms with the new adsorbate
 
 ```
 
@@ -238,6 +243,24 @@ Cluster modifiers operate on free clusters rather than slabs. They are useful fo
 ### `gg.modifiers.cluster.ClusterRotate`
 
 Rotates a cluster of atoms around a surface normal determined from tagged sites.
+Make sure to tag the cluster atoms using atom.tag = -1
+
+### Example of rotating Pt cluster on TiO2
+
+```python
+from gg.modifiers import ClusterRotate
+from gg.predefined_sites import FlexibleSites
+from ase.io import read
+
+atoms = read("POSCAR_Pt_TiO2")
+for a in atoms:
+  if a.symbol=='Pt':
+    a.tag=-1
+FS = FlexibleSites(tag=-1)
+rotate = ClusterRotate(FS,contact_error=0.2,rotate_vector=(0,0,1))
+modified_atoms = rotate.get_modified_atoms(atoms)
+```
+
 
 **Args:**
 * `surface_sites` (**gg.Sites**): Class that figures out surface sites.
@@ -254,6 +277,24 @@ Rotates a cluster of atoms around a surface normal determined from tagged sites.
 ### `gg.modifiers.cluster.ClusterTranslate`
 
 Translates a cluster by a random displacement vector subject to allowed directions.
+Make sure to tag the cluster atoms using atom.tag = -1
+
+### Example of translating Pt cluster on TiO2
+
+```python
+from gg.modifiers import ClusterTranslate
+from gg.predefined_sites import FlexibleSites
+from ase.io import read
+
+atoms = read("POSCAR_Pt_TiO2")
+for a in atoms:
+  if a.symbol=='Pt':
+    a.tag=-1
+FS = FlexibleSites(tag=-1)
+trans = ClusterTranslate(FS,contact_error=0.2)
+modified_atoms = trans.get_modified_atoms(atoms)
+```
+
 
 **Args:**
 * `surface_sites` (**gg.Sites**): Class that figures out surface sites.
@@ -339,3 +380,41 @@ get_modified_atoms(atoms: Atoms) -> Atoms
 ```
 
 **Returns:** `ase.Atoms`
+
+## Available Modifiers for Adsorbates
+
+### String → `ase.Atoms` conversion logic
+
+```python
+if isinstance(ads, str):
+    if ads in adsorbates:
+        _ads = adsorbates[ads]
+    elif ads in ase.collections.g2.names:
+        _ads = ase.build.molecule(ads)
+    elif ads in chemical_symbols:
+        _ads = ase.Atoms(ads, positions=[(0, 0, 0)])
+    else:
+        raise RuntimeError(f"Cannot convert string to Formula {ads}")
+```
+
+### Supported adsorbate names (`adsorbate_names`)
+
+```python
+adsorbate_names = {
+    "hydrogen": adsorbates["H2"],
+    "oxygen": adsorbates["O2"],
+    "water": adsorbates["H2O"],
+    "hydroxyl": adsorbates["OH"],
+    "hydroperoxyl": adsorbates["OOH"],
+    "carbon monoxide": adsorbates["CO"],
+    "carbon dioxide": adsorbates["CO2"],
+    "nitric oxide": adsorbates["NO"],
+    "ammonia": adsorbates["NH3"],
+    "amino": adsorbates["NH2"],
+    "imidogen": adsorbates["NH2"],
+    "methyl": adsorbates["CH3"],
+    "methylene": adsorbates["CH2"],
+    "methylidyne": adsorbates["CH"],
+    "formate": adsorbates["HCOO"],
+}
+```
