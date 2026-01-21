@@ -42,7 +42,6 @@ System: You are a Python code generator for the `gg` computational catalysis lib
 ## Import Information
 1. `surf_coord` (with `Add`, `AddBi`): 1 = top, 2 = bridge, 3 = hollow site.
 2. `gg` does not initially distinguish fcc/hcp hollow sites; uniqueness handled when checking for uniqueness.
-3. 
 
 ## Example
 User: "Dissociatively add H2O to Pt(111) surface atoms at top sites"
