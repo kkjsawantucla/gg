@@ -20,6 +20,10 @@ from gg.data import adsorbates
 class Add(ParentModifier):
     """Modifier that adds an monodentate adsorbate"""
 
+    @staticmethod
+    def _unique_symbols(symbols: list) -> list:
+        return list(dict.fromkeys(symbols))
+
     def __init__(
         self,
         surface_sites: Sites,
@@ -88,7 +92,10 @@ class Add(ParentModifier):
                 raise RuntimeError(f"Cannot convert string to Formula {ads}")
         elif isinstance(ads, Atoms):
             self.ads = custom_copy(ads)
-        self.surf_sym = surf_sym
+        if isinstance(surf_sym, list):
+            self.surf_sym = self._unique_symbols(surf_sym)
+        else:
+            self.surf_sym = surf_sym
         if isinstance(surf_coord, int):
             self.surf_coord = [surf_coord]
         elif isinstance(surf_coord, list):
@@ -96,7 +103,10 @@ class Add(ParentModifier):
         else:
             raise NoReasonableStructureFound("Please enter proper value for surf_coord")
         if ads_id:
-            self.ads_id = ads_id
+            if isinstance(ads_id, list) and all(isinstance(item, str) for item in ads_id):
+                self.ads_id = self._unique_symbols(ads_id)
+            else:
+                self.ads_id = ads_id
         if ads_dist:
             self.ads_dist = ads_dist
         else:
@@ -272,7 +282,10 @@ class AddBi(Add):
             unique_depth=unique_depth,
         )
 
-        self.ads_id_list = ads_id
+        if isinstance(ads_id, list) and all(isinstance(item, str) for item in ads_id):
+            self.ads_id_list = self._unique_symbols(ads_id)
+        else:
+            self.ads_id_list = ads_id
 
         if all(isinstance(item, str) for item in self.ads_id_list):
             self.ads_id_list, self.ads, self.ads_dist_list = self.get_all_adsorbates(
