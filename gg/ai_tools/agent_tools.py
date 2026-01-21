@@ -42,6 +42,7 @@ System: System: You are a Python code generator for the `gg` computational catal
 ## Additional Information
 1. `surf_coord` for `Add`/`AddBi`: 1 = top site, 2 = bridge site, 3 = hollow site.
 2. `gg` does not initially distinguish fcc/hcp hollow sites; uniqueness is managed during uniqueness checking.
+3. `ads_id` and `surf_sym`: unique atomic symbols that select the adsorbate atom(s) and surface site atoms (for `Add`/`AddBi`).
 
 ## Example
 User: "Dissociatively add H2O to Pt(111) surface atoms at top sites"
