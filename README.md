@@ -29,6 +29,12 @@ cd gg/
 pip install .
 ~~~
 
+Install using uv
+~~~bash
+cd gg/
+uv pip install .
+~~~
+
 Alternatively, you can add ./gg to your $PYTHONPATH. (not recommended)
 ~~~bash
 export PYTHONPATH=$PYTHONPATH:"<path_to_gg>"
