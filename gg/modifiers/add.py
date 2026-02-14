@@ -24,6 +24,41 @@ class Add(ParentModifier):
     def _unique_symbols(symbols: list) -> list:
         return list(dict.fromkeys(symbols))
 
+    @staticmethod
+    def _make_adsorbate_contiguous(atoms: Atoms) -> Atoms:
+        """Move adsorbate atoms to a contiguous image under periodic boundary conditions."""
+        ads = atoms.copy()
+        if len(ads) < 2 or not ads.pbc.any():
+            return ads
+
+        positions = ads.get_positions()
+        contiguous_positions = positions.copy()
+        placed = {0}
+        unplaced = set(range(1, len(ads)))
+
+        while unplaced:
+            best_pair = None
+            best_vector = None
+            best_distance = float("inf")
+
+            for source in placed:
+                targets = list(unplaced)
+                vectors = ads.get_distances(source, targets, mic=True, vector=True)
+                distances = ads.get_distances(source, targets, mic=True)
+                for target, vector, distance in zip(targets, vectors, distances):
+                    if distance < best_distance:
+                        best_pair = (source, target)
+                        best_vector = vector
+                        best_distance = distance
+
+            source, target = best_pair
+            contiguous_positions[target] = contiguous_positions[source] + best_vector
+            placed.add(target)
+            unplaced.remove(target)
+
+        ads.set_positions(contiguous_positions)
+        return ads
+
     def __init__(
         self,
         surface_sites: Sites,
@@ -92,6 +127,7 @@ class Add(ParentModifier):
                 raise RuntimeError(f"Cannot convert string to Formula {ads}")
         elif isinstance(ads, Atoms):
             self.ads = custom_copy(ads)
+        self.ads = self._make_adsorbate_contiguous(self.ads)
         if isinstance(surf_sym, list):
             self.surf_sym = self._unique_symbols(surf_sym)
         else:
