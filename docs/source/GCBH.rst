@@ -109,6 +109,10 @@ their defaults in :class:`gg.gcbh.Gcbh`.
     graph_method: fullgraph
     check_contact_error: 0.5
 
+Defining ``chemical_potential``:
+
+Set ``chemical_potential`` to a dictionary mapping each element exchanged with a reservoir to its chemical potential (in eV per atom, consistent with your calculator energies). For example, use ``{"Cu": -4.10, "O": -7.50, "H": -3.40}`` if those species can be added/removed by your modifiers. Include every species that may change during GCBH moves; missing entries can make free-energy comparisons inconsistent because ``Gcbh`` evaluates ``F = E - sum(mu_i * n_i)`` for acceptance decisions.
+
 Parameter details:
 
 * ``chemical_potential`` (dict): Required mapping like ``{"Cu": -4.1, "O": -7.5}`` used to compute grand-canonical free energy ``F = E - sum(mu_i * n_i)``.

@@ -172,6 +172,7 @@ Make sure to tag the cluster atoms using atom.tag = -1
   :undoc-members:
   :show-inheritance:
 
+
 Modifier Adder
 -----------------------
 
@@ -196,3 +197,72 @@ Combine multiple modifiers into a single sequential modifier. The following exam
   :members: get_modified_atoms
   :undoc-members:
   :show-inheritance:
+
+Creating New Modifiers with ParentModifier
+------------------------------------------
+
+You can implement custom modifiers by inheriting from ``ParentModifier`` and defining
+``get_modified_atoms``.
+
+Use this pattern:
+
+.. code-block:: python
+
+  from ase import Atoms
+  from gg.modifiers.modifiers import ParentModifier
+  from gg.utils import NoReasonableStructureFound
+
+  class RaiseTopLayer(ParentModifier):
+      """Example custom modifier that shifts selected atoms in +z."""
+
+      def __init__(self, z_shift: float = 0.1, weight: float = 1.0):
+          super().__init__(weight)
+          self.z_shift = z_shift
+
+      def get_modified_atoms(self, atoms: Atoms) -> Atoms:
+          # Always set self.atoms first so string/Atoms inputs are normalized
+          self.atoms = atoms
+
+          # Modify a copied Atoms object via self.atoms
+          top_z = max(a.position[2] for a in self.atoms)
+          for atom in self.atoms:
+              if atom.position[2] > top_z - 0.5:
+                  atom.position[2] += self.z_shift
+
+          # Raise NoReasonableStructureFound when the move is invalid
+          # raise NoReasonableStructureFound("No valid perturbation found")
+
+          return self.atoms
+
+Key points when implementing a new modifier:
+
+- Call ``super().__init__(weight)`` in your custom ``__init__``.
+- Set ``self.atoms = atoms`` at the top of ``get_modified_atoms``.
+  ``ParentModifier`` handles both file paths and ``ase.Atoms`` inputs.
+- Return an ``ase.Atoms`` object (or a list of them only for movie-like workflows).
+- Raise ``NoReasonableStructureFound`` when your attempted move cannot produce a valid structure.
+
+For modifiers that can return many candidates (``print_movie=True`` workflows), implement uniqueness filtering the same way as built-in modifiers:
+
+.. code-block:: python
+
+  from gg.utils_graph import get_unique_atoms
+
+  if self.unique:
+      return get_unique_atoms(
+          movie,
+          max_bond=self.max_bond,
+          max_bond_ratio=self.max_bond_ratio,
+          unique_method=self.unique_method,
+          depth=self.unique_depth,
+      )
+  else:
+      return movie
+
+This pattern ensures your custom modifier honors ``unique_method`` and ``unique_depth`` consistently.
+
+.. autoclass:: gg.modifiers.modifiers.ParentModifier
+  :members: get_modified_atoms, atoms
+  :undoc-members:
+  :show-inheritance:
+
