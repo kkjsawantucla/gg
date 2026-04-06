@@ -22,14 +22,21 @@ accept/reject safety checks.
 For examples, see the `gg/examples/ <https://github.com/kkjsawantucla/gg/blob/main/examples/>`_
 folder or the detailed explanation in :ref:`Examples`.
 
+.. autoclass:: gg.gcbh.Gcbh
+    :members: run
+    :undoc-members:
+    :show-inheritance:
+
+.. autoclass:: gg.gcbh.GcbhFlexOpt
+    :members: run
+    :undoc-members:
+    :show-inheritance:
+
 Attaching an ASE calculator (MACE, FAIR-Chem, NequIP)
 -----------------------------------------------------
 
 ``Gcbh`` requires ``atoms.calc`` to be set before initialization. Any ASE-compatible calculator
 can be used. Below are common ML calculator setups.
-
-MACE
-~~~~
 
 .. code-block:: python
 
@@ -40,46 +47,9 @@ MACE
     calc = mace_mp(model="medium-mpa-0", device="cuda")  # or device="cpu"
     atoms.calc = calc
 
-Meta FAIR-Chem (Open Catalyst / fairchem)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: python
-
-    from ase.io import read
-    from fairchem.core.common.relaxation.ase_utils import OCPCalculator
-
-    atoms = read("POSCAR")
-    calc = OCPCalculator(
-        model_name="eqv2_31M_omol",  # replace with your model name
-        checkpoint_path="path/to/checkpoint.pt",  # optional if model is cached
-        cpu=False,
-    )
-    atoms.calc = calc
-
-NequIP
-~~~~~~
-
-.. code-block:: python
-
-    from ase.io import read
-    from nequip.ase import NequIPCalculator
-
-    atoms = read("POSCAR")
-    calc = NequIPCalculator.from_deployed_model("path/to/nequip_model.pth")
-    atoms.calc = calc
-
 After attaching the calculator, create ``Gcbh(atoms, config_file="input.yaml")`` and add
 modifiers before calling ``run(...)``.
 
-.. autoclass:: gg.gcbh.Gcbh
-    :members: run
-    :undoc-members:
-    :show-inheritance:
-
-.. autoclass:: gg.gcbh.GcbhFlexOpt
-    :members: run
-    :undoc-members:
-    :show-inheritance:
 
 Attaching modifiers to GCBH
 ---------------------------
@@ -141,13 +111,13 @@ their defaults in :class:`gg.gcbh.Gcbh`.
 
 Parameter details:
 
+* ``chemical_potential`` (dict): Required mapping like ``{"Cu": -4.1, "O": -7.5}`` used to compute grand-canonical free energy ``F = E - sum(mu_i * n_i)``.
 * ``temp`` (float): Metropolis temperature (K-like scale used with ``kB`` in acceptance probability).
 * ``max_temp`` (float or null): Upper bound for adaptive temperature. If ``null``, set to ``1.5 * temp`` at startup.
 * ``min_temp`` (float or null): Lower bound for adaptive temperature. If ``null``, set to ``temp / 1.5`` at startup.
 * ``stop_steps`` (int): Stop basin-hopping after this many **consecutive** non-improving accepted/rejected steps.
 * ``stop_opt`` (int): Maximum geometry-optimization steps per trial move.
 * ``vasp_opt`` (bool): If ``true``, skip ASE optimizer and only evaluate potential energy/contact checks (useful with external workflows).
-* ``chemical_potential`` (dict): Required mapping like ``{"Cu": -4.1, "O": -7.5}`` used to compute grand-canonical free energy ``F = E - sum(mu_i * n_i)``.
 * ``max_history`` (int): Length of acceptance history window used to adapt temperature.
 * ``max_bond`` (float): Bond-length scaling factor used in graph construction/removal-site logic.
 * ``max_bond_ratio`` (float): Additional bond tolerance used by graph/modifier connectivity checks.

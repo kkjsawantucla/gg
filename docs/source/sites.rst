@@ -1,6 +1,9 @@
 Sites
 =========
 
+.. contents::
+    :local:
+
 The Sites class help make graphs for modifiers to work on and also determine the surface site for modifications.
 
 FlexibleSites

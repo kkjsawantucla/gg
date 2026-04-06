@@ -1,6 +1,9 @@
 Modifiers
 =========
 
+.. contents::
+    :local:
+
 The modifiers form the building block of the code. They determine how the atoms are modified during each basin hopping step. 
 The code provides basic modifiers as building blocks for more complex modifiers.
 
