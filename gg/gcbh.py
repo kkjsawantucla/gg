@@ -374,6 +374,7 @@ class Gcbh(Dynamics):
             if len(self.vib_correction) > 0:
                 corr_sum = 0
                 a = atoms.copy()
+                correction_terms = []
                 for key, value in self.vib_correction.items():
                     try:
                         ind_to_remove = value.get_ind_to_remove_list(a)
@@ -387,9 +388,17 @@ class Gcbh(Dynamics):
                         corr_value = value.weight
                         corr_sum += n * corr_value
                         self.logtxt(f"Adding correction {key}:{n}*{corr_value}")
+                        correction_terms.append(f"{key}:{n}*{corr_value:.6f}")
                         del a[[int(i) for i in flattened_list]]
+                if correction_terms:
+                    self.logtxt(
+                        f'Vibration correction results: {"; ".join(correction_terms)} => total {corr_sum:.6f} eV'
+                    )
+                else:
+                    self.logtxt("Vibration correction results: no correction terms found")
                 return corr_sum
             else:
+                self.logtxt("Vibration correction results: no correction modifiers added")
                 return 0
         else:
             return 0
@@ -453,6 +462,7 @@ class Gcbh(Dynamics):
         self.c["fe"] = self.c["energy"] - ref
         if self.c["vib_correction"]:
             self.c["fe"] += self.get_vib_correction(self.atoms)
+        self.c["fe"] = self._normalize_by_area(self.c["fe"], self.atoms)
         self.c["fe_min"] = self.c["fe"]
         self.c["opt_on"] = -1
         self.dump(self.status_file)
@@ -464,10 +474,15 @@ class Gcbh(Dynamics):
         self.lm_trajectory.write(self.atoms, energy=en, accept=1)
         if self.c["area"]:
             en = en / get_area(self.atoms)
-            self.c["fe"] = self.c["fe"] / get_area(self.atoms)
         self.logtxt(
             f'Atoms: {formula} E(initial): {en:.2f} F(initial) {self.c["fe"]:.2f}'
         )
+
+    def _normalize_by_area(self, value: float, atoms: Atoms) -> float:
+        """Normalize thermodynamic quantity by area if requested."""
+        if self.c["area"]:
+            return value / get_area(atoms)
+        return value
 
     def run(self, steps: int = 4000, maximum_trial: int = 30):
         """
@@ -551,6 +566,7 @@ class Gcbh(Dynamics):
         fn = en - self.get_ref_potential(newatoms)  # Free_energy_new
         if self.c["vib_correction"]:
             fn += self.get_vib_correction(newatoms)
+        fn = self._normalize_by_area(fn, newatoms)
 
         if fn < self.c["fe"]:
             accept = True
