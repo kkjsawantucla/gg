@@ -292,12 +292,20 @@ class Gcbh(Dynamics):
         """
         if name in self.vib_correction:
             raise RuntimeError(f"Correction: {name} exists already!\n")
+
+        previous_correction = 0
+        if self.c["vib_correction"]:
+            previous_correction = self.get_vib_correction(self.atoms)
         self.vib_correction[name] = instance
 
         # Update fe
         if self.c["vib_correction"]:
             self.logtxt(f"Updating F according to {name}")
-            self.c["fe"] += self.get_vib_correction(self.atoms)
+            total_correction = self.get_vib_correction(self.atoms)
+            correction = total_correction - previous_correction
+            correction = self._normalize_by_area(correction, self.atoms)
+            self.c["fe"] += correction
+            self.logtxt(f'Updated F after {name}: {self.c["fe"]:.6f}')
             self.c["fe_min"] = self.c["fe"]
         return
 
