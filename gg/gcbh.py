@@ -472,8 +472,6 @@ class Gcbh(Dynamics):
         self.append_graph(self.atoms, unique_method=self.c["graph_method"])
         self.traj.write(self.atoms, energy=en)
         self.lm_trajectory.write(self.atoms, energy=en, accept=1)
-        if self.c["area"]:
-            en = en / get_area(self.atoms)
         self.logtxt(
             f'Atoms: {formula} E(initial): {en:.2f} F(initial) {self.c["fe"]:.2f}'
         )
