@@ -851,6 +851,9 @@ class GcbhFlexOpt(Gcbh):
             fn = os.path.join(subdir, "opt.traj")
             assert os.path.isfile(fn)
             atoms = read(fn)
+            self.logtxt(
+                f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
+            )
         finally:
             os.chdir(topdir)
         en = atoms.get_potential_energy()
