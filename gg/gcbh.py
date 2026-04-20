@@ -638,6 +638,7 @@ class Gcbh(Dynamics):
     def optimize(self, atoms: Atoms):
         """Optimize atoms"""
         optimizer = self.optimizer
+        completed_msg = None
         if atoms.calc is None:
             atoms.calc = self.calc
 
@@ -670,7 +671,7 @@ class Gcbh(Dynamics):
                     self.c["opt_on"] = -1
                 else:
                     atoms.write("CONTCAR", format="vasp")
-                    self.logtxt(
+                    completed_msg = (
                         f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
                     )
                 en = atoms.get_potential_energy()
@@ -684,6 +685,8 @@ class Gcbh(Dynamics):
             en = -1e6
         finally:
             os.chdir(topdir)
+            if completed_msg is not None:
+                self.logtxt(completed_msg)
         return atoms, en
 
     def append_graph(self, atoms, unique_method="fullgraph"):
@@ -815,6 +818,7 @@ class GcbhFlexOpt(Gcbh):
 
     def optimize(self, atoms: Atoms):
         """Optimize atoms"""
+        completed_msg = None
 
         self.logtxt(
             f'{get_current_time()}: Begin structure optimization routine at step {self.c["nsteps"]}'
@@ -851,8 +855,13 @@ class GcbhFlexOpt(Gcbh):
             fn = os.path.join(subdir, "opt.traj")
             assert os.path.isfile(fn)
             atoms = read(fn)
+            completed_msg = (
+                f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
+            )
         finally:
             os.chdir(topdir)
+            if completed_msg is not None:
+                self.logtxt(completed_msg)
         en = atoms.get_potential_energy()
         if self._reject_touching_atoms(atoms):
             en = 1e6
