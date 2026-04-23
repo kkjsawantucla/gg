@@ -253,12 +253,6 @@ def get_entries_from_folders(
     mu = read_chemical_potential(mu_path)
     entries = []
     candidates = []
-    for base_folder in base_folders:
-        for root, _, files in os.walk(base_folder):
-            if file_type[0] in files and file_type[1] in files:
-                contcar_path = os.path.join(root, file_type[1])
-                en_path = os.path.join(root, file_type[0])
-                candidates.append((root, contcar_path, en_path))
 
     with Progress(
         TextColumn("{task.description}"),
@@ -266,6 +260,17 @@ def get_entries_from_folders(
         TextColumn("{task.completed}/{task.total}"),
         TimeElapsedColumn(),
     ) as progress:
+        scan_task = progress.add_task(
+            "Scanning base folders", total=len(base_folders)
+        )
+        for base_folder in base_folders:
+            for root, _, files in os.walk(base_folder):
+                if file_type[0] in files and file_type[1] in files:
+                    contcar_path = os.path.join(root, file_type[1])
+                    en_path = os.path.join(root, file_type[0])
+                    candidates.append((root, contcar_path, en_path))
+            progress.advance(scan_task)
+
         task = progress.add_task(
             "Processing phase diagram entries", total=len(candidates)
         )
