@@ -647,6 +647,7 @@ class Gcbh(Dynamics):
         opt_dir = self.opt_folder
         topdir = os.getcwd()
         subdir = os.path.join(topdir, opt_dir, f'opt_{self.c["nsteps"]}')
+        optimization_completed = False
         if not os.path.isdir(subdir):
             os.makedirs(subdir)
         os.chdir(subdir)
@@ -655,6 +656,7 @@ class Gcbh(Dynamics):
                 en = atoms.get_potential_energy()
                 if self._reject_touching_atoms(atoms):
                     en = -1e6
+                optimization_completed = True
             else:
                 atoms.write("POSCAR", format="vasp")
                 dyn = optimizer(atoms, logfile="opt.log")
@@ -670,9 +672,7 @@ class Gcbh(Dynamics):
                     self.c["opt_on"] = -1
                 else:
                     atoms.write("CONTCAR", format="vasp")
-                    self.logtxt(
-                        f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
-                    )
+                    optimization_completed = True
                 en = atoms.get_potential_energy()
                 if self._reject_touching_atoms(atoms):
                     en = -1e6
@@ -684,6 +684,13 @@ class Gcbh(Dynamics):
             en = -1e6
         finally:
             os.chdir(topdir)
+        if optimization_completed:
+            try:
+                self.logtxt(
+                    f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
+                )
+            except Exception:  # pragma: no cover - logging must not override optimization outcome
+                pass
         return atoms, en
 
     def append_graph(self, atoms, unique_method="fullgraph"):
@@ -824,6 +831,7 @@ class GcbhFlexOpt(Gcbh):
         opt_dir = self.opt_folder
         topdir = os.getcwd()
         subdir = os.path.join(topdir, opt_dir, f'opt_{self.c["nsteps"]}')
+        optimization_completed = False
         if not os.path.isdir(subdir):
             os.makedirs(subdir)
 
@@ -851,11 +859,16 @@ class GcbhFlexOpt(Gcbh):
             fn = os.path.join(subdir, "opt.traj")
             assert os.path.isfile(fn)
             atoms = read(fn)
-            self.logtxt(
-                f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
-            )
+            optimization_completed = True
         finally:
             os.chdir(topdir)
+        if optimization_completed:
+            try:
+                self.logtxt(
+                    f'{get_current_time()}: Structure optimization completed for {self.c["nsteps"]}'
+                )
+            except Exception:  # pragma: no cover - logging must not override optimization outcome
+                pass
         en = atoms.get_potential_energy()
         if self._reject_touching_atoms(atoms):
             en = 1e6
