@@ -251,81 +251,71 @@ def get_entries_from_folders(
         List[Phasediagramentry]: Filtered entries
     """
     mu = read_chemical_potential(mu_path)
-    entries = []
-    candidates = []
+    entries_by_stoich = {}
 
     with Progress(
         TextColumn("{task.description}"),
         BarColumn(),
-        TextColumn("{task.completed}/{task.total}"),
+        TextColumn("{task.completed}"),
         TimeElapsedColumn(),
     ) as progress:
         scan_task = progress.add_task(
-            "Scanning base folders", total=len(base_folders)
+            "Scanning and processing phase diagram entries", total=None
         )
         for base_folder in base_folders:
             for root, _, files in os.walk(base_folder):
-                if file_type[0] in files and file_type[1] in files:
-                    contcar_path = os.path.join(root, file_type[1])
-                    en_path = os.path.join(root, file_type[0])
-                    candidates.append((root, contcar_path, en_path))
-            progress.advance(scan_task)
+                if file_type[0] not in files or file_type[1] not in files:
+                    continue
 
-        task = progress.add_task(
-            "Processing phase diagram entries", total=len(candidates)
-        )
-        for root, contcar_path, en_path in candidates:
-            # extract energy
-            if file_type[0] == "OSZICAR":
-                energy = extract_lowest_energy_from_oszicar(en_path)
-            elif file_type[0].endswith(".log"):
-                energy = extract_lowest_energy_from_outlog(en_path)
-            else:
-                raise RuntimeError("Unsupported energy file type.")
+                contcar_path = os.path.join(root, file_type[1])
+                en_path = os.path.join(root, file_type[0])
+                # extract energy
+                if file_type[0] == "OSZICAR":
+                    energy = extract_lowest_energy_from_oszicar(en_path)
+                elif file_type[0].endswith(".log"):
+                    energy = extract_lowest_energy_from_outlog(en_path)
+                else:
+                    raise RuntimeError("Unsupported energy file type.")
 
-            if energy is None:
-                progress.advance(task)
-                continue
+                if energy is None:
+                    progress.advance(scan_task)
+                    continue
 
-            atoms = read(contcar_path, format="vasp")
-            area = get_area(atoms)
-            ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
-            vib_corr = get_vib_correction(atoms, vib_corrections)
-            final_energy = (energy - ref_sum + vib_corr) / area
-            n1_slope = n1_slope / area
-            n2_slope = n2_slope / area
-            stoich_formula = atoms.get_chemical_formula()
-            entry_id = (
-                os.path.basename(root).replace("/", "_") + "_" + str(stoich_formula)
-            )
-            new_entry = PhaseEntry(
-                enid=entry_id,
-                energy=final_energy,
-                n1=n1_slope,
-                n2=n2_slope,
-                stoich=stoich_formula,
-            )
+                atoms = read(contcar_path, format="vasp")
+                area = get_area(atoms)
+                ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
+                vib_corr = get_vib_correction(atoms, vib_corrections)
+                final_energy = (energy - ref_sum + vib_corr) / area
+                n1_slope = n1_slope / area
+                n2_slope = n2_slope / area
+                stoich_formula = atoms.get_chemical_formula()
+                entry_id = (
+                    os.path.basename(root).replace("/", "_") + "_" + str(stoich_formula)
+                )
+                new_entry = PhaseEntry(
+                    enid=entry_id,
+                    energy=final_energy,
+                    n1=n1_slope,
+                    n2=n2_slope,
+                    stoich=stoich_formula,
+                )
 
-            # check for existing same stoichiometry
-            replaced = False
-            for idx, existing in enumerate(entries):
-                if existing.stoich == new_entry.stoich:
-                    # keep lower energy
-                    if new_entry.energy < existing.energy:
-                        print(
-                            f"Replacing {existing.enid} with {new_entry.enid} for stoich={new_entry.stoich}"
-                        )
-                        entries[idx] = new_entry
-                    else:
-                        print(
-                            f"Skipping {new_entry.enid} (higher energy than existing {existing.enid})"
-                        )
-                    replaced = True
-                    break
+                existing = entries_by_stoich.get(new_entry.stoich)
+                if existing is None:
+                    entries_by_stoich[new_entry.stoich] = new_entry
+                elif new_entry.energy < existing.energy:
+                    print(
+                        f"Replacing {existing.enid} with {new_entry.enid} for stoich={new_entry.stoich}"
+                    )
+                    entries_by_stoich[new_entry.stoich] = new_entry
+                else:
+                    print(
+                        f"Skipping {new_entry.enid} (higher energy than existing {existing.enid})"
+                    )
 
-            if not replaced:
-                entries.append(new_entry)
-            progress.advance(task)
+                progress.advance(scan_task)
+
+        entries = list(entries_by_stoich.values())
 
     # always include a zero-energy reference
     if reference:
