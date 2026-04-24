@@ -15,4 +15,5 @@ g(raph)-g(cbh) Documentation
    modifiers
    command_line
    examples
+   helper
    support
