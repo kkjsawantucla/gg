@@ -2,6 +2,7 @@
 
 import os
 import json
+from typing import Optional
 from dataclasses import dataclass, field, asdict
 from functools import cmp_to_key
 import yaml
@@ -227,9 +228,47 @@ def get_vib_correction(atoms: Atoms, vib_corrections: dict) -> float:
     return corr_sum
 
 
+def check_energy_outliers(entries: list[PhaseEntry], threshold: float = 1.5) -> None:
+    """
+    Check for outlier energies in the entries using IQR method and print warnings.
+
+    Args:
+        entries (list[PhaseEntry]): List of phase diagram entries
+        threshold (float): Multiplier for IQR to define outlier bounds (default 1.5)
+    """
+    if len(entries) < 4:
+        print("Warning: Not enough entries to reliably detect outliers (need at least 4).")
+        return
+
+    energies = [entry.energy for entry in entries]
+
+    # Calculate quartiles
+    q1 = np.percentile(energies, 25)
+    q3 = np.percentile(energies, 75)
+    iqr = q3 - q1
+
+    # Define outlier bounds
+    lower_bound = q1 - threshold * iqr
+    upper_bound = q3 + threshold * iqr
+
+    outliers = []
+    for entry in entries:
+        if entry.energy < lower_bound or entry.energy > upper_bound:
+            outliers.append(entry)
+
+    if outliers:
+        print(f"Warning: Found {len(outliers)} outlier energy entries:")
+        for outlier in outliers:
+            status = "too low" if outlier.energy < lower_bound else "too high"
+            print(f"  - {outlier.enid}: energy = {outlier.energy:.4f} eV (outlier - {status})")
+        print(f"Outlier bounds: [{lower_bound:.4f}, {upper_bound:.4f}] eV")
+    else:
+        print("No energy outliers detected.")
+
+
 def get_entries_from_folders(
-    n1,
-    n2,
+    n1: str,
+    n2: str,
     base_folders=["./"],
     mu_path="./input.yaml",
     file_type=["OSZICAR", "CONTCAR"],
@@ -304,14 +343,7 @@ def get_entries_from_folders(
                 if existing is None:
                     entries_by_stoich[new_entry.stoich] = new_entry
                 elif new_entry.energy < existing.energy:
-                    print(
-                        f"Replacing {existing.enid} with {new_entry.enid} for stoich={new_entry.stoich}"
-                    )
                     entries_by_stoich[new_entry.stoich] = new_entry
-                else:
-                    print(
-                        f"Skipping {new_entry.enid} (higher energy than existing {existing.enid})"
-                    )
 
                 progress.advance(scan_task)
 
@@ -322,6 +354,10 @@ def get_entries_from_folders(
         ref_entry = PhaseEntry(enid="Reference", energy=reference, n1=0.0, n2=0.0)
         entries.append(ref_entry)
     print(f"Number of unique entries found: {len(entries)}")
+
+    # Check for energy outliers
+    check_energy_outliers(entries)
+
     return entries
 
 
@@ -345,21 +381,50 @@ def load_entries(filename: str):
 
 
 def plot_phase_diagram_from_run(
-    n1,
-    n2,
-    limits=[[-3.5, -1.5], [-1, 0.5]],
-    base_folders=["./"],
-    mu_path="./input.yaml",
-    file_type=["OSZICAR", "CONTCAR"],
-    read_from_file=False,
-    annotate=True,
-    number_labels=True,
-    vib_corrections=None,
+    n1: str,
+    n2: str,
+    limits: Optional[list] = [[-3.5, -1.5], [-1, 0.5]],
+    base_folders: Optional[list] = ["./"],
+    mu_path: Optional[str] = "./input.yaml",
+    file_type: Optional[list] = ["OSZICAR", "CONTCAR"],
+    read_from_file: Optional[bool] = False,
+    annotate: Optional[bool] = True,
+    number_labels: Optional[bool] = True,
+    vib_corrections: Optional[dict] =None,
 ):
-    """Generate and plot a phase diagram from relaxed structures."""
+    """
+    Generate and plot a phase diagram from relaxed structures.
+
+    This function automatically scans directories for VASP calculation results,
+    processes the entries, and generates a 2D phase diagram.
+
+    Args:
+        n1 (str): Chemical species for x-axis
+        n2 (str): Chemical species for y-axis
+        limits (list, optional): Plot limits [[xmin,xmax],[ymin,ymax]]
+        base_folders (list, optional): List of directories to scan for calculations
+        mu_path (str, optional): Path to YAML file with chemical potentials
+        file_type (list, optional): File types to look for [energy_file, structure_file]
+        read_from_file (bool or str, optional): If True/str, load entries from saved JSON file
+        annotate (bool, optional): Whether to annotate regions in the plot
+        number_labels (bool, optional): Use numeric labels instead of full entry IDs
+        vib_corrections (dict, optional): Vibration correction modifiers
+
+    Returns:
+        None: Saves phase diagram plot and entries JSON file
+
+    Note:
+        Automatically checks for energy outliers and prints warnings to console.
+        Requires at least 4 entries for reliable outlier detection.
+    """
+    assert isinstance(base_folders, list), "base_folders must be a list of folder paths."
+    assert os.path.isfile(mu_path), f"mu_path does not exist or is not a file: {mu_path}"
 
     print(f"Generating entries for plotting from {base_folders} folder")
     mu = read_chemical_potential(mu_path)
+    assert n1 in mu, f"{n1} was not found in chemical_potential from {mu_path}."
+    assert n2 in mu, f"{n2} was not found in chemical_potential from {mu_path}."
+
     print(f"x-axis is {n1}: {mu[str(n1)]}eV")
     print(f"y-axis is {n2}: {mu[str(n2)]}eV")
     if read_from_file and os.path.isfile(read_from_file):
