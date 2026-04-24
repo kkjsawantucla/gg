@@ -66,7 +66,7 @@ Example:
         "H2O",                             # x-axis chemical potential species
         "H2",                              # y-axis chemical potential species
         limits=[[-15, -10], [-10, -5]],    # Limits for x and y axis
-        base_folders=".",                  # Current Folder
+        base_folders=["./"],                  # Current Folder
         mu_path="input.yaml",              # must contain chemical potential for each species encountered
         file_type=["opt.log", "CONTCAR"],  # Files to read energy and structure from
         vib_corrections={"OH": vibOH, "H": vibH}, # Attach vibrations correction as a class
