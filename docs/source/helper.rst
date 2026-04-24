@@ -40,3 +40,34 @@ Notes:
 - ``base_folders`` can include multiple runs to combine structures into one diagram.
 - ``file_type`` should match how energies/structures are stored in your calculation outputs.
 - If you already generated entries once, set ``read_from_file`` to that JSON file path for faster re-plotting.
+
+Using ``vib_corrections``
+-------------------------
+
+You can pass ``vib_corrections`` to include approximate vibrational free-energy
+corrections for adsorbates while constructing phase entries. The value should be
+a dictionary mapping species labels (for example ``"OH"`` or ``"H"``) to configured
+modifier objects.
+
+Example:
+
+.. code-block:: python
+
+    from gg.modifiers import Remove
+    from gg.predefined_sites import FlexibleSites
+    from gg.phase_diag import plot_phase_diagram_from_run
+
+    FS2 = FlexibleSites(constraints=True, com=0.75)
+    vibOH = Remove(FS2, "OH", weight=0.20)
+    vibH = Remove(FS2, "H", weight=0.15)
+
+    fig = plot_phase_diagram_from_run(
+        "H2O",
+        "H2",
+        limits=[[-15, -10], [-10, -5]],
+        base_folders="./Mie/",
+        mu_path="./Mie/input.yaml",
+        file_type=["opt.log", "CONTCAR"],
+        vib_corrections={"OH": vibOH, "H": vibH},
+        annotate=True,
+    )
