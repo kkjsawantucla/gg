@@ -18,14 +18,13 @@ constructs phase entries using the chemical potentials in ``input.yaml``, builds
     plot_phase_diagram_from_run(
         n1="O",                          # x-axis chemical potential species
         n2="H",                          # y-axis chemical potential species
-        limits=[[-3.5, -1.5], [-1.0, 0.5]],
+        limits=[[-3.5, -1.5], [-1.0, 0.5]], # limits for x and y axis respectively
         base_folders=["./"],             # one or more GCBH run directories
-        mu_path="./input.yaml",          # must contain chemical_potential
-        file_type=["OSZICAR", "CONTCAR"],
+        mu_path="./input.yaml",          # must contain chemical potential for each species encountered
+        file_type=["OSZICAR", "CONTCAR"], # Files to read energy and structure from
         read_from_file=False,             # or path like "entries_O_H.json" to reuse entries
-        annotate=True,
+        annotate=True, 
         number_labels=True,
-        vib_corrections=None,
     )
 
 Typical workflow:
@@ -47,7 +46,7 @@ Using ``vib_corrections``
 You can pass ``vib_corrections`` to include approximate vibrational free-energy
 corrections for adsorbates while constructing phase entries. The value should be
 a dictionary mapping species labels (for example ``"OH"`` or ``"H"``) to configured
-modifier objects.
+modifier Remove objects.
 
 Example:
 
@@ -55,19 +54,20 @@ Example:
 
     from gg.modifiers import Remove
     from gg.predefined_sites import FlexibleSites
-    from gg.phase_diag import plot_phase_diagram_from_run
 
+    # Build Remove Modifiers to identify specific moeities on the surface
     FS2 = FlexibleSites(constraints=True, com=0.75)
     vibOH = Remove(FS2, "OH", weight=0.20)
     vibH = Remove(FS2, "H", weight=0.15)
 
+    # Pass the Modifiers as a dictionary for each moeity. It will be parsed in order.
+    from gg.phase_diag import plot_phase_diagram_from_run
     fig = plot_phase_diagram_from_run(
-        "H2O",
-        "H2",
-        limits=[[-15, -10], [-10, -5]],
-        base_folders="./Mie/",
-        mu_path="./Mie/input.yaml",
-        file_type=["opt.log", "CONTCAR"],
-        vib_corrections={"OH": vibOH, "H": vibH},
-        annotate=True,
+        "H2O",                             # x-axis chemical potential species
+        "H2",                              # y-axis chemical potential species
+        limits=[[-15, -10], [-10, -5]],    # Limits for x and y axis
+        base_folders=".",                  # Current Folder
+        mu_path="input.yaml",              # must contain chemical potential for each species encountered
+        file_type=["opt.log", "CONTCAR"],  # Files to read energy and structure from
+        vib_corrections={"OH": vibOH, "H": vibH}, # Attach vibrations correction as a class
     )
