@@ -24,7 +24,6 @@ from gg.utils import (
     sort_atoms,
     extract_lowest_energy_from_oszicar,
     extract_lowest_energy_from_outlog,
-    get_modifier_target_symbols,
 )
 from gg.utils_graph import atoms_to_graph, is_unique_graph
 from gg.logo import logo
