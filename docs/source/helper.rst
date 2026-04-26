@@ -24,7 +24,7 @@ constructs phase entries using the chemical potentials in ``input.yaml``, builds
         file_type=["OSZICAR", "CONTCAR"], # Files to read energy and structure from
         read_from_file=False,             # or path like "entries_O_H.json" to reuse entries
         annotate=True, 
-        number_labels=True,
+        annotation_style="stoich",         # "number", "enid", or "stoich"
     )
 
 Typical workflow:

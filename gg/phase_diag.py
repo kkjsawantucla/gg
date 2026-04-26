@@ -2,6 +2,7 @@
 
 import os
 import json
+import re
 from typing import Optional
 from dataclasses import dataclass, field, asdict
 from functools import cmp_to_key
@@ -30,6 +31,25 @@ class PhaseEntry:
     n1: float  # Slope coefficient for species 1
     n2: float  # Slope coefficient for species 2
     stoich: str = field(default=None, compare=False)  # Chemical formula string
+
+
+def _format_stoich_label(formula):
+    """
+    Format a chemical formula for matplotlib with numeric counts as subscripts.
+    """
+    if not formula:
+        return formula
+
+    tokens = re.findall(r"([A-Z][a-z]?)(\d*)", formula)
+    if not tokens or "".join(element + count for element, count in tokens) != formula:
+        return formula
+
+    parts = []
+    for element, count in tokens:
+        parts.append(rf"\mathrm{{{element}}}")
+        if count:
+            parts.append(rf"_{{{count}}}")
+    return "$" + "".join(parts) + "$"
 
 
 # From Pymatgen
@@ -105,7 +125,8 @@ def phase_diagram_plot(
     ylabel="2",
     annotate=False,
     mu=None,
-    number_labels=True,  # NEW ─ turn numeric labelling on/off
+    number_labels=True,
+    annotation_style=None,
 ):
     """
     Args:
@@ -116,8 +137,18 @@ def phase_diagram_plot(
         annotate (bool): write labels inside the regions
         mu (dict|None): draw reference lines if given
         number_labels (bool): when annotate is True, write numbers
-                              instead of full enid and print a legend
+                              instead of full enid and print a legend.
+                              Ignored when annotation_style is provided.
+        annotation_style (str|None): one of "number", "enid", or "stoich".
+                                     Defaults to number_labels behavior.
     """
+    if annotation_style is None:
+        annotation_style = "number" if number_labels else "enid"
+    if annotation_style not in {"number", "enid", "stoich"}:
+        raise ValueError(
+            'annotation_style must be one of "number", "enid", or "stoich".'
+        )
+
     # --- plot each domain ---------------------------------------------------
     mapping = []
     for idx, (entry, vertices) in enumerate(stable_domain_vertices.items(), start=1):
@@ -126,11 +157,16 @@ def phase_diagram_plot(
         plt.plot(x, y, "k-")
 
         if annotate:
-            label = str(idx) if number_labels else entry.enid
+            if annotation_style == "number":
+                label = str(idx)
+            elif annotation_style == "stoich":
+                label = _format_stoich_label(entry.stoich) or entry.enid
+            else:
+                label = entry.enid
             plt.annotate(
                 label, center, ha="center", va="center", fontsize=18, color="b"
             ).draggable()
-        if number_labels:
+        if annotation_style == "number":
             mapping.append(f"{idx}: {entry.enid}")
 
     # --- axes limits / labels ----------------------------------------------
@@ -155,7 +191,7 @@ def phase_diagram_plot(
         plt.axvline(x=mu[str(xlabel)], color='r', linestyle="--")
 
     # --- print legend of numbers vs enid ------------------------------------
-    if annotate and number_labels and mapping:
+    if annotate and mapping:
         legend_text = "\n".join(mapping)
         # place it just below the axes; tweak y-offset as needed
         plt.gcf().text(0.01, -0.08, legend_text, ha="left", va="top", fontsize=12)
@@ -390,6 +426,7 @@ def plot_phase_diagram_from_run(
     read_from_file: Optional[bool] = False,
     annotate: Optional[bool] = True,
     number_labels: Optional[bool] = True,
+    annotation_style: Optional[str] = None,
     vib_corrections: Optional[dict] =None,
 ):
     """
@@ -408,6 +445,9 @@ def plot_phase_diagram_from_run(
         read_from_file (bool or str, optional): If True/str, load entries from saved JSON file
         annotate (bool, optional): Whether to annotate regions in the plot
         number_labels (bool, optional): Use numeric labels instead of full entry IDs
+        annotation_style (str, optional): Annotation label style. Use "number" for
+            numeric labels with a legend, "enid" for entry IDs, or "stoich" for
+            stoichiometry-only labels.
         vib_corrections (dict, optional): Vibration correction modifiers
 
     Returns:
@@ -452,6 +492,7 @@ def plot_phase_diagram_from_run(
         annotate=annotate,
         mu=mu,
         number_labels=number_labels,
+        annotation_style=annotation_style,
     )
 
     return
