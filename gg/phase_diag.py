@@ -310,6 +310,8 @@ def get_entries_from_folders(
     file_type=["OSZICAR", "CONTCAR"],
     reference=None,
     vib_corrections=None,
+    normalize_by: str = "area",
+    area_plane: str = "xy",
 ):
     """
     Walk through subdirectories to collect entries, keeping only one per stoichiometry
@@ -321,12 +323,18 @@ def get_entries_from_folders(
         mu_path (str): Path to YAML file with chemical potentials
         file_type (list): [energy file, structure file]
         vib_corrections (dict|None): Optional vibration correction modifiers.
+        normalize_by (str): Normalization basis; either "area" or "atoms".
+        area_plane (str): Plane used for area normalization (e.g., "xy", "yz", "xz").
 
     Returns:
         List[Phasediagramentry]: Filtered entries
     """
     mu = read_chemical_potential(mu_path)
     entries_by_stoich = {}
+
+    normalize_key = normalize_by.lower()
+    if normalize_key not in {"area", "atoms"}:
+        raise ValueError('normalize_by must be either "area" or "atoms".')
 
     with Progress(
         TextColumn("{task.description}"),
@@ -357,12 +365,19 @@ def get_entries_from_folders(
                     continue
 
                 atoms = read(contcar_path, format="vasp")
-                area = get_area(atoms)
+                if normalize_key == "area":
+                    norm_factor = get_area(atoms, plane=area_plane)
+                else:
+                    norm_factor = len(atoms)
+                    if norm_factor == 0:
+                        progress.advance(scan_task)
+                        continue
+
                 ref_sum, n1_slope, n2_slope = get_ref_potential(mu, atoms, n1, n2)
                 vib_corr = get_vib_correction(atoms, vib_corrections)
-                final_energy = (energy - ref_sum + vib_corr) / area
-                n1_slope = n1_slope / area
-                n2_slope = n2_slope / area
+                final_energy = (energy - ref_sum + vib_corr) / norm_factor
+                n1_slope = n1_slope / norm_factor
+                n2_slope = n2_slope / norm_factor
                 stoich_formula = atoms.get_chemical_formula()
                 entry_id = (
                     os.path.basename(root).replace("/", "_") + "_" + str(stoich_formula)
@@ -428,6 +443,8 @@ def plot_phase_diagram_from_run(
     number_labels: Optional[bool] = True,
     annotation_style: Optional[str] = None,
     vib_corrections: Optional[dict] =None,
+    normalize_by: Optional[str] = "area",
+    area_plane: Optional[str] = "xy",
 ):
     """
     Generate and plot a phase diagram from relaxed structures.
@@ -449,6 +466,8 @@ def plot_phase_diagram_from_run(
             numeric labels with a legend, "enid" for entry IDs, or "stoich" for
             stoichiometry-only labels.
         vib_corrections (dict, optional): Vibration correction modifiers
+        normalize_by (str, optional): Normalize by "area" (default) or "atoms".
+        area_plane (str, optional): Plane for area normalization, default "xy".
 
     Returns:
         None: Saves phase diagram plot and entries JSON file
@@ -478,6 +497,8 @@ def plot_phase_diagram_from_run(
             mu_path=mu_path,
             file_type=file_type,
             vib_corrections=vib_corrections,
+            normalize_by=normalize_by,
+            area_plane=area_plane,
         )
         json_path = os.path.join("./", f"entries_{n1}_{n2}.json")
         save_entries(entries, json_path)
